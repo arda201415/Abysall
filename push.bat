@@ -1,6 +1,8 @@
 @echo off
 git add .
-git commit -m "auto update: %date% %time%"
+git commit -m "Auto update: %DATE% %TIME%"
 git push origin main
-echo OK kanka hallettim!
+echo.
+echo OK kanka hallettim, GitHub guncellendi!
+echo.
 pause
