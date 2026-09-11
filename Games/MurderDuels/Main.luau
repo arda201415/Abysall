@@ -73,14 +73,10 @@ Groupboxes.Combat_Aim:AddToggle("AimbotEnabled", {
     Tooltip = "Kamerayi en yakin dusmana kilitler. FPS oldugu icin atis server'a isabetli gider.",
 })
 Toggles.AimbotEnabled:AddKeyPicker("AimbotKey", {
-<<<<<<< HEAD
     Text = "Aimbot Key", Default = "Q", Mode = "Hold", SyncToggleState = false,
 })
 Groupboxes.Combat_Aim:AddToggle("AimbotUseRMB", {
     Text = "Sag Click ile de calissin", Default = true,
-=======
-    Text = "Aimbot Key", Default = "MouseButton2", Mode = "Hold", SyncToggleState = false,
->>>>>>> 9fd6495987acf258fe2ef09198420edce8e0383b
 })
 Groupboxes.Combat_Aim:AddDropdown("AimbotPart", {
     Text = "Hedef Parca", Values = { "Head", "HumanoidRootPart" }, Default = 1,
@@ -156,7 +152,6 @@ local function GetClosestTarget()
 end
 
 Services.RunService.RenderStepped:Connect(function()
-<<<<<<< HEAD
     if Toggles.AimbotEnabled and Toggles.AimbotEnabled.Value then
         local HoldingKey = Options.AimbotKey and Options.AimbotKey:GetState()
         local HoldingRMB = Toggles.AimbotUseRMB and Toggles.AimbotUseRMB.Value and Services.UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2)
@@ -165,12 +160,6 @@ Services.RunService.RenderStepped:Connect(function()
             if Target then
                 Camera.CFrame = CFrame.new(Camera.CFrame.Position, Target.Position)
             end
-=======
-    if Toggles.AimbotEnabled and Toggles.AimbotEnabled.Value and Options.AimbotKey:GetState() then
-        local Target = GetClosestTarget()
-        if Target then
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, Target.Position)
->>>>>>> 9fd6495987acf258fe2ef09198420edce8e0383b
         end
     end
 end)

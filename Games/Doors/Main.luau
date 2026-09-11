@@ -469,11 +469,7 @@ Globals.DoorsNotify = function(NotifyOptions)
 	end)
 end
 
-<<<<<<< HEAD
 Globals.STX = loadstring(game:HttpGet("https://raw.githubusercontent.com/arda201415/Abysall/refs/heads/main/Components/STX.luau"))()
-=======
-Globals.STX = loadstring(game:HttpGet("https://raw.githubusercontent.com/bocaj111004/Abysall/refs/heads/main/Components/STX.luau"))()
->>>>>>> 9fd6495987acf258fe2ef09198420edce8e0383b
 Functions.Notify = function(Settings)
 	local HiddenContainer = GetHiddenContainer()
 
@@ -1411,6 +1407,9 @@ Toggles.VelocityManipulationToggle:AddKeyPicker("VelocityManipulationKeybind", {
 Groupboxes.Exploits_BypassRight:AddDropdown("VelocityManipulationMode", {
 	Values = {"Velocity", "Pivot"}, Text = "Manipulation Method",
 	Default = 1,
+})
+Groupboxes.Exploits_BypassRight:AddSlider("VelocityManipulationSpeed", {
+	Text = "Manipulation Speed", Min = 1, Max = 20, Default = 7, Rounding = 1, Compact = true,
 })
 
 Groupboxes.Exploits_BypassRight:AddDivider()
@@ -2517,11 +2516,7 @@ Groupboxes.Floors_Farming:AddButton({
 	DoubleClick = true,
 	Tooltip = "Automatically farms deaths, joining new runs.",
 	Func = function()
-<<<<<<< HEAD
 		loadstring(game:HttpGet("https://raw.githubusercontent.com/arda201415/Abysall/refs/heads/main/Scripts/DeathFarm.luau"))()
-=======
-		loadstring(game:HttpGet("https://raw.githubusercontent.com/bocaj111004/Abysall/refs/heads/main/Scripts/DeathFarm.luau"))()
->>>>>>> 9fd6495987acf258fe2ef09198420edce8e0383b
 	end,
 
 	Disabled = not Functions.CheckCompatability({"fireproximityprompt", "firesignal"}),
@@ -2533,11 +2528,7 @@ Groupboxes.Floors_Farming:AddButton({
 	Tooltip = "Copies the death farm loadstring to your clipboard.",
 	Func = function()
 		toclipboard([==[
-<<<<<<< HEAD
 			loadstring(game:HttpGet("https://raw.githubusercontent.com/arda201415/Abysall/refs/heads/main/Scripts/DeathFarm.luau"))()
-=======
-			loadstring(game:HttpGet("https://raw.githubusercontent.com/bocaj111004/Abysall/refs/heads/main/Scripts/DeathFarm.luau"))()
->>>>>>> 9fd6495987acf258fe2ef09198420edce8e0383b
 		]==])
 		Library:Notify("Loadstring has been copied to your clipboard.")
 	end,
@@ -3116,7 +3107,7 @@ Functions.HandleCharacter = function(NewCharacter)
 
 		if Toggles.VelocityManipulationToggle.Value and Options.VelocityManipulationMode.Value == "Velocity" then
 			Globals.ManipulateBody.Parent = RootPart
-			Globals.ManipulateBody.Velocity = RootPart.CFrame.LookVector * 2.25
+			Globals.ManipulateBody.Velocity = RootPart.CFrame.LookVector * (Options.VelocityManipulationSpeed and Options.VelocityManipulationSpeed.Value or 7)
 		else
 			Globals.ManipulateBody.Parent = nil
 		end
