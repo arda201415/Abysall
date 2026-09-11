@@ -9,6 +9,11 @@ local GameList = {
   [2440500124] = "Doors"
 }
 
+local PlaceList = {
+  [120851538706364] = "MurderDuels",
+  [120783481568445] = "MurderDuels", -- Trading Plaza
+}
+
 local BaseUrl = "https://raw.githubusercontent.com/arda201415/Abysall/refs/heads/main/"
 getgenv().Abysall = {
     Environment = loadstring(game:HttpGet(BaseUrl .. "Components/Environment.luau"))(),
@@ -61,7 +66,7 @@ end
 Abysall.Interface = loadstring(game:HttpGet(BaseUrl .. "Components/Interface.luau"))()
 Abysall.Analytics = loadstring(game:HttpGet(BaseUrl .. "Components/Analytics.luau"))()
 
-local CurrentGame = GameList[game.GameId]
+local CurrentGame = GameList[game.GameId] or PlaceList[game.PlaceId]
 if CurrentGame then
     loadstring(game:HttpGet(BaseUrl .. "Games/" .. CurrentGame .. "/Loader.luau"))()
 else
