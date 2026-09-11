@@ -1809,7 +1809,10 @@ Toggles.ObjectiveESPToggle:OnChanged(function(Value)
 			elseif Object.Name == "MinesAnchor" then
 				Label = "Anchor [" .. Object:WaitForChild("Sign").TextLabel.Text .. "]"
 			elseif Object.Name == "WaterPump" then
-				Functions.AddESP({ Object = Object.Wheel, Text = "Water Pump", Color = Options.ObjectiveESPColor.Value }, true)
+				Functions.AddESP({ Object = Object, Text = "Water Pump", Color = Options.ObjectiveESPColor.Value }, true)
+				if Object:FindFirstChild("Wheel") then
+					Functions.AddESP({ Object = Object.Wheel, Text = "Water Pump", Color = Options.ObjectiveESPColor.Value }, true)
+				end
 			elseif Object.Name == "VineGuillotine" then
 				Functions.AddESP({ Object = Object.Lever, Text = "Vine Lever", Color = Options.ObjectiveESPColor.Value }, true)
 			end
@@ -1818,6 +1821,11 @@ Toggles.ObjectiveESPToggle:OnChanged(function(Value)
 			end
 		else
 			Functions.RemoveESP(Object)
+			if Object.Name == "WaterPump" and Object:FindFirstChild("Wheel") then
+				Functions.RemoveESP(Object.Wheel)
+			elseif Object.Name == "VineGuillotine" and Object:FindFirstChild("Lever") then
+				Functions.RemoveESP(Object.Lever)
+			end
 		end
 	end
 end)
@@ -3332,12 +3340,21 @@ Functions.HandleObject = function(Object)
 		end)
 		table.insert(Objects.Objectives, Object)
 	elseif Name == "WaterPump" then
-		if Toggles.ObjectiveESPToggle.Value then Functions.AddESP({ Object = Object:WaitForChild("Wheel"), Text = "Water Pump", Color = Options.ObjectiveESPColor.Value }, true) end
+		if Toggles.ObjectiveESPToggle.Value then
+			Functions.AddESP({ Object = Object, Text = "Water Pump", Color = Options.ObjectiveESPColor.Value }, true)
+			local Wheel = Object:WaitForChild("Wheel", 5)
+			if Wheel then
+				Functions.AddESP({ Object = Wheel, Text = "Water Pump", Color = Options.ObjectiveESPColor.Value }, true)
+			end
+		end
 		Object:WaitForChild("Wheel").Sound.Played:Once(function()
 			Object:SetAttribute("Abysall_Completed", true)
 
-			Functions.RemoveESP(Object.Wheel)
-			Functions.BlacklistESP(Object.Wheel)
+			Functions.RemoveESP(Object)
+			if Object:FindFirstChild("Wheel") then
+				Functions.RemoveESP(Object.Wheel)
+				Functions.BlacklistESP(Object.Wheel)
+			end
 		end)
 		table.insert(Objects.Objectives, Object)
 	elseif Name == "CringlePresent" then
