@@ -469,7 +469,11 @@ Globals.DoorsNotify = function(NotifyOptions)
 	end)
 end
 
+<<<<<<< HEAD
 Globals.STX = loadstring(game:HttpGet("https://raw.githubusercontent.com/arda201415/Abysall/refs/heads/main/Components/STX.luau"))()
+=======
+Globals.STX = loadstring(game:HttpGet("https://raw.githubusercontent.com/bocaj111004/Abysall/refs/heads/main/Components/STX.luau"))()
+>>>>>>> 9fd6495987acf258fe2ef09198420edce8e0383b
 Functions.Notify = function(Settings)
 	local HiddenContainer = GetHiddenContainer()
 
@@ -2513,7 +2517,11 @@ Groupboxes.Floors_Farming:AddButton({
 	DoubleClick = true,
 	Tooltip = "Automatically farms deaths, joining new runs.",
 	Func = function()
+<<<<<<< HEAD
 		loadstring(game:HttpGet("https://raw.githubusercontent.com/arda201415/Abysall/refs/heads/main/Scripts/DeathFarm.luau"))()
+=======
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/bocaj111004/Abysall/refs/heads/main/Scripts/DeathFarm.luau"))()
+>>>>>>> 9fd6495987acf258fe2ef09198420edce8e0383b
 	end,
 
 	Disabled = not Functions.CheckCompatability({"fireproximityprompt", "firesignal"}),
@@ -2525,7 +2533,11 @@ Groupboxes.Floors_Farming:AddButton({
 	Tooltip = "Copies the death farm loadstring to your clipboard.",
 	Func = function()
 		toclipboard([==[
+<<<<<<< HEAD
 			loadstring(game:HttpGet("https://raw.githubusercontent.com/arda201415/Abysall/refs/heads/main/Scripts/DeathFarm.luau"))()
+=======
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/bocaj111004/Abysall/refs/heads/main/Scripts/DeathFarm.luau"))()
+>>>>>>> 9fd6495987acf258fe2ef09198420edce8e0383b
 		]==])
 		Library:Notify("Loadstring has been copied to your clipboard.")
 	end,

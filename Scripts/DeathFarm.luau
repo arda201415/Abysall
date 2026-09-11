@@ -13,7 +13,11 @@ local Services = setmetatable({}, {
 
 local QueueTeleport = queue_on_teleport or queueonteleport
 local TeleportCode = [==[
+<<<<<<< HEAD
 	loadstring(game:HttpGet("https://raw.githubusercontent.com/arda201415/Abysall/refs/heads/main/Scripts/DeathFarm.luau"))()
+=======
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/bocaj111004/Abysall/refs/heads/main/Scripts/DeathFarm.luau"))()
+>>>>>>> 9fd6495987acf258fe2ef09198420edce8e0383b
 ]==]
 
 local LocalPlayer = Services.Players.LocalPlayer
@@ -54,7 +58,11 @@ if GameData and GameData.Floor.Value ~= "Hotel" then
 		end
 
 		local QueueTeleport = queue_on_teleport or queueonteleport
+<<<<<<< HEAD
 		QueueTeleport([=[loadstring(game:HttpGet("https://raw.githubusercontent.com/arda201415/Abysall/refs/heads/main/Scripts/DeathFarm.luau"))()]=])
+=======
+		QueueTeleport([=[loadstring(game:HttpGet("https://raw.githubusercontent.com/bocaj111004/Abysall/refs/heads/main/Scripts/DeathFarm.luau"))()]=])
+>>>>>>> 9fd6495987acf258fe2ef09198420edce8e0383b
 
 		SendCaption("Joining a run...")
 		RemotesFolder.CreateElevator:FireServer({
@@ -82,7 +90,11 @@ if game.PlaceId ~= 6839171747 then
 		end
 
 		local QueueTeleport = queue_on_teleport or queueonteleport
+<<<<<<< HEAD
 		QueueTeleport([=[loadstring(game:HttpGet("https://raw.githubusercontent.com/arda201415/Abysall/refs/heads/main/Scripts/DeathFarm.luau"))()]=])
+=======
+		QueueTeleport([=[loadstring(game:HttpGet("https://raw.githubusercontent.com/bocaj111004/Abysall/refs/heads/main/Scripts/DeathFarm.luau"))()]=])
+>>>>>>> 9fd6495987acf258fe2ef09198420edce8e0383b
 
 		SendCaption("Joining a run...")
 		RemotesFolder.CreateElevator:FireServer({
