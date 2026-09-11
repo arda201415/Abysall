@@ -169,8 +169,6 @@ Groupboxes.Combat_Aim:AddButton({
     Text = "Dump Remotes (F9'a bas)",
     DoubleClick = false,
     Func = function()
-        -- SilentAim icin gerekli remote ismini bulmaya yarar.
-        -- Ciktiyi bize atarsan tam silent aim ekleriz.
         for _, Obj in pairs(game:GetDescendants()) do
             if Obj:IsA("RemoteEvent") or Obj:IsA("RemoteFunction") then
                 local N = Obj:GetFullName()
@@ -182,6 +180,103 @@ Groupboxes.Combat_Aim:AddButton({
         Library:Notify("Dump konsola yazildi (F9).")
     end
 })
+
+-- // Silent Aim: ShootReplicate hook //
+Groupboxes.Combat_Silent = Tabs.Combat:AddRightGroupbox("Silent Aim")
+
+Groupboxes.Combat_Silent:AddToggle("SilentAim", {
+    Text = "Silent Aim", Default = false,
+    Tooltip = "Ates ettiginde mermiyi FOV icindeki dusmana yonlendirir. Kamera oynamaz.",
+})
+Groupboxes.Combat_Silent:AddSlider("SilentFOV", {
+    Text = "Silent FOV", Min = 10, Max = 1000, Default = 250, Rounding = 0, Compact = true,
+})
+Groupboxes.Combat_Silent:AddDropdown("SilentPart", {
+    Text = "Hedef Parca", Values = { "Head", "HumanoidRootPart" }, Default = 1,
+})
+Groupboxes.Combat_Silent:AddToggle("SilentTeamCheck", { Text = "Team Check", Default = true })
+Groupboxes.Combat_Silent:AddToggle("LogShootArgs", {
+    Text = "Shoot Arg Logla (F9)", Default = false,
+    Tooltip = "Ates edince ShootReplicate argumanlarini konsola basar. Format icin 1 kez acip 2-3 el ates et.",
+})
+
+local ShootRemote = Services.ReplicatedStorage:WaitForChild("Remotes", 10) and Services.ReplicatedStorage.Remotes:WaitForChild("ShootReplicate", 10)
+
+local function GetSilentTarget()
+    local Best, BestDist = nil, Options.SilentFOV and Options.SilentFOV.Value or 250
+    local PartName = Options.SilentPart and Options.SilentPart.Value or "Head"
+    local Mouse = GetMousePos()
+    for _, Player in pairs(Services.Players:GetPlayers()) do
+        if Player == LocalPlayer then continue end
+        local Char = Player.Character
+        if not Char then continue end
+        local Hum = Char:FindFirstChildOfClass("Humanoid")
+        if not Hum or Hum.Health <= 0 then continue end
+        if Toggles.SilentTeamCheck and Toggles.SilentTeamCheck.Value then
+            if LocalPlayer.Team ~= nil and Player.Team ~= nil and Player.Team == LocalPlayer.Team then
+                continue
+            end
+        end
+        local Part = Char:FindFirstChild(PartName)
+        if Part and IsVisible(Part) then
+            local Pos, On = Camera:WorldToViewportPoint(Part.Position)
+            if On then
+                local D = (Vector2.new(Pos.X, Pos.Y) - Mouse).Magnitude
+                if D < BestDist then Best, BestDist = Part, D end
+            end
+        end
+    end
+    return Best
+end
+
+if ShootRemote and CheckCompat({ "hookmetamethod", "getnamecallmethod", "newcclosure" }) then
+    local OldNamecall
+    OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(Self, ...)
+        local Args = { ... }
+        local Method = getnamecallmethod()
+        if Self == ShootRemote and (Method == "FireServer" or Method == "fireServer") then
+            if Toggles.LogShootArgs and Toggles.LogShootArgs.Value then
+                for I, A in pairs(Args) do
+                    print("[Abysall-Shoot] arg" .. I .. " type=" .. typeof(A) .. " val=" .. tostring(A))
+                end
+            end
+            if Toggles.SilentAim and Toggles.SilentAim.Value then
+                local Target = GetSilentTarget()
+                if Target then
+                    -- Heuristic: origin Vector3 + direction Vector3 kalibi
+                    -- args: [origin, direction, ...] ise direction'i hedefe cevir
+                    local OriginIdx, DirIdx = nil, nil
+                    for I, A in pairs(Args) do
+                        if typeof(A) == "Vector3" then
+                            if OriginIdx == nil then
+                                OriginIdx = I
+                            elseif DirIdx == nil then
+                                DirIdx = I
+                                break
+                            end
+                        end
+                    end
+                    if OriginIdx and DirIdx then
+                        local Origin = Args[OriginIdx]
+                        Args[DirIdx] = (Target.Position - Origin).Unit * (Args[DirIdx].Magnitude > 0 and Args[DirIdx].Magnitude or 1000)
+                    else
+                        -- CFrame'li format ihtimaline karsi: ilk CFrame'i hedefe bakacak sekilde degistir
+                        for I, A in pairs(Args) do
+                            if typeof(A) == "CFrame" then
+                                Args[I] = CFrame.new(A.Position, Target.Position)
+                                break
+                            end
+                        end
+                    end
+                    return OldNamecall(Self, unpack(Args))
+                end
+            end
+        end
+        return OldNamecall(Self, ...)
+    end))
+else
+    Groupboxes.Combat_Silent:AddLabel("hookmetamethod yok: silent calismaz.", true)
+end
 
 -- // Visuals: Player ESP (mevcut ESP kutuphanesi ile) //
 Groupboxes.Visuals_ESP = Tabs.Visuals:AddLeftGroupbox("Player ESP")
