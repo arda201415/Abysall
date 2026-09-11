@@ -211,6 +211,7 @@ local ItemNames = {
 	["Lotus"]             = "Lotus",
 	["BoxingGloves"]      = "Boxing Gloves",
 	["Fihflakes"]         = "Fihflakes",
+	["Leftovers"]         = "Leftovers",
 }
 
 local CutsceneNames = {
@@ -3640,7 +3641,7 @@ Functions.HandleObject = function(Object)
 	elseif Name == "MouseHole" then
 		if Toggles.ChestESPToggle.Value then Functions.AddESP({ Object = Object, Text = "Mouse", Color = Options.ChestESPColor.Value }, true) end
 		table.insert(Objects.Chests, Object)
-	elseif ItemNames[Name] and Object:FindFirstChild("ModulePrompt") then
+	elseif ItemNames[Name] and (Object:FindFirstChild("ModulePrompt", true) or Name == "Fihflakes" or Name == "Leftovers") then
 		if Toggles.ItemESPToggle.Value then Functions.AddESP({ Object = Object, Text = ItemNames[Name], Color = Options.ItemESPColor.Value }, Object:GetAttribute("ParentRoom") ~= nil) end
 		if Name == "LotusHolder" or Name == "LotusPetalPickup" then
 			Object.Handle:GetPropertyChangedSignal("LocalTransparencyModifier"):Connect(function()
