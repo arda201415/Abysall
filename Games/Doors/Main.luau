@@ -130,6 +130,100 @@ local Entities = {
 	["SallyMoving"] = {
 		Alias = "Sally",
 		NotifyMessage = { Title = "Entity 'Sally' has spawned.", Body = "Drop an item for her." }
+	},
+	["Caws"] = {
+		Alias = "Caws",
+		NotifyMessage = { Title = "Entity 'Caws' has spawned.", Body = "It marks Iron Keys and Lotus Petals." }
+	},
+	["Caw"] = {
+		Alias = "Caws",
+		NotifyMessage = { Title = "Entity 'Caws' has spawned.", Body = "It marks Iron Keys and Lotus Petals." }
+	},
+	["Grampy"] = {
+		Alias = "Grampy",
+		NotifyMessage = { Title = "Entity 'Grampy' has spawned.", Body = "Give him 8 Lotus Petals for a Lotus." }
+	},
+	-- The Archives (28.08.2026) entities
+	["Honcho"] = {
+		Alias = "Honcho",
+		NotifyMessage = { Title = "Entity 'Honcho' has spawned.", Body = "Run! Match the packages on the doors." }
+	},
+	["Bash"] = {
+		Alias = "Bash",
+		NotifyMessage = { Title = "Entity 'Bash' has spawned.", Body = "Find a hiding spot." }
+	},
+	["BashMoving"] = {
+		Alias = "Bash",
+		NotifyMessage = { Title = "Entity 'Bash' has spawned.", Body = "Find a hiding spot." }
+	},
+	["Ransom"] = {
+		Alias = "Ransom",
+		NotifyMessage = { Title = "Entity 'Ransom' has spawned.", Body = "Stop moving completely." }
+	},
+	["Scribbles"] = {
+		Alias = "Scribbles",
+		NotifyMessage = { Title = "Entity 'Scribbles' has spawned.", Body = "Watch the doors ahead." }
+	},
+	["ScribblesMoving"] = {
+		Alias = "Scribbles",
+		NotifyMessage = { Title = "Entity 'Scribbles' has spawned.", Body = "Watch the doors ahead." }
+	},
+	["Drone"] = {
+		Alias = "Drone",
+		NotifyMessage = { Title = "Entity 'Drone' has spawned.", Body = "Avoid its line of sight." }
+	},
+	["DroneMoving"] = {
+		Alias = "Drone",
+		NotifyMessage = { Title = "Entity 'Drone' has spawned.", Body = "Avoid its line of sight." }
+	},
+	["Alma"] = {
+		Alias = "Alma",
+		NotifyMessage = { Title = "Entity 'Alma' has spawned.", Body = "Keep your distance." }
+	},
+	["Fih"] = {
+		Alias = "Fih",
+		NotifyMessage = { Title = "Entity 'Fih' has spawned.", Body = "Find a hiding spot." }
+	},
+	["Teller"] = {
+		Alias = "Teller",
+		NotifyMessage = { Title = "Entity 'Teller' has spawned.", Body = "Find a hiding spot." }
+	},
+	["Portrait"] = {
+		Alias = "Portrait",
+		NotifyMessage = { Title = "Entity 'Portrait' has spawned.", Body = "Do not look at it." }
+	},
+	["Forget-Me-Not"] = {
+		Alias = "Forget-Me-Not",
+		NotifyMessage = { Title = "Entity 'Forget-Me-Not' has spawned.", Body = "Take notes." }
+	},
+	["ForgetMeNot"] = {
+		Alias = "Forget-Me-Not",
+		NotifyMessage = { Title = "Entity 'Forget-Me-Not' has spawned.", Body = "Take notes." }
+	},
+	-- The Stairwell (secret Mines subfloor) entities
+	["Creak"] = {
+		Alias = "Creak",
+		NotifyMessage = { Title = "Entity 'Creak' has spawned.", Body = "Find a hiding spot." }
+	},
+	["Creek"] = {
+		Alias = "Creak",
+		NotifyMessage = { Title = "Entity 'Creak' has spawned.", Body = "Find a hiding spot." }
+	},
+	["Noise"] = {
+		Alias = "Noise",
+		NotifyMessage = { Title = "Entity 'Noise' has spawned.", Body = "Stay quiet." }
+	},
+	["Stem"] = {
+		Alias = "Stem",
+		NotifyMessage = { Title = "Entity 'Stem' has spawned.", Body = "Find a hiding spot." }
+	},
+	["Meld"] = {
+		Alias = "Meld",
+		NotifyMessage = { Title = "Entity 'Meld' has spawned.", Body = "Find a hiding spot." }
+	},
+	["Cobbler"] = {
+		Alias = "Cobbler",
+		NotifyMessage = { Title = "Entity 'Cobbler' has spawned.", Body = "Find a hiding spot." }
 	}
 }
 
@@ -213,6 +307,17 @@ local ItemNames = {
 	["FihFlakes"]         = "FihFlakes",
 	["Fihflakes"]         = "FihFlakes",
 	["Leftovers"]         = "Leftovers",
+	["Pizza"]             = "Pizza",
+	-- The Archives items
+	["Mug"]               = "Mug",
+	["Briefcase"]         = "Briefcase",
+	["PaperPlane"]        = "Paper Plane",
+	["LunchBox"]          = "Lunch Box",
+	["Lunch Box"]         = "Lunch Box",
+	["PaperCup"]          = "Paper Cup",
+	["Paper Cup"]         = "Paper Cup",
+	["WaitingTicket"]     = "Waiting Ticket",
+	["Waiting Ticket"]    = "Waiting Ticket",
 }
 
 local CutsceneNames = {
@@ -1708,7 +1813,7 @@ Groupboxes.Visuals_EntitySettings = Groupboxes.Visuals_RightTab:AddTab("Settings
 
 Groupboxes.Visuals_Entities:AddDropdown("EntityList", {
 	Text = "Entity List",
-	Values = { "Rush","Ambush","Eyes","Halt","Blitz","Lookman","Gloombat Swarm","A-60","A-120","Sally","Jeff the Killer","Groundskeeper","Monument","AR0xMBUSH","RNIUSHCG==" },
+	Values = { "Rush","Ambush","Eyes","Halt","Blitz","Lookman","Gloombat Swarm","A-60","A-120","Sally","Jeff the Killer","Groundskeeper","Monument","Caws","Grampy","Honcho","Bash","Ransom","Scribbles","Drone","Alma","Fih","Teller","Portrait","Forget-Me-Not","Creak","Noise","Stem","Meld","Cobbler","AR0xMBUSH","RNIUSHCG==" },
 	Multi = true, AllowNull = true
 })
 Groupboxes.Visuals_Entities:AddToggle("NotifyEntities",    { Text = "Notify Entities",    Default = false, Tooltip = "Sends a notification when an entity spawns." })
@@ -1798,6 +1903,7 @@ local ObjectiveLabels = {
 	["LeverForGate"]           = "Gate Lever",
 	["MinesGateButton"]        = "Gate Button",
 	["GardenGateButton"]       = "Gate Button",
+	["RiftSpawn"]              = "Rift",
 }
 
 Toggles.ObjectiveESPToggle:OnChanged(function(Value)
@@ -1845,7 +1951,7 @@ Groupboxes.Visuals_ESP_Toggles:AddToggle("LadderESPToggle",     { Text = "Ladder
 Groupboxes.Visuals_ESP_Toggles:AddDivider()
 Groupboxes.Visuals_ESP_Toggles:AddDropdown("EntityESPOptions",     { 
 	Text = "Entity List",
-	Values = { "Rush","Ambush","Eyes","Dupe","Figure","Blitz","Lookman","Snare","Giggle","Gloombat Eggs","Grumble","A-60","A-120","Sally","Jeff the Killer","Groundskeeper","Mandrake Hole","Monument","Bramble","AR0xMBUSH","RNIUSHCG==" },
+	Values = { "Rush","Ambush","Eyes","Dupe","Figure","Blitz","Lookman","Snare","Giggle","Gloombat Eggs","Grumble","A-60","A-120","Sally","Jeff the Killer","Groundskeeper","Mandrake Hole","Monument","Bramble","Caws","Grampy","Honcho","Bash","Ransom","Scribbles","Drone","Alma","Fih","Teller","Portrait","Forget-Me-Not","Creak","Noise","Stem","Meld","Cobbler","AR0xMBUSH","RNIUSHCG==" },
 	Multi = true,
 	AllowNull = true
 })
@@ -1879,7 +1985,7 @@ local EntityESPLabels = {
 }
 
 local NodeEntities = {
-	Rush = true, Ambush = true, Eyes = true, Blitz = true, Lookman = true, ["A-60"] = true, ["A-120"] = true, Sally = true, ["Jeff The Killer"] = true, Monument = true, ["AR0xMBUSH"] = true, ["RNIUSHCG=="] = true
+	Rush = true, Ambush = true, Eyes = true, Blitz = true, Lookman = true, ["A-60"] = true, ["A-120"] = true, Sally = true, ["Jeff The Killer"] = true, Monument = true, Honcho = true, Bash = true, Ransom = true, Scribbles = true, Drone = true, Alma = true, Fih = true, ["AR0xMBUSH"] = true, ["RNIUSHCG=="] = true
 }
 
 Toggles.DoorESPToggle:OnChanged(function(Value)
@@ -3357,6 +3463,9 @@ Functions.HandleObject = function(Object)
 			end
 		end)
 		table.insert(Objects.Objectives, Object)
+	elseif Name == "RiftSpawn" then
+		if Toggles.ObjectiveESPToggle.Value then Functions.AddESP({ Object = Object, Text = "Rift", Color = Options.ObjectiveESPColor.Value }, true) end
+		table.insert(Objects.Objectives, Object)
 	elseif Name == "CringlePresent" then
 		if Toggles.ObjectiveESPToggle.Value then Functions.AddESP({ Object = Object, Text = "Present", Color = Options.ObjectiveESPColor.Value }, true) end
 		Object:WaitForChild("ToolProp").Highlight:Destroy()
@@ -3662,7 +3771,7 @@ Functions.HandleObject = function(Object)
 	elseif Name == "MouseHole" then
 		if Toggles.ChestESPToggle.Value then Functions.AddESP({ Object = Object, Text = "Mouse", Color = Options.ChestESPColor.Value }, true) end
 		table.insert(Objects.Chests, Object)
-	elseif ItemNames[Name] and (Object:FindFirstChild("ModulePrompt", true) or Name == "FihFlakes" or Name == "Fihflakes" or Name == "Leftovers") then
+	elseif ItemNames[Name] and (Object:FindFirstChild("ModulePrompt", true) or Name == "FihFlakes" or Name == "Fihflakes" or Name == "Leftovers" or Name == "Pizza" or Name == "Mug" or Name == "Briefcase" or Name == "PaperPlane" or Name == "LunchBox" or Name == "Lunch Box" or Name == "PaperCup" or Name == "Paper Cup" or Name == "WaitingTicket" or Name == "Waiting Ticket") then
 		if Toggles.ItemESPToggle.Value then Functions.AddESP({ Object = Object, Text = ItemNames[Name], Color = Options.ItemESPColor.Value }, Object:GetAttribute("ParentRoom") ~= nil) end
 		if Name == "LotusHolder" or Name == "LotusPetalPickup" then
 			Object.Handle:GetPropertyChangedSignal("LocalTransparencyModifier"):Connect(function()

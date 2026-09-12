@@ -419,6 +419,20 @@ Groupboxes.General_QuickPlay:AddButton({
 	end
 })
 
+Groupboxes.General_QuickPlay:AddButton({
+	Text = "The Archives",
+	DoubleClick = false,
+	Func = function()
+		RemotesFolder.CreateElevator:FireServer({
+        	Mods = {},
+        	Settings = {},
+        	Destination = "Archives",
+        	FriendsOnly = false,
+        	MaxPlayers = "1"
+    	})
+	end
+})
+
 Groupboxes.General_QuickPlay:AddDivider()
 
 Groupboxes.General_QuickPlay:AddButton({

@@ -91,6 +91,15 @@ Groupboxes.Combat_Aim:AddToggle("AimbotWallCheck", {
     Text = "Wall Check", Default = false,
     Tooltip = "Duvar arkasi hedefi gormezden gelir (raycast).",
 })
+Groupboxes.Combat_Aim:AddSlider("AimSmooth", {
+    Text = "Yumusatma", Min = 1, Max = 20, Default = 1, Rounding = 0, Compact = true,
+    Tooltip = "1 = aninda kilit (Solara'da 1 birak). Yuksek deger daha dogal ama yavas.",
+})
+Groupboxes.Combat_Aim:AddToggle("AimSticky", {
+    Text = "Sticky Target", Default = true,
+    Tooltip = "Hedef FOV disina cikana kadar ayni hedefte kalir, titreme yapmaz.",
+})
+Groupboxes.Combat_Aim:AddToggle("AimFOVCircle", { Text = "FOV Dairesi", Default = true })
 
 local function IsEnemy(Player)
     if Player == LocalPlayer then return false end
@@ -152,14 +161,56 @@ local function GetClosestTarget()
 end
 
 Services.RunService.RenderStepped:Connect(function()
+    -- FOV dairesi (Drawing varsa, hook gerekmez -> Solara uyumlu)
+    if typeof(Drawing) == "function" or typeof(getgenv) == "function" then
+        pcall(function()
+            if not _G.MD_FOVCircle and Drawing then
+                local C = Drawing.new("Circle")
+                C.Thickness = 1
+                C.NumSides = 64
+                C.Filled = false
+                C.Color = Color3.fromRGB(255, 255, 255)
+                _G.MD_FOVCircle = C
+            end
+            if _G.MD_FOVCircle then
+                local Show = Toggles.AimbotEnabled and Toggles.AimbotEnabled.Value and Toggles.AimFOVCircle and Toggles.AimFOVCircle.Value
+                _G.MD_FOVCircle.Visible = Show or false
+                if Show then
+                    local M = GetMousePos()
+                    _G.MD_FOVCircle.Position = M
+                    _G.MD_FOVCircle.Radius = Options.AimbotFOV and Options.AimbotFOV.Value or 200
+                end
+            end
+        end)
+    end
+
     if Toggles.AimbotEnabled and Toggles.AimbotEnabled.Value then
         local HoldingKey = Options.AimbotKey and Options.AimbotKey:GetState()
         local HoldingRMB = Toggles.AimbotUseRMB and Toggles.AimbotUseRMB.Value and Services.UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2)
         if HoldingKey or HoldingRMB then
             local Target = GetClosestTarget()
-            if Target then
-                Camera.CFrame = CFrame.new(Camera.CFrame.Position, Target.Position)
+            -- Sticky: bir onceki hedef hala gecerliyse onu koru
+            if Toggles.AimSticky and Toggles.AimSticky.Value and _G.MD_Locked and _G.MD_Locked.Parent then
+                local LP = _G.MD_Locked
+                local Pos, On = Camera:WorldToViewportPoint(LP.Position)
+                if On and (Vector2.new(Pos.X, Pos.Y) - GetMousePos()).Magnitude <= (Options.AimbotFOV.Value + 50) then
+                    Target = LP
+                else
+                    _G.MD_Locked = nil
+                end
             end
+            if Target then
+                _G.MD_Locked = Target
+                local Goal = CFrame.new(Camera.CFrame.Position, Target.Position)
+                local Smooth = Options.AimSmooth and Options.AimSmooth.Value or 1
+                if Smooth <= 1 then
+                    Camera.CFrame = Goal
+                else
+                    Camera.CFrame = Camera.CFrame:Lerp(Goal, 1 / Smooth)
+                end
+            end
+        else
+            _G.MD_Locked = nil
         end
     end
 end)
@@ -229,54 +280,121 @@ local function GetSilentTarget()
     return Best
 end
 
-if ShootRemote and CheckCompat({ "hookmetamethod", "getnamecallmethod", "newcclosure" }) then
+local function RewriteShootArgs(Args, Target)
+    local OriginIdx, DirIdx = nil, nil
+    for I, A in pairs(Args) do
+        if typeof(A) == "Vector3" then
+            if OriginIdx == nil then
+                OriginIdx = I
+            elseif DirIdx == nil then
+                DirIdx = I
+                break
+            end
+        end
+    end
+    if OriginIdx and DirIdx then
+        local Origin = Args[OriginIdx]
+        Args[DirIdx] = (Target.Position - Origin).Unit * (Args[DirIdx].Magnitude > 0 and Args[DirIdx].Magnitude or 1000)
+    else
+        for I, A in pairs(Args) do
+            if typeof(A) == "CFrame" then
+                Args[I] = CFrame.new(A.Position, Target.Position)
+                break
+            end
+        end
+    end
+    return Args
+end
+
+local function LogArgs(Args)
+    if Toggles.LogShootArgs and Toggles.LogShootArgs.Value then
+        for I, A in pairs(Args) do
+            print("[Abysall-Shoot] arg" .. I .. " type=" .. typeof(A) .. " val=" .. tostring(A))
+        end
+    end
+end
+
+local HasNamecallHook = CheckCompat({ "hookmetamethod", "getnamecallmethod", "newcclosure" })
+local HasFuncHook = CheckCompat({ "hookfunction", "newcclosure" })
+
+if ShootRemote and HasNamecallHook then
+    pcall(function()
     local OldNamecall
     OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(Self, ...)
         local Args = { ... }
         local Method = getnamecallmethod()
         if Self == ShootRemote and (Method == "FireServer" or Method == "fireServer") then
-            if Toggles.LogShootArgs and Toggles.LogShootArgs.Value then
-                for I, A in pairs(Args) do
-                    print("[Abysall-Shoot] arg" .. I .. " type=" .. typeof(A) .. " val=" .. tostring(A))
-                end
-            end
+            LogArgs(Args)
             if Toggles.SilentAim and Toggles.SilentAim.Value then
                 local Target = GetSilentTarget()
                 if Target then
-                    -- Heuristic: origin Vector3 + direction Vector3 kalibi
-                    -- args: [origin, direction, ...] ise direction'i hedefe cevir
-                    local OriginIdx, DirIdx = nil, nil
-                    for I, A in pairs(Args) do
-                        if typeof(A) == "Vector3" then
-                            if OriginIdx == nil then
-                                OriginIdx = I
-                            elseif DirIdx == nil then
-                                DirIdx = I
-                                break
-                            end
-                        end
-                    end
-                    if OriginIdx and DirIdx then
-                        local Origin = Args[OriginIdx]
-                        Args[DirIdx] = (Target.Position - Origin).Unit * (Args[DirIdx].Magnitude > 0 and Args[DirIdx].Magnitude or 1000)
-                    else
-                        -- CFrame'li format ihtimaline karsi: ilk CFrame'i hedefe bakacak sekilde degistir
-                        for I, A in pairs(Args) do
-                            if typeof(A) == "CFrame" then
-                                Args[I] = CFrame.new(A.Position, Target.Position)
-                                break
-                            end
-                        end
-                    end
+                    Args = RewriteShootArgs(Args, Target)
                     return OldNamecall(Self, unpack(Args))
                 end
             end
         end
         return OldNamecall(Self, ...)
     end))
+    end)
+elseif ShootRemote and HasFuncHook then
+    -- hookmetamethod yoksa fallback: FireServer'in kendisini hookla
+    pcall(function()
+    local OldFire
+    OldFire = hookfunction(ShootRemote.FireServer, newcclosure(function(Self, ...)
+        local Args = { ... }
+        LogArgs(Args)
+        if Toggles.SilentAim and Toggles.SilentAim.Value then
+            local Target = GetSilentTarget()
+            if Target then
+                Args = RewriteShootArgs(Args, Target)
+                return OldFire(Self, unpack(Args))
+            end
+        end
+        return OldFire(Self, ...)
+    end))
+    end)
+    Groupboxes.Combat_Silent:AddLabel("hookmetamethod yok, hookfunction ile calisiyor.", true)
 else
-    Groupboxes.Combat_Silent:AddLabel("hookmetamethod yok: silent calismaz.", true)
+    local Missing = {}
+    for _, N in pairs({ "hookmetamethod", "getnamecallmethod", "newcclosure", "hookfunction" }) do
+        if not Abysall.Environment[N] then table.insert(Missing, N) end
+    end
+    Groupboxes.Combat_Silent:AddLabel("Executor desteklemiyor (" .. table.concat(Missing, ", ") .. "). Silent kapali, Triggerbot kullan.", true)
 end
+
+-- Hook'suz Triggerbot: crosshair dusmandaysa oto-ates (mouse1click varsa)
+Groupboxes.Combat_Silent:AddToggle("Triggerbot", { Text = "Triggerbot (hook'suz)", Default = false })
+Groupboxes.Combat_Silent:AddSlider("TriggerFOV", { Text = "Trigger FOV", Min = 1, Max = 50, Default = 8, Rounding = 0, Compact = true })
+
+Services.RunService.RenderStepped:Connect(function()
+    if Toggles.Triggerbot and Toggles.Triggerbot.Value then
+        local PartName = Options.SilentPart and Options.SilentPart.Value or "Head"
+        local Mouse = GetMousePos()
+        local Limit = Options.TriggerFOV and Options.TriggerFOV.Value or 8
+        for _, Player in pairs(Services.Players:GetPlayers()) do
+            if Player == LocalPlayer then continue end
+            local Char = Player.Character
+            if not Char then continue end
+            local Hum = Char:FindFirstChildOfClass("Humanoid")
+            if not Hum or Hum.Health <= 0 then continue end
+            if Toggles.SilentTeamCheck and Toggles.SilentTeamCheck.Value then
+                if LocalPlayer.Team ~= nil and Player.Team ~= nil and Player.Team == LocalPlayer.Team then
+                    continue
+                end
+            end
+            local Part = Char:FindFirstChild(PartName)
+            if Part then
+                local Pos, On = Camera:WorldToViewportPoint(Part.Position)
+                if On and (Vector2.new(Pos.X, Pos.Y) - Mouse).Magnitude <= Limit then
+                    if typeof(mouse1click) == "function" then
+                        mouse1click()
+                    end
+                    break
+                end
+            end
+        end
+    end
+end)
 
 -- // Visuals: Player ESP (mevcut ESP kutuphanesi ile) //
 Groupboxes.Visuals_ESP = Tabs.Visuals:AddLeftGroupbox("Player ESP")
