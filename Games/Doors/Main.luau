@@ -816,6 +816,28 @@ Functions.GetCurrentSpeed = function()
 	return Speed
 end
 
+-- Server'in dogruladigi Collision parcalarini hedefe snap'lemek yerine
+-- hiz limitli yumuşak takip: CFrame teleportlarinda tek karede imkansiz
+-- delta gorunmez, "client teleporting" tetiklenmesi zorlasir.
+Functions.SmoothMove = function(Part, TargetPos, Delta)
+	if not Part or not TargetPos then return end
+	if not (Toggles.AntiTeleport and Toggles.AntiTeleport.Value) then
+		Part.Position = TargetPos
+		return
+	end
+	local MaxStep = (Options.AntiTeleportSpeed and Options.AntiTeleportSpeed.Value or 40) * math.clamp(Delta or 0.016, 0, 0.1)
+	local Offset = TargetPos - Part.Position
+	local Dist = Offset.Magnitude
+	if Dist <= MaxStep or Dist == 0 then
+		Part.Position = TargetPos
+	elseif Dist > MaxStep * 15 then
+		-- Cok buyuk fark gizlenemez, geride kalip rubber-band yememek icin snap'le
+		Part.Position = TargetPos
+	else
+		Part.Position = Part.Position + (Offset / Dist) * MaxStep
+	end
+end
+
 Functions.GetMousePosition = function()
 	if Library.IsMobile then
 		return Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
@@ -1514,6 +1536,13 @@ Groupboxes.Exploits_BypassRight:AddDropdown("VelocityManipulationMode", {
 })
 Groupboxes.Exploits_BypassRight:AddSlider("VelocityManipulationSpeed", {
 	Text = "Manipulation Speed", Min = 1, Max = 20, Default = 7, Rounding = 1, Compact = true,
+})
+Groupboxes.Exploits_BypassRight:AddToggle("AntiTeleport", {
+	Text = "Anti-Teleport Spoof", Default = false,
+	Tooltip = "Server'in dogruladigi Collision parcalarini snap'lemek yerine hiz limitli takip ettirir. Noclip / teleport flag'ini zorlastirir."
+})
+Groupboxes.Exploits_BypassRight:AddSlider("AntiTeleportSpeed", {
+	Text = "Spoof Max Speed", Min = 10, Max = 200, Default = 40, Rounding = 0, Compact = true,
 })
 
 Groupboxes.Exploits_BypassRight:AddDivider()
@@ -3118,7 +3147,7 @@ Functions.HandleCharacter = function(NewCharacter)
 		end
 	end
 
-	Connections.MainHandler = Services.RunService.RenderStepped:Connect(function()
+	Connections.MainHandler = Services.RunService.RenderStepped:Connect(function(Delta)
 		if Services.Workspace:FindFirstChild("Camera") then
 			Camera = Services.Workspace:FindFirstChild("Camera")
 		end
@@ -3177,9 +3206,9 @@ Functions.HandleCharacter = function(NewCharacter)
 
 		if Floor == "OldHotel" or Floor == "Fools" then
 			local SpoofOffset = Toggles.PositionSpoof.Value and Functions.GetNearestEntity() and 200 or Toggles.FigureGodmode.Value and Functions.GetNearestFigure() and 200 or 0
-			Globals.SpoofOffset = SpoofOffset
-			Collision.Position = RootPart.Position + Vector3.new(0, SpoofOffset, 0)
-			Collision.CanCollide = false
+		Globals.SpoofOffset = SpoofOffset
+		Functions.SmoothMove(Collision, RootPart.Position + Vector3.new(0, SpoofOffset, 0), Delta)
+		Collision.CanCollide = false
 			if Floor == "Fools" then
 				Collision.CollisionCrouch.CanCollide = false
 				CollisionClone.CollisionCrouch.CanCollide = false
@@ -3201,15 +3230,15 @@ Functions.HandleCharacter = function(NewCharacter)
 				Character.LowerTorso.Root.C1 = Globals.OriginalC1 * CFrame.new(0, Toggles.PositionSpoof.Value and -2.346 or 0, 0)
 			end
 
-			local SpoofY = Toggles.PositionSpoof.Value and 2.328 or 0.18
-			Collision.Position     = RootPart.Position + Vector3.new(0, SpoofY, 0)
-			CollisionPart.Position = RootPart.Position + Vector3.new(0, SpoofY, 0)
+		local SpoofY = Toggles.PositionSpoof.Value and 2.328 or 0.18
+		Functions.SmoothMove(Collision, RootPart.Position + Vector3.new(0, SpoofY, 0), Delta)
+		Functions.SmoothMove(CollisionPart, RootPart.Position + Vector3.new(0, SpoofY, 0), Delta)
 
-			if Collision:FindFirstChild("CollisionCrouch") and CollisionClone:FindFirstChild("CollisionCrouch") then
-				local CrouchY = Toggles.PositionSpoof.Value and 1.328 or -0.982
-				Collision.CollisionCrouch.Position = RootPart.Position + Vector3.new(0, CrouchY, 0)
-				CollisionClone.CollisionCrouch.CollisionGroup = Collision.CollisionCrouch.CollisionGroup
-			end
+		if Collision:FindFirstChild("CollisionCrouch") and CollisionClone:FindFirstChild("CollisionCrouch") then
+			local CrouchY = Toggles.PositionSpoof.Value and 1.328 or -0.982
+			Functions.SmoothMove(Collision.CollisionCrouch, RootPart.Position + Vector3.new(0, CrouchY, 0), Delta)
+			CollisionClone.CollisionCrouch.CollisionGroup = Collision.CollisionCrouch.CollisionGroup
+		end
 			if CollisionClone:FindFirstChild("CollisionCrouch") then
 				CollisionClone.CollisionCrouch.Position = RootPart.Position + Vector3.new(0, Toggles.PositionSpoof.Value and 0.75 or -0.982, 0)
 			end
