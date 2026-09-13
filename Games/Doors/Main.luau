@@ -3204,8 +3204,20 @@ Functions.HandleCharacter = function(NewCharacter)
 			Services.SoundService:WaitForChild("Main").Volume = 1
 		end
 
+		-- Havada JumpComp (her iki floor icin)
+		local _JumpCompEarly = 0
+		if Toggles.PositionSpoof.Value then
+			local _State = Humanoid:GetState()
+			local _InAir = _State == Enum.HumanoidStateType.Jumping or _State == Enum.HumanoidStateType.Freefall or Humanoid.FloorMaterial == Enum.Material.Air
+			if _InAir then
+				local _Vy = RootPart.AssemblyLinearVelocity.Y
+				_JumpCompEarly = _Vy > 2 and math.clamp(_Vy * 0.14 + 1.5, 2, 8) or 2.5
+			end
+		end
+
 		if Floor == "OldHotel" or Floor == "Fools" then
 			local SpoofOffset = Toggles.PositionSpoof.Value and Functions.GetNearestEntity() and 200 or Toggles.FigureGodmode.Value and Functions.GetNearestFigure() and 200 or 0
+			if _JumpCompEarly > 0 and SpoofOffset ~= 0 then SpoofOffset = SpoofOffset - _JumpCompEarly end
 		Globals.SpoofOffset = SpoofOffset
 		Functions.SmoothMove(Collision, RootPart.Position + Vector3.new(0, SpoofOffset, 0), Delta)
 		Collision.CanCollide = false
@@ -3226,26 +3238,28 @@ Functions.HandleCharacter = function(NewCharacter)
 				RootPart.CanCollide = not (Toggles.NoclipToggle.Value or Toggles.VelocityManipulationToggle.Value)
 			end
 
+			local JumpComp = _JumpCompEarly
+
 			if Character:FindFirstChild("LowerTorso") and Character.LowerTorso:FindFirstChild("Root") then
-				Character.LowerTorso.Root.C1 = Globals.OriginalC1 * CFrame.new(0, Toggles.PositionSpoof.Value and -2.346 or 0, 0)
+				Character.LowerTorso.Root.C1 = Globals.OriginalC1 * CFrame.new(0, (Toggles.PositionSpoof.Value and -2.346 - JumpComp or 0), 0)
 			end
 
-		local SpoofY = Toggles.PositionSpoof.Value and 2.328 or 0.18
+		local SpoofY = Toggles.PositionSpoof.Value and (2.328 - JumpComp) or 0.18
 		Functions.SmoothMove(Collision, RootPart.Position + Vector3.new(0, SpoofY, 0), Delta)
 		Functions.SmoothMove(CollisionPart, RootPart.Position + Vector3.new(0, SpoofY, 0), Delta)
 
 		if Collision:FindFirstChild("CollisionCrouch") and CollisionClone:FindFirstChild("CollisionCrouch") then
-			local CrouchY = Toggles.PositionSpoof.Value and 1.328 or -0.982
+			local CrouchY = Toggles.PositionSpoof.Value and (1.328 - JumpComp) or -0.982
 			Functions.SmoothMove(Collision.CollisionCrouch, RootPart.Position + Vector3.new(0, CrouchY, 0), Delta)
 			CollisionClone.CollisionCrouch.CollisionGroup = Collision.CollisionCrouch.CollisionGroup
 		end
 			if CollisionClone:FindFirstChild("CollisionCrouch") then
-				CollisionClone.CollisionCrouch.Position = RootPart.Position + Vector3.new(0, Toggles.PositionSpoof.Value and 0.75 or -0.982, 0)
+				CollisionClone.CollisionCrouch.Position = RootPart.Position + Vector3.new(0, Toggles.PositionSpoof.Value and (0.75 - JumpComp) or -0.982, 0)
 			end
 		end
 
 		CollisionClone.CollisionGroup = Collision.CollisionGroup
-		CollisionClone.Position = RootPart.Position + Vector3.new(0, Toggles.PositionSpoof.Value and 1.75 or 0.18, 0)
+		CollisionClone.Position = RootPart.Position + Vector3.new(0, Toggles.PositionSpoof.Value and (1.75 - JumpComp) or 0.18, 0)
 
 		if Toggles.VelocityManipulationToggle.Value and Options.VelocityManipulationMode.Value == "Velocity" then
 			Globals.ManipulateBody.Parent = RootPart
