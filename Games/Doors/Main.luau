@@ -694,6 +694,8 @@ Globals.DroneStampedeState = {
 	RecentDroneSpawns = {},
 	CachedClockLabels = {},
 	CachedTimeValues = {},
+	CachedArchivesClocks = {},
+	ClockDebugNotified = false,
 	LastScan = 0,
 	LastLightingCheck = 0,
 	LastLightingTime = nil,
@@ -743,12 +745,110 @@ Functions.FormatStampedeTime = function(SecondsLeft)
 	return MinutesText .. ":" .. SecondsText
 end
 
+Functions.ReadArchivesClockInstance = function(ClockObj)
+	-- Workspace.CurrentRooms.<room>.Assets.ArchivesClock
+	-- Deneme sirasi: attribute -> cocuk Value -> icindeki yazi (TextLabel)
+	if not ClockObj then return nil end
+	local H, M
+	-- 1) Attribute'lar
+	pcall(function()
+		local function AttrNum(...)
+			for _, N in {...} do
+				local V = ClockObj:GetAttribute(N)
+				if typeof(V) == "number" then return V end
+			end
+			return nil
+		end
+		local function AttrStr(...)
+			for _, N in {...} do
+				local V = ClockObj:GetAttribute(N)
+				if typeof(V) == "string" then return V end
+			end
+			return nil
+		end
+		local AH = AttrNum("Hour", "Hours", "H", "hour", "hours")
+		local AM = AttrNum("Minute", "Minutes", "M", "minute", "minutes")
+		if AH and AM and AH >= 0 and AH <= 23 and AM >= 0 and AM <= 59 then
+			H, M = math.floor(AH), math.floor(AM)
+			return
+		end
+		local AT = AttrStr("Time", "ClockTime", "TimeString", "HM", "time", "clockTime")
+		if AT then
+			local PH, PM = Functions.ParseArchivesClockText(AT)
+			if PH then H, M = PH, PM return end
+		end
+		local AN = AttrNum("Time", "ClockTime", "Minutes", "TotalMinutes", "time")
+		if AN then
+			if AN > 24 and AN <= 1440 then
+				H, M = math.floor(AN / 60) % 24, math.floor(AN % 60)
+				return
+			elseif AN >= 0 and AN <= 24 and AN % 1 ~= 0 then
+				H, M = math.floor(AN), math.floor((AN - math.floor(AN)) * 60)
+				return
+			end
+		end
+	end)
+	if H then return H, M end
+	-- 2) Dogrudan cocuk Value'lar
+	pcall(function()
+		for _, N in {"Hour", "Hours", "H", "Minute", "Minutes", "M", "Time", "ClockTime"} do
+			local Child = ClockObj:FindFirstChild(N)
+			if Child then
+				if Child:IsA("StringValue") then
+					local PH, PM = Functions.ParseArchivesClockText(Child.Value)
+					if PH then H, M = PH, PM return end
+				elseif Child:IsA("IntValue") or Child:IsA("NumberValue") then
+					local V = Child.Value
+					if N == "Hour" or N == "Hours" or N == "H" then
+						if V >= 0 and V <= 23 then H = math.floor(V) end
+					elseif N == "Minute" or N == "Minutes" or N == "M" then
+						if V >= 0 and V <= 59 then M = math.floor(V) end
+					elseif V > 24 and V <= 1440 then
+						H, M = math.floor(V / 60) % 24, math.floor(V % 60)
+						return
+					else
+						local PH, PM = Functions.ParseArchivesClockText(tostring(V))
+						if PH then H, M = PH, PM return end
+					end
+					if H and M then return end
+				end
+			end
+		end
+	end)
+	if H and M then return H, M end
+	-- 3) Altindaki yazi gostergeleri (dijital saat ekrani)
+	pcall(function()
+		for _, Desc in ClockObj:GetDescendants() do
+			if Desc:IsA("TextLabel") or Desc:IsA("TextButton") then
+				local Ok, Txt = pcall(function() return Desc.Text end)
+				if Ok and typeof(Txt) == "string" and Txt:find("%d+%s*:%s*%d+") then
+					local PH, PM = Functions.ParseArchivesClockText(Txt)
+					if PH then H, M = PH, PM return end
+				end
+			end
+		end
+	end)
+	if H and M then return H, M end
+	return nil
+end
+
 Functions.ScanStampedeClockSources = function()
 	local State = Globals.DroneStampedeState
 	if tick() - State.LastScan < 5 then return end
 	State.LastScan = tick()
 	table.clear(State.CachedClockLabels)
 	table.clear(State.CachedTimeValues)
+	table.clear(State.CachedArchivesClocks)
+	-- 0) Dogrudan kaynak: CurrentRooms.<oda>.Assets.ArchivesClock (oda basina tek kontrol, ucuz)
+	pcall(function()
+		if CurrentRooms then
+			for _, Room in CurrentRooms:GetChildren() do
+				local Assets = Room:FindFirstChild("Assets")
+				local Clock = Assets and Assets:FindFirstChild("ArchivesClock")
+				if Clock then table.insert(State.CachedArchivesClocks, Clock) end
+			end
+		end
+	end)
 
 	-- 1) Time-like values in ReplicatedStorage / GameData / FloorReplicated
 	local function ConsiderValue(Obj)
@@ -829,6 +929,21 @@ Functions.GetArchivesClockHM = function()
 		return State._LightingHM_H, State._LightingHM_M, "Lighting"
 	end
 
+	-- A2) ArchivesClock (birincil kaynak): tum saatleri oku, stampede'e en yakin olani kullan
+	local BestH, BestM, BestRem
+	for _, Clock in State.CachedArchivesClocks do
+		local Ok, CH, CM = pcall(Functions.ReadArchivesClockInstance, Clock)
+		if Ok and CH and CM then
+			local Rem = Functions.GetStampedeRemainingFromHM(CH, CM)
+			if not BestRem or Rem < BestRem then
+				BestH, BestM, BestRem = CH, CM, Rem
+			end
+		end
+	end
+	if BestH then
+		return BestH, BestM, "ArchivesClock"
+	end
+
 	-- B) Cached time values
 	for _, Obj in State.CachedTimeValues do
 		local Ok, Result = pcall(function()
@@ -894,6 +1009,27 @@ Functions.GetDroneStampedeCountdown = function()
 	if H then
 		local Remaining, TargetHour = Functions.GetStampedeRemainingFromHM(H, M)
 		return Remaining, TargetHour, string.format("%02d:%02d", H, M), Source
+	end
+	-- Teshis: ArchivesClock var ama okunamadiysa yapisini F9 konsola dok (bir kez)
+	local St = Globals.DroneStampedeState
+	if not St.ClockDebugNotified and St.CachedArchivesClocks and #St.CachedArchivesClocks > 0 then
+		St.ClockDebugNotified = true
+		pcall(function()
+			local Clock = St.CachedArchivesClocks[1]
+			local Attrs = {}
+				pcall(function()
+					for K, V in Clock:GetAttributes() do
+						if #Attrs < 15 then table.insert(Attrs, K .. "=" .. tostring(V)) end
+					end
+				end)
+			local Kids = {}
+				pcall(function()
+					for _, C in Clock:GetChildren() do
+						if #Kids < 20 then table.insert(Kids, C.ClassName .. ":" .. C.Name) end
+					end
+				end)
+			warn("[Abysall] ArchivesClock okunamadi, fallback sayaç kullaniliyor. Attrs: " .. table.concat(Attrs, ", ") .. " | Children: " .. table.concat(Kids, ", "))
+		end)
 	end
 	-- Fallback: assume run started at 9:00, 12h cycle (720 min), targets at +480 (5:00) and +720 (9:00)
 	local Elapsed = tick() - Globals.DroneStampedeState.RunStartTick -- 1 sec = 1 game min
@@ -1625,6 +1761,7 @@ Groupboxes.Exploits_Bypass:AddToggle("BypassSeekingWall",    { Text = "Bypass Se
 Groupboxes.Exploits_Bypass:AddToggle("BypassSnare",          { Text = "Bypass Snare",            Default = false, Tooltip = "Prevents 'Snare' from trapping you." })
 Groupboxes.Exploits_Bypass:AddToggle("BypassBanana",         { Text = "Bypass Banana",           Default = false, Tooltip = "Prevents 'Banana Peel' from slipping you up (sometimes doesn't work)." })
 Groupboxes.Exploits_Bypass:AddToggle("BypassJeff",           { Text = "Bypass Jeff",             Default = false, Tooltip = "Prevents 'Jeff the Killer' from stabbing you (sometimes doesn't work)." })
+Groupboxes.Exploits_Bypass:AddToggle("BypassDrone",          { Text = "Bypass Drone",            Default = false, Tooltip = "Deletes the 'WalkedInto' remote inside 'Drones' models so touching them doesn't knock you down (stays deleted until rejoin)." })
 
 Toggles.BypassGiggle:OnChanged(function(Value)
 	for _, Object in Objects.Entities do
@@ -1733,6 +1870,26 @@ Toggles.BypassJeff:OnChanged(function(Value)
 			Object:WaitForChild("Humanoid").Health = 0
 		end
 	end
+end)
+Functions.RemoveDroneWalkedInto = function(Model)
+	pcall(function()
+		if not Model or Model.Name ~= "Drones" then return end
+		for _, Desc in Model:GetDescendants() do
+			if Desc.Name == "WalkedInto" and (Desc:IsA("RemoteEvent") or Desc:IsA("RemoteFunction")) then
+				Desc:Destroy()
+			end
+		end
+	end)
+end
+Toggles.BypassDrone:OnChanged(function(Value)
+	if not Value then return end
+	pcall(function()
+		for _, Obj in Services.Workspace:GetDescendants() do
+			if Obj.Name == "Drones" and (Obj:IsA("Model") or Obj:IsA("Folder")) then
+				Functions.RemoveDroneWalkedInto(Obj)
+			end
+		end
+	end)
 end)
 
 Groupboxes.Exploits_BypassRight = Tabs.Exploits:AddRightGroupbox("Bypass")
@@ -4863,6 +5020,19 @@ do
 		end)
 	end)
 end
+
+-- Bypass Drone: "Drones" modeli icindeki "WalkedInto" remote'unu sil (dokununca dusurmesin)
+Connections.DroneBypassHandler = Services.Workspace.DescendantAdded:Connect(function(Obj)
+	pcall(function()
+		if not (Toggles.BypassDrone and Toggles.BypassDrone.Value) then return end
+		if Obj.Name == "WalkedInto" and (Obj:IsA("RemoteEvent") or Obj:IsA("RemoteFunction")) then
+			if Obj:FindFirstAncestor("Drones") then Obj:Destroy() end
+		elseif Obj.Name == "Drones" and (Obj:IsA("Model") or Obj:IsA("Folder")) then
+			local Model = Obj
+			task.defer(function() Functions.RemoveDroneWalkedInto(Model) end)
+		end
+	end)
+end)
 
 Connections.FogHandler = Services.Lighting:GetPropertyChangedSignal("FogEnd"):Connect(function()
 	if Services.Lighting.FogEnd ~= 10000000 then
