@@ -1666,6 +1666,7 @@ Toggles.AutoBreakerBox:OnChanged(function(Value)
 end)
 
 Groupboxes.Self_Automation:AddToggle("AutoHeartbeatMinigame", { Text = "Auto Heartbeat Minigame", Default = false, Tooltip = "Prevents the 'Figure' minigame from ever failing.", Disabled = not Functions.CheckCompatability({"hookmetamethod", "newcclosure", "getnamecallmethod"}), DisabledTooltip = Globals.IncompatibleMessage })
+Groupboxes.Self_Automation:AddToggle("RansomFreeze", { Text = "Freeze on Ransom", Default = false, Tooltip = "Stops your movement when 'Ransom' appears in The Archives (it attacks movement, demands 500 gold). Restores speed after." })
 Groupboxes.Self_Automation:AddDivider()
 Groupboxes.Self_Automation:AddToggle("AutoUnlockPadlockToggle", {
 	Text = "Auto Unlock Padlock", Default = false, Tooltip = "Automatically enters the code into the library padlock."
@@ -2249,6 +2250,8 @@ Groupboxes.Visuals_Entities:AddToggle("NotifyHasteTime",   { Text = "Notify Hast
 Groupboxes.Visuals_Entities:AddToggle("NotifyStampedeTime",   { Text = "Notify Stampede Time",   Default = false, Tooltip = "Shows countdown to next 'Drone Stampede' in The Archives (clocks strike 5:00 / 9:00), like Haste timer." })
 Groupboxes.Visuals_Entities:AddToggle("NotifyDroneStampede",   { Text = "Notify Drone Stampede",   Default = false, Tooltip = "Warns you before a 'Drone Stampede' in The Archives. Hug side walls / hide." })
 Groupboxes.Visuals_Entities:AddSlider("DroneStampedeWarning", { Text = "Stampede Warning", Min = 5, Max = 30, Default = 10, Rounding = 0, Compact = true })
+Groupboxes.Visuals_Entities:AddToggle("NotifyDroneAtDoor", { Text = "Notify Drone at Door", Default = false, Tooltip = "Warns when stationary 'Drones' are waiting right behind the next door." })
+Groupboxes.Visuals_Entities:AddSlider("DroneDoorDistance", { Text = "Door Check Distance", Min = 5, Max = 40, Default = 15, Rounding = 0, Compact = true })
 
 Globals.LibraryCodeFound = false
 Toggles.NotifyLibraryCode:OnChanged(function(Value)
@@ -2368,6 +2371,7 @@ Groupboxes.Visuals_ESP_Toggles:AddDropdown("EntityESPOptions",     {
 	AllowNull = true
 })
 Groupboxes.Visuals_ESP_Toggles:AddToggle("EntityESPToggle",     { Text = "Entities",      Default = false, Tooltip = "Highlights all entities that spawn." })
+Groupboxes.Visuals_ESP_Toggles:AddToggle("HonchoBoxESPToggle", { Text = "Honcho Boxes",  Default = false, Tooltip = "Highlights 'ArchivesStorageBox' crates whose ID matches an 'ArchivesPackageDeposit' (Honcho mail room)." })
 
 Toggles.DoorESPToggle:AddColorPicker("DoorESPColor",           { Text = "Doors",        Default = Color3.fromRGB(0, 200, 255),  Transparency = 0 })
 Toggles.HidingSpotESPToggle:AddColorPicker("HidingSpotESPColor", { Text = "Hiding Spots", Default = Color3.fromRGB(255, 170, 0),  Transparency = 0 })
@@ -2377,6 +2381,7 @@ Toggles.ItemESPToggle:AddColorPicker("ItemESPColor",           { Text = "Items",
 Toggles.CurrencyESPToggle:AddColorPicker("CurrencyESPColor",   { Text = "Currency",     Default = Color3.fromRGB(255, 255, 0),   Transparency = 0 })
 Toggles.LadderESPToggle:AddColorPicker("LadderESPColor",       { Text = "Ladders",      Default = Color3.fromRGB(255, 255, 255), Transparency = 0 })
 Toggles.EntityESPToggle:AddColorPicker("EntityESPColor",       { Text = "Entities",     Default = Color3.fromRGB(255, 0, 0),     Transparency = 0 })
+Toggles.HonchoBoxESPToggle:AddColorPicker("HonchoBoxESPColor", { Text = "Honcho Boxes", Default = Color3.fromRGB(0, 255, 0),     Transparency = 0 })
 
 local HidingSpotLabels = {
 	Wardrobe = "Closet", ["Backdoor_Wardrobe"] = "Closet", Toolshed = "Closet",
@@ -2532,6 +2537,23 @@ end)
 
 Options.EntityESPColor:OnChanged(function(Value)
 	for _, Object in Objects.Entities do Abysall.ESPLibrary:UpdateObjectColor(Object, Value) end
+end)
+
+Toggles.HonchoBoxESPToggle:OnChanged(function(Value)
+	if not Globals.HonchoBoxes then return end
+	if Value then
+		Functions.RefreshHonchoBoxESP()
+	else
+		for _, Entry in Globals.HonchoBoxes do
+			if Entry.Model then Functions.RemoveESP(Entry.Model) end
+		end
+	end
+end)
+Options.HonchoBoxESPColor:OnChanged(function(Value)
+	if not Globals.HonchoBoxes then return end
+	for _, Entry in Globals.HonchoBoxes do
+		if Entry.Model then Abysall.ESPLibrary:UpdateObjectColor(Entry.Model, Value) end
+	end
 end)
 
 Toggles.LadderESPToggle:OnChanged(function(Value)
@@ -5031,6 +5053,236 @@ Connections.DroneBypassHandler = Services.Workspace.DescendantAdded:Connect(func
 			local Model = Obj
 			task.defer(function() Functions.RemoveDroneWalkedInto(Model) end)
 		end
+	end)
+end)
+
+-- Ransom gorununce hareketsiz kal (hareket edeni yakalar, 500 gold ister, ~90sn surer)
+Globals.RansomFrozen = false
+Functions.SetRansomFrozen = function(Frozen)
+	pcall(function()
+		if Frozen == Globals.RansomFrozen then return end
+		if not Humanoid then return end
+		Globals.RansomFrozen = Frozen
+		if Frozen then
+			Humanoid.WalkSpeed = 0
+		else
+			local Boost = 0
+			pcall(function()
+				if Toggles.SpeedBoostToggle and Toggles.SpeedBoostToggle.Value and Options.SpeedBoostSlider then
+					Boost = Options.SpeedBoostSlider.Value
+				end
+			end)
+			Humanoid.WalkSpeed = Functions.GetCurrentSpeed() + Boost
+		end
+	end)
+end
+Toggles.RansomFreeze:OnChanged(function(Value)
+	if not Value then Functions.SetRansomFrozen(false) end
+end)
+Functions.TriggerRansomFreeze = function(Source)
+	if not (Toggles.RansomFreeze and Toggles.RansomFreeze.Value) then return end
+	if not Functions.IsArchivesFloor() then return end
+	if Globals.RansomFrozen then return end
+	Functions.Notify({ Title = "RANSOM! Kıpırdama!", Body = "Hic hareket etme, 500 gold hazirla. (" .. tostring(Source) .. ")", Time = 6 })
+	Functions.Caption("RANSOM - DUR, KIPIRDAMA", true)
+	if Toggles.EntityChatToggle and Toggles.EntityChatToggle.Value then
+		pcall(function() Functions.SendChat("Ransom! Don't move!") end)
+	end
+	Functions.SetRansomFrozen(true)
+	task.delay(90, function() Functions.SetRansomFrozen(false) end)
+end
+Connections.RansomWatcher = Services.Workspace.ChildAdded:Connect(function(Obj)
+	pcall(function()
+		if Obj.Name ~= "Ransom" then return end
+		Functions.TriggerRansomFreeze("entity")
+		Obj.Destroying:Once(function() Functions.SetRansomFrozen(false) end)
+	end)
+end)
+Connections.RansomUIWatcher = LocalPlayer.PlayerGui.DescendantAdded:Connect(function(Obj)
+	pcall(function()
+		local N = string.lower(Obj.Name or "")
+		if not N:find("ransom") then return end
+		if not (Obj:IsA("ScreenGui") or Obj:IsA("Frame") or Obj:IsA("ImageLabel") or Obj:IsA("TextLabel")) then return end
+		Functions.TriggerRansomFreeze("ui")
+		Obj.Destroying:Once(function() Functions.SetRansomFrozen(false) end)
+	end)
+end)
+
+-- Sıradaki kapının arkasında bekleyen sabit drone uyarısı
+Connections.DroneDoorWatcher = Services.RunService.Heartbeat:Connect(function()
+	pcall(function()
+		if not (Toggles.NotifyDroneAtDoor and Toggles.NotifyDroneAtDoor.Value) then return end
+		if not Functions.IsArchivesFloor() then return end
+		if not RootPart then return end
+		local State = Globals.DroneStampedeState
+		if tick() - (State._LastDoorCheck or 0) < 1.5 then return end
+		State._LastDoorCheck = tick()
+		local Dist = 15
+		pcall(function() if Options.DroneDoorDistance then Dist = Options.DroneDoorDistance.Value end end)
+		-- en yakin RoomExit
+		local BestExit, BestD = nil, 80
+		for _, Room in CurrentRooms:GetChildren() do
+			local Exit = Room:FindFirstChild("RoomExit")
+			if Exit and Exit:IsA("BasePart") then
+				local D = (Exit.Position - RootPart.Position).Magnitude
+				if D < BestD then BestD, BestExit = D, Exit end
+			end
+		end
+		if not BestExit then State._DoorWarnedFor = nil return end
+		if State._DoorWarnedFor == BestExit then return end
+		-- cikis cev resindeki "Drones" gruplarini say
+		local Count = 0
+		for _, Room in CurrentRooms:GetChildren() do
+			for _, Desc in Room:GetDescendants() do
+				if Desc.Name == "Drones" and (Desc:IsA("Model") or Desc:IsA("Folder") or Desc:IsA("BasePart")) then
+					local Pos = nil
+					if Desc:IsA("Model") then
+						local Ok, Pv = pcall(function() return Desc:GetPivot() end)
+						if Ok and Pv then Pos = Pv.Position end
+					elseif Desc:IsA("BasePart") then
+						Pos = Desc.Position
+					else
+						local First = Desc:FindFirstChildWhichIsA("BasePart", true)
+						if First then Pos = First.Position end
+					end
+					if Pos and (Pos - BestExit.Position).Magnitude <= Dist then
+						Count += 1
+					end
+				end
+			end
+		end
+		if Count > 0 then
+			State._DoorWarnedFor = BestExit
+			Functions.Notify({ Title = "Drone kapida!", Body = "Siradaki kapinin arkasinda " .. tostring(Count) .. " drone grubu var. Camdan kontrol et!", Time = 5 })
+			if Toggles.EntityChatToggle and Toggles.EntityChatToggle.Value then
+				pcall(function() Functions.SendChat("Drone behind next door!") end)
+			end
+		end
+	end)
+end)
+
+-- Honcho mail odasi: BoxID'si bir deposit ile uyusan kutulari ESP'le
+Globals.HonchoBoxes = {}
+Functions.ReadMailBoxID = function(Model, Names)
+	if not Model then return nil end
+	local Found = nil
+	pcall(function()
+		for _, N in Names do
+			local V = Model:GetAttribute(N)
+			if V ~= nil then Found = tostring(V) break end
+		end
+		if not Found then
+			for AttrName, AttrValue in Model:GetAttributes() do
+				for _, N in Names do
+					if string.lower(AttrName) == string.lower(N) then Found = tostring(AttrValue) break end
+				end
+				if Found then break end
+			end
+		end
+		if not Found then
+			for _, N in Names do
+				local Child = Model:FindFirstChild(N)
+				if Child and (Child:IsA("StringValue") or Child:IsA("IntValue") or Child:IsA("NumberValue")) then
+					Found = tostring(Child.Value)
+					break
+				end
+			end
+		end
+		if not Found then
+			for _, Child in Model:GetChildren() do
+				for _, N in Names do
+					if string.lower(Child.Name) == string.lower(N)
+						and (Child:IsA("StringValue") or Child:IsA("IntValue") or Child:IsA("NumberValue"))
+					then
+						Found = tostring(Child.Value)
+						break
+					end
+				end
+				if Found then break end
+			end
+		end
+	end)
+	return Found
+end
+Functions.RefreshHonchoBoxESP = function()
+	if not (Toggles.HonchoBoxESPToggle and Toggles.HonchoBoxESPToggle.Value) then return end
+	pcall(function()
+		-- cache'i guncelle: yeni kutu/deposit var mi
+		for _, Obj in Services.Workspace:GetDescendants() do
+			if Obj.Name == "ArchivesStorageBox" or Obj.Name == "ArchivesPackageDeposit" then
+				local Known = false
+				for _, Entry in Globals.HonchoBoxes do
+					if Entry.Model == Obj then Known = true break end
+				end
+				if not Known then table.insert(Globals.HonchoBoxes, { Model = Obj, Label = nil }) end
+			end
+		end
+		-- olu/silinenleri temizle
+		for I = #Globals.HonchoBoxes, 1, -1 do
+			local Entry = Globals.HonchoBoxes[I]
+			if not Entry.Model or not Entry.Model:IsDescendantOf(Services.Workspace) then
+				if Entry.Model then Functions.RemoveESP(Entry.Model) end
+				table.remove(Globals.HonchoBoxes, I)
+			end
+		end
+		-- deposit ID'lerini topla
+		local DepositIDs = {}
+		for _, Entry in Globals.HonchoBoxes do
+			if Entry.Model and Entry.Model.Name == "ArchivesPackageDeposit" then
+				local ID = Functions.ReadMailBoxID(Entry.Model, {"BoxID"})
+				if ID then DepositIDs[ID] = true end
+				local WantLabel = ID and ("Deposit [" .. ID .. "]") or nil
+				if WantLabel ~= Entry.Label then
+					Entry.Label = WantLabel
+					if WantLabel then
+						Functions.AddESP({ Object = Entry.Model, Text = WantLabel, Color = Options.HonchoBoxESPColor.Value }, false)
+					else
+						Functions.RemoveESP(Entry.Model)
+					end
+				end
+			end
+		end
+		-- ID'si bir deposit ile uyusan kutulari isaretle
+		for _, Entry in Globals.HonchoBoxes do
+			if Entry.Model and Entry.Model.Name == "ArchivesStorageBox" then
+				local ID = Functions.ReadMailBoxID(Entry.Model, {"Tool_BoxID"})
+				local WantLabel = (ID and DepositIDs[ID]) and ("Box [" .. ID .. "] -> Deposit") or nil
+				if WantLabel ~= Entry.Label then
+					Entry.Label = WantLabel
+					if WantLabel then
+						Functions.AddESP({ Object = Entry.Model, Text = WantLabel, Color = Options.HonchoBoxESPColor.Value }, false)
+					else
+						Functions.RemoveESP(Entry.Model)
+					end
+				end
+			end
+		end
+	end)
+end
+Connections.HonchoBoxWatcher = Services.Workspace.DescendantAdded:Connect(function(Obj)
+	pcall(function()
+		if Obj.Name ~= "ArchivesStorageBox" and Obj.Name ~= "ArchivesPackageDeposit" then return end
+		local Known = false
+		for _, Entry in Globals.HonchoBoxes do
+			if Entry.Model == Obj then Known = true break end
+		end
+		if not Known then table.insert(Globals.HonchoBoxes, { Model = Obj, Label = nil }) end
+		Obj.Destroying:Once(function()
+			Functions.RemoveESP(Obj)
+			for I = #Globals.HonchoBoxes, 1, -1 do
+				if Globals.HonchoBoxes[I].Model == Obj then table.remove(Globals.HonchoBoxes, I) end
+			end
+		end)
+		Functions.RefreshHonchoBoxESP()
+	end)
+end)
+Connections.HonchoBoxLoop = Services.RunService.Heartbeat:Connect(function()
+	pcall(function()
+		if not (Toggles.HonchoBoxESPToggle and Toggles.HonchoBoxESPToggle.Value) then return end
+		local Now = tick()
+		if Now - (Globals._LastHonchoRefresh or 0) < 2 then return end
+		Globals._LastHonchoRefresh = Now
+		Functions.RefreshHonchoBoxESP()
 	end)
 end)
 
