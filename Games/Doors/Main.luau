@@ -685,6 +685,230 @@ Functions.GetHasteTime = function()
 	return MinutesText .. ":" .. SecondsText
 end
 
+-- Drone Stampede (The Archives): clocks strike 5:00 / 9:00, 1 real second = 1 game minute
+Globals.DroneStampedeState = {
+	LastWarnTick = 0,
+	WarnedFor = nil,
+	LastStampedeTick = 0,
+	RunStartTick = tick(),
+	RecentDroneSpawns = {},
+	CachedClockLabels = {},
+	CachedTimeValues = {},
+	LastScan = 0,
+	LastLightingCheck = 0,
+	LastLightingTime = nil,
+	LastLightingTick = 0,
+	LightingTrusted = false,
+	LastCaptionSecond = -1,
+}
+
+Functions.ParseArchivesClockText = function(Text)
+	if typeof(Text) ~= "string" then return nil end
+	local H, M = Text:match("(%d+)%s*:%s*(%d+)")
+	if not H then return nil end
+	H = tonumber(H)
+	M = tonumber(M)
+	if not H or not M then return nil end
+	if M < 0 or M > 59 then return nil end
+	if H < 0 or H > 23 then return nil end
+	return H, M
+end
+
+Functions.GetStampedeRemainingFromHM = function(H, M)
+	-- 12h normalize: 9:00 -> 540, 5:00 -> 300. 1 game minute = 1 real second.
+	local Total12 = (H % 12) * 60 + M
+	local TargetA = 5 * 60 -- 5:00
+	local TargetB = 9 * 60 -- 9:00
+	local NextTarget, TargetHour
+	if Total12 < TargetA then
+		NextTarget = TargetA
+		TargetHour = 5
+	elseif Total12 < TargetB then
+		NextTarget = TargetB
+		TargetHour = 9
+	else
+		NextTarget = TargetA + 720
+		TargetHour = 5
+	end
+	local Remaining = NextTarget - Total12 -- game minutes = real seconds
+	return Remaining, TargetHour
+end
+
+Functions.FormatStampedeTime = function(SecondsLeft)
+	SecondsLeft = math.max(0, math.floor(SecondsLeft + 0.5))
+	local Minutes = math.floor(SecondsLeft / 60)
+	local Seconds = SecondsLeft - (Minutes * 60)
+	local MinutesText = Minutes < 10 and ("0" .. tostring(Minutes)) or tostring(Minutes)
+	local SecondsText = Seconds < 10 and ("0" .. tostring(Seconds)) or tostring(Seconds)
+	return MinutesText .. ":" .. SecondsText
+end
+
+Functions.ScanStampedeClockSources = function()
+	local State = Globals.DroneStampedeState
+	if tick() - State.LastScan < 5 then return end
+	State.LastScan = tick()
+	table.clear(State.CachedClockLabels)
+	table.clear(State.CachedTimeValues)
+
+	-- 1) Time-like values in ReplicatedStorage / GameData / FloorReplicated
+	local function ConsiderValue(Obj)
+		if not (Obj:IsA("IntValue") or Obj:IsA("NumberValue") or Obj:IsA("StringValue")) then return end
+		local N = Obj.Name:lower()
+		if N == "digitaltimer" then return end
+		if N:find("clock") or N:find("time") or N:find("hour") or N:find("minute") or N:find("shift") or N:find("stampede") or N:find("drone") or N == "day" then
+			table.insert(State.CachedTimeValues, Obj)
+		end
+	end
+	pcall(function()
+		for _, Obj in Services.ReplicatedStorage:GetDescendants() do
+			ConsiderValue(Obj)
+		end
+	end)
+
+	-- 2) Wall clock / speaker TextLabels showing HH:MM in rooms + PlayerGui
+	local function ConsiderLabel(Obj)
+		if not (Obj:IsA("TextLabel") or Obj:IsA("TextButton")) then return end
+		local Ok, Txt = pcall(function() return Obj.Text end)
+		if not Ok or typeof(Txt) ~= "string" then return end
+		if Txt:match("%d+%s*:%s*%d+") then
+			local H, M = Functions.ParseArchivesClockText(Txt)
+			if H then
+				table.insert(State.CachedClockLabels, Obj)
+			end
+		end
+	end
+	pcall(function()
+		if CurrentRooms then
+			for _, Obj in CurrentRooms:GetDescendants() do
+				ConsiderLabel(Obj)
+			end
+		end
+	end)
+	pcall(function()
+		for _, Obj in LocalPlayer.PlayerGui:GetDescendants() do
+			ConsiderLabel(Obj)
+		end
+	end)
+end
+
+Functions.GetArchivesClockHM = function()
+	local State = Globals.DroneStampedeState
+
+	-- A) Lighting.ClockTime (only if it moves ~1 game minute per real second)
+	pcall(function()
+		local CT = Services.Lighting.ClockTime
+		local Now = tick()
+		if typeof(CT) == "number" then
+			if State.LastLightingTime ~= nil then
+				local Dt = Now - State.LastLightingTick
+				if Dt > 0.5 and Dt < 10 then
+					local Dh = (CT - State.LastLightingTime) % 24
+					if Dh > 12 then Dh = Dh - 24 end
+					local Rate = math.abs(Dh) / Dt -- hour per real second, expect ~1/60 = 0.0167
+					if Rate > 0.005 and Rate < 0.05 then
+						State.LightingTrusted = true
+					elseif Rate > 0.0001 then
+						-- moving at wrong rate (e.g. day/night visuals), do not trust
+						if Dt > 5 then State.LightingTrusted = false end
+					end
+				end
+			end
+			State.LastLightingTime = CT
+			State.LastLightingTick = Now
+			if State.LightingTrusted then
+				local H = math.floor(CT)
+				local M = math.floor((CT - H) * 60)
+				if H >= 0 and H <= 23 and M >= 0 and M <= 59 then
+					State._LightingHM_H = H
+					State._LightingHM_M = M
+				end
+			end
+		end
+	end)
+	if State.LightingTrusted and State._LightingHM_H ~= nil then
+		return State._LightingHM_H, State._LightingHM_M, "Lighting"
+	end
+
+	-- B) Cached time values
+	for _, Obj in State.CachedTimeValues do
+		local Ok, Result = pcall(function()
+			if Obj:IsA("StringValue") then
+				return Functions.ParseArchivesClockText(Obj.Value)
+			elseif Obj:IsA("IntValue") or Obj:IsA("NumberValue") then
+				local V = Obj.Value
+				if typeof(V) ~= "number" then return nil end
+				if V >= 0 and V <= 24 and V % 1 ~= 0 then
+					-- float hours, e.g. 9.5 = 09:30
+					local H = math.floor(V)
+					local M = math.floor((V - H) * 60)
+					return H, M
+				elseif V >= 0 and V <= 24 then
+					-- ambiguous 0-24 int, likely hour only; skip (no minutes)
+					return nil
+				elseif V > 24 and V <= 1440 then
+					local H = math.floor(V / 60) % 24
+					local M = math.floor(V % 60)
+					return H, M
+				end
+				return nil
+			end
+			return nil
+		end)
+		if Ok and Result then
+			local H, M = Result, nil
+			-- pcall returns first return only; re-parse for M
+			if typeof(H) == "number" then
+				local H2, M2
+				if Obj:IsA("StringValue") then
+					H2, M2 = Functions.ParseArchivesClockText(Obj.Value)
+				elseif Obj:IsA("NumberValue") or Obj:IsA("IntValue") then
+					local V = Obj.Value
+					if V > 24 and V <= 1440 then
+						H2 = math.floor(V / 60) % 24
+						M2 = math.floor(V % 60)
+					elseif V >= 0 and V <= 24 and V % 1 ~= 0 then
+						H2 = math.floor(V)
+						M2 = math.floor((V - H2) * 60)
+					end
+				end
+				if H2 then return H2, M2, "Value:" .. Obj:GetFullName() end
+			end
+		end
+	end
+
+	-- C) Cached clock labels (wall clocks / UI)
+	for _, Label in State.CachedClockLabels do
+		local Ok, Txt = pcall(function() return Label.Text end)
+		if Ok and typeof(Txt) == "string" then
+			local H, M = Functions.ParseArchivesClockText(Txt)
+			if H then return H, M, "Label:" .. Label:GetFullName() end
+		end
+	end
+
+	return nil
+end
+
+Functions.GetDroneStampedeCountdown = function()
+	Functions.ScanStampedeClockSources()
+	local H, M, Source = Functions.GetArchivesClockHM()
+	if H then
+		local Remaining, TargetHour = Functions.GetStampedeRemainingFromHM(H, M)
+		return Remaining, TargetHour, string.format("%02d:%02d", H, M), Source
+	end
+	-- Fallback: assume run started at 9:00, 12h cycle (720 min), targets at +480 (5:00) and +720 (9:00)
+	local Elapsed = tick() - Globals.DroneStampedeState.RunStartTick -- 1 sec = 1 game min
+	local CyclePos = Elapsed % 720
+	local Remaining, TargetHour
+	if CyclePos < 480 then
+		Remaining = 480 - CyclePos
+		TargetHour = 5
+	else
+		Remaining = 720 - CyclePos
+		TargetHour = 9
+	end
+	return Remaining, TargetHour, nil, "FallbackTimer"
+end
+
 Library.OldNotify = Library.Notify
 Library.Notify = function(Data, Body, Time)
 	Functions.Notify({ Title = Body, Time = Time or 5 })
@@ -1865,6 +2089,9 @@ Groupboxes.Visuals_Entities:AddDivider()
 Groupboxes.Visuals_Entities:AddToggle("NotifyLibraryCode", { Text = "Notify Library Code", Default = false, Tooltip = "Automatically solves the code for the library padlock." })
 Groupboxes.Visuals_Entities:AddToggle("NotifyOxygen",      { Text = "Notify Oxygen Level", Default = false, Tooltip = "Shows how much oxygen you have remaining." })
 Groupboxes.Visuals_Entities:AddToggle("NotifyHasteTime",   { Text = "Notify Haste Time",   Default = false, Tooltip = "Shows how much time you have remaining before 'Haste' spawns." })
+Groupboxes.Visuals_Entities:AddToggle("NotifyStampedeTime",   { Text = "Notify Stampede Time",   Default = false, Tooltip = "Shows countdown to next 'Drone Stampede' in The Archives (clocks strike 5:00 / 9:00), like Haste timer." })
+Groupboxes.Visuals_Entities:AddToggle("NotifyDroneStampede",   { Text = "Notify Drone Stampede",   Default = false, Tooltip = "Warns you before a 'Drone Stampede' in The Archives. Hug side walls / hide." })
+Groupboxes.Visuals_Entities:AddSlider("DroneStampedeWarning", { Text = "Stampede Warning", Min = 5, Max = 30, Default = 10, Rounding = 0, Compact = true })
 
 Globals.LibraryCodeFound = false
 Toggles.NotifyLibraryCode:OnChanged(function(Value)
@@ -4495,6 +4722,145 @@ end)
 if FloorReplicated:FindFirstChild("DigitalTimer") then
 	Connections.HasteTimerConnection = FloorReplicated.DigitalTimer:GetPropertyChangedSignal("Value"):Connect(function()
 		if Toggles.NotifyHasteTime.Value then Functions.Caption(Functions.GetHasteTime(), true) end
+	end)
+end
+
+-- Drone Stampede sayaç + 10sn erken uyarı (NotifyHasteTime gibi, Haste'den bağımsız)
+Functions.IsArchivesFloor = function()
+	local Ok, Name = pcall(function() return tostring(Floor) end)
+	if not Ok then return false end
+	return Name:lower():find("archiv") ~= nil
+end
+
+Functions.WarnDroneStampede = function(Remaining, TargetHour, ClockText)
+	local State = Globals.DroneStampedeState
+	local WarningTime = 10
+	pcall(function()
+		if Options.DroneStampedeWarning then WarningTime = Options.DroneStampedeWarning.Value end
+	end)
+	local CycleKey = tostring(TargetHour) .. "_" .. tostring(math.floor((tick() - State.RunStartTick) / 720))
+	if State.WarnedFor == CycleKey then return end
+	if tick() - State.LastWarnTick < 20 then return end
+	State.WarnedFor = CycleKey
+	State.LastWarnTick = tick()
+	local TargetText = (TargetHour == 5 and "5:00") or "9:00"
+	local Body = "Stampede in ~" .. math.max(1, math.floor(Remaining + 0.5)) .. "s (" .. TargetText .. "). Ortadan cekil, kenarlara gec / hide!"
+	if ClockText then
+		Body = "Clock " .. ClockText .. " -> " .. TargetText .. " in ~" .. math.max(1, math.floor(Remaining + 0.5)) .. "s. Ortadan cekil / hide!"
+	end
+	Functions.Notify({ Title = "Drone Stampede incoming!", Body = Body, Time = 6 })
+	if Toggles.EntityChatToggle and Toggles.EntityChatToggle.Value then
+		pcall(function() Functions.SendChat("Drone Stampede in " .. math.max(1, math.floor(Remaining + 0.5)) .. "s! (" .. TargetText .. ")") end)
+	end
+end
+
+Functions.NotifyStampedeNow = function(Source)
+	local State = Globals.DroneStampedeState
+	if tick() - State.LastStampedeTick < 15 then return end
+	State.LastStampedeTick = tick()
+	State.WarnedFor = nil
+	-- Fallback sayaci kalibre et: 12h dongude 9:00 = pos 0, 5:00 = pos 480
+	if Source == "5:00" then
+		State.RunStartTick = tick() - 480
+	elseif Source == "9:00" then
+		State.RunStartTick = tick()
+	end
+	Functions.Notify({ Title = "DRONE STAMPEDE!", Body = "Stampede NOW" .. (Source and (" (" .. tostring(Source) .. ")") or "") .. "! Ortadan cekil, kenarlara gec / hide!", Time = 6 })
+	if Toggles.EntityChatToggle and Toggles.EntityChatToggle.Value then
+		pcall(function() Functions.SendChat("DRONE STAMPEDE NOW!") end)
+	end
+end
+
+Connections.DroneStampedeLoop = Services.RunService.Heartbeat:Connect(function()
+	pcall(function()
+		local StampedeTimeOn = Toggles.NotifyStampedeTime and Toggles.NotifyStampedeTime.Value
+		local StampedeWarnOn = Toggles.NotifyDroneStampede and Toggles.NotifyDroneStampede.Value
+		if not StampedeTimeOn and not StampedeWarnOn then return end
+		if not Functions.IsArchivesFloor() then return end
+		-- 0.25sn throttle (Caption spamını engelle)
+		local State = Globals.DroneStampedeState
+		if tick() - (State._LastPoll or 0) < 0.25 then return end
+		State._LastPoll = tick()
+
+		local Remaining, TargetHour, ClockText, Source = Functions.GetDroneStampedeCountdown()
+		if not Remaining then return end
+
+		local WarningTime = 10
+		pcall(function()
+			if Options.DroneStampedeWarning then WarningTime = Options.DroneStampedeWarning.Value end
+		end)
+
+		-- Sayaç (NotifyHasteTime gibi caption)
+		if StampedeTimeOn then
+			local Second = math.floor(Remaining)
+			if Second ~= State.LastCaptionSecond then
+				State.LastCaptionSecond = Second
+				local TargetText = (TargetHour == 5 and "5:00") or "9:00"
+				local Prefix = "Stampede"
+				if ClockText then Prefix = "Clock " .. ClockText end
+				Functions.Caption(Prefix .. " -> " .. TargetText .. " in " .. Functions.FormatStampedeTime(Remaining), Remaining <= WarningTime)
+			end
+		end
+
+		-- 10sn kala uyarı
+		if StampedeWarnOn and Remaining <= WarningTime and Remaining > 0 then
+			Functions.WarnDroneStampede(Remaining, TargetHour, ClockText)
+		end
+
+		-- Stampede anı (saat tam 5:00 / 9:00)
+		if Remaining <= 1.5 and Remaining >= 0 then
+			Functions.NotifyStampedeNow(TargetHour == 5 and "5:00" or "9:00")
+		end
+	end)
+end)
+
+-- Chime sesi = stampede çok yakında (hoparlörden chime -> horde). Son uyarı olarak yakala.
+Connections.DroneStampedeChime = Services.Workspace.DescendantAdded:Connect(function(Obj)
+	pcall(function()
+		if not Functions.IsArchivesFloor() then return end
+		if not ((Toggles.NotifyDroneStampede and Toggles.NotifyDroneStampede.Value) or (Toggles.NotifyStampedeTime and Toggles.NotifyStampedeTime.Value)) then return end
+		if Obj:IsA("Sound") then
+			local N = (Obj.Name or ""):lower()
+			local ParentName = ""
+			pcall(function() ParentName = (Obj.Parent and Obj.Parent.Name or ""):lower() end)
+			local Full = N .. " " .. ParentName
+			if Full:find("chime") or Full:find("bell") or Full:find("speaker") or Full:find("clock") or Full:find("stampede") or Full:find("rushhour") or Full:find("rush_hour") then
+				local Conn
+				Conn = Obj.Played:Connect(function()
+					Functions.NotifyStampedeNow("chime")
+					pcall(function() Conn:Disconnect() end)
+				end)
+				table.insert(Connections, Conn)
+				Obj.Destroying:Once(function() pcall(function() Conn:Disconnect() end) end)
+				-- Zaten çalıyorsa direkt uyar
+				pcall(function()
+					if Obj.Playing then Functions.NotifyStampedeNow("chime") end
+				end)
+			end
+		end
+	end)
+end)
+
+-- Toplu Drone spawn = stampede başladı (yedek tespit: 4sn içinde 3+ Drone/DroneMoving)
+do
+	Connections.DroneStampedeSpawn = Services.Workspace.ChildAdded:Connect(function(Entity)
+		pcall(function()
+			if Entity.Name ~= "Drone" and Entity.Name ~= "DroneMoving" then return end
+			local State = Globals.DroneStampedeState
+			table.insert(State.RecentDroneSpawns, tick())
+			-- eski kayıtları temizle
+			local Fresh = {}
+			for _, T in State.RecentDroneSpawns do
+				if tick() - T < 4 then table.insert(Fresh, T) end
+			end
+			State.RecentDroneSpawns = Fresh
+			if #Fresh >= 3 then
+				State.RecentDroneSpawns = {}
+				if Functions.IsArchivesFloor() and ((Toggles.NotifyDroneStampede and Toggles.NotifyDroneStampede.Value) or (Toggles.NotifyStampedeTime and Toggles.NotifyStampedeTime.Value)) then
+					Functions.NotifyStampedeNow("horde")
+				end
+			end
+		end)
 	end)
 end
 
