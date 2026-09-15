@@ -2076,18 +2076,46 @@ Groupboxes.Exploits_Audio:AddToggle("RemoveJamminMusic",       { Text = "Remove 
 Groupboxes.Exploits_Audio:AddToggle("RemoveInteractingSounds", { Text = "Remove Interacting Sounds", Default = false, Tooltip = "Removes the sounds when interacting with proximity prompts." })
 
 Toggles.RemoveJamminMusic:OnChanged(function(Value)
-	local Jam = Globals.MainUI.Initiator.Main_Game.Health:FindFirstChild("Jam")
-	if Jam then
+	local function Apply()
+		if not Globals.MainUI then return false end
+		local Initiator = Globals.MainUI:FindFirstChild("Initiator")
+		local MainGame = Initiator and Initiator:FindFirstChild("Main_Game")
+		local Health = MainGame and MainGame:FindFirstChild("Health")
+		local Jam = Health and Health:FindFirstChild("Jam")
+		if not Jam then return false end
 		Jam.Volume = Value and 0 or 0.45
 		Globals.JamMuffle.Enabled = LiveModifiers:FindFirstChild("Jammin") and not Value or false
+		return true
+	end
+	if not Apply() and Value then
+		task.delay(3, function()
+			if Toggles.RemoveJamminMusic and Toggles.RemoveJamminMusic.Value then Apply() end
+		end)
 	end
 end)
 Toggles.RemoveInteractingSounds:OnChanged(function(Value)
-	local PS = Globals.MainUI.Initiator.Main_Game.PromptService
-	PS.Triggered.Volume   = Value and 0 or 0.04
-	PS.Holding.Volume     = Value and 0 or 0.1
-	PS.Notification.Volume = Value and 0 or 0.03
-	Globals.MainUI.Initiator.Main_Game.Reminder.Caption.Volume = Value and 0 or 0.1
+	local function Apply()
+		if not Globals.MainUI then return false end
+		local Initiator = Globals.MainUI:FindFirstChild("Initiator")
+		local MainGame = Initiator and Initiator:FindFirstChild("Main_Game")
+		local PS = MainGame and MainGame:FindFirstChild("PromptService")
+		if not PS then return false end
+		local Triggered = PS:FindFirstChild("Triggered")
+		local Holding = PS:FindFirstChild("Holding")
+		local Notification = PS:FindFirstChild("Notification")
+		if Triggered then Triggered.Volume = Value and 0 or 0.04 end
+		if Holding then Holding.Volume = Value and 0 or 0.1 end
+		if Notification then Notification.Volume = Value and 0 or 0.03 end
+		local Reminder = MainGame:FindFirstChild("Reminder")
+		local Caption = Reminder and Reminder:FindFirstChild("Caption")
+		if Caption then Caption.Volume = Value and 0 or 0.1 end
+		return true
+	end
+	if not Apply() and Value then
+		task.delay(3, function()
+			if Toggles.RemoveInteractingSounds and Toggles.RemoveInteractingSounds.Value then Apply() end
+		end)
+	end
 end)
 
 Groupboxes.Visuals_LeftTab = Tabs.Visuals:AddLeftTabbox("Camera / Effects")
@@ -2142,16 +2170,29 @@ Toggles.RemoveCameraFog:OnChanged(function(Value)
 	end
 end)
 Toggles.RemoveCutscenes:OnChanged(function(Value)
-    local Cutscenes = Globals.MainUI.Initiator.Main_Game.RemoteListener.Cutscenes
-    for _, Object in pairs(Cutscenes:GetChildren()) do
-        if table.find(CutsceneNames, Object.Name) and Object:IsA("ModuleScript") or table.find(CutsceneNames, Object:GetAttribute("OriginalName")) and Object:IsA("ModuleScript") then
-            Object.Name = (Value and Object.Name .. "_Disabled" or Object:GetAttribute("OriginalName"))
+    local function Apply()
+        if not Globals.MainUI then return false end
+        local Initiator = Globals.MainUI:FindFirstChild("Initiator")
+        local MainGame = Initiator and Initiator:FindFirstChild("Main_Game")
+        local RemoteListener = MainGame and MainGame:FindFirstChild("RemoteListener")
+        local Cutscenes = RemoteListener and RemoteListener:FindFirstChild("Cutscenes")
+        if not Cutscenes then return false end
+        for _, Object in pairs(Cutscenes:GetChildren()) do
+            if table.find(CutsceneNames, Object.Name) and Object:IsA("ModuleScript") or table.find(CutsceneNames, Object:GetAttribute("OriginalName")) and Object:IsA("ModuleScript") then
+                Object.Name = (Value and Object.Name .. "_Disabled" or Object:GetAttribute("OriginalName"))
+            end
         end
+        for _, Object in pairs(FloorReplicated:GetChildren()) do
+            if table.find(CutsceneNames, Object.Name) and Object:IsA("ModuleScript") or table.find(CutsceneNames, Object:GetAttribute("OriginalName")) and Object:IsA("ModuleScript") then
+                Object.Name = (Value and Object.Name .. "_Disabled" or Object:GetAttribute("OriginalName"))
+            end
+        end
+        return true
     end
-    for _, Object in pairs(FloorReplicated:GetChildren()) do
-        if table.find(CutsceneNames, Object.Name) and Object:IsA("ModuleScript") or table.find(CutsceneNames, Object:GetAttribute("OriginalName")) and Object:IsA("ModuleScript") then
-            Object.Name = (Value and Object.Name .. "_Disabled" or Object:GetAttribute("OriginalName"))
-        end
+    if not Apply() and Value then
+        task.delay(3, function()
+            if Toggles.RemoveCutscenes and Toggles.RemoveCutscenes.Value then Apply() end
+        end)
     end
 end)
 
