@@ -289,6 +289,7 @@ local ItemNames = {
 	["GoldGun"]           = "Golden Gun",
 	["StopSign"]          = "Stop Sign",
 	["TipJar"]            = "Tip Jar",
+	["HoneyPot"]          = "Honey Pot",
 	["Lantern"]           = "Lantern",
 	["IronKey"]           = "Iron Key",
 	["LotusPetal"]        = "Lotus Petal",
@@ -849,6 +850,12 @@ Functions.ScanStampedeClockSources = function()
 			end
 		end
 	end)
+	-- birincil kaynak bulunuyorsa agir genel taramayi atla (60sn'de bir tazele, kasmayi onler)
+	if #State.CachedArchivesClocks > 0 then
+		State._GenericScanAt = State._GenericScanAt or 0
+		if tick() - State._GenericScanAt < 60 then return end
+		State._GenericScanAt = tick()
+	end
 
 	-- 1) Time-like values in ReplicatedStorage / GameData / FloorReplicated
 	local function ConsiderValue(Obj)
@@ -2542,6 +2549,7 @@ end)
 Toggles.HonchoBoxESPToggle:OnChanged(function(Value)
 	if not Globals.HonchoBoxes then return end
 	if Value then
+		Functions.SweepHonchoBoxes()
 		Functions.RefreshHonchoBoxESP()
 	else
 		for _, Entry in Globals.HonchoBoxes do
@@ -4205,7 +4213,7 @@ Functions.HandleObject = function(Object)
 	elseif Name == "MouseHole" then
 		if Toggles.ChestESPToggle.Value then Functions.AddESP({ Object = Object, Text = "Mouse", Color = Options.ChestESPColor.Value }, true) end
 		table.insert(Objects.Chests, Object)
-	elseif ItemNames[Name] and (Object:FindFirstChild("ModulePrompt", true) or Name == "FihFlakes" or Name == "Fihflakes" or Name == "Leftovers" or Name == "Pizza" or Name == "Briefcase" or Name == "PaperPlane" or Name == "LunchBox" or Name == "Lunch Box" or Name == "PaperCup" or Name == "Paper Cup" or Name == "WaitingTicket" or Name == "Waiting Ticket") then
+	elseif ItemNames[Name] and (Object:FindFirstChild("ModulePrompt", true) or Name == "FihFlakes" or Name == "Fihflakes" or Name == "Leftovers" or Name == "Pizza" or Name == "Briefcase" or Name == "PaperPlane" or Name == "LunchBox" or Name == "Lunch Box" or Name == "PaperCup" or Name == "Paper Cup" or Name == "WaitingTicket" or Name == "Waiting Ticket" or Name == "HoneyPot") then
 		if Toggles.ItemESPToggle.Value then Functions.AddESP({ Object = Object, Text = ItemNames[Name], Color = Options.ItemESPColor.Value }, Object:GetAttribute("ParentRoom") ~= nil) end
 		if Name == "LotusHolder" or Name == "LotusPetalPickup" then
 			Object.Handle:GetPropertyChangedSignal("LocalTransparencyModifier"):Connect(function()
@@ -5130,25 +5138,34 @@ Connections.DroneDoorWatcher = Services.RunService.Heartbeat:Connect(function()
 		end
 		if not BestExit then State._DoorWarnedFor = nil return end
 		if State._DoorWarnedFor == BestExit then return end
-		-- cikis cev resindeki "Drones" gruplarini say
-		local Count = 0
-		for _, Room in CurrentRooms:GetChildren() do
-			for _, Desc in Room:GetDescendants() do
-				if Desc.Name == "Drones" and (Desc:IsA("Model") or Desc:IsA("Folder") or Desc:IsA("BasePart")) then
-					local Pos = nil
-					if Desc:IsA("Model") then
-						local Ok, Pv = pcall(function() return Desc:GetPivot() end)
-						if Ok and Pv then Pos = Pv.Position end
-					elseif Desc:IsA("BasePart") then
-						Pos = Desc.Position
-					else
-						local First = Desc:FindFirstChildWhichIsA("BasePart", true)
-						if First then Pos = First.Position end
-					end
-					if Pos and (Pos - BestExit.Position).Magnitude <= Dist then
-						Count += 1
+		-- "Drones" konumlarini 5sn'de bir tazele (her kontrolde tum odalari gezmek kasma yapar)
+		if tick() - (State._LastDroneCache or 0) > 5 then
+			State._LastDroneCache = tick()
+			local List = {}
+			for _, Room in CurrentRooms:GetChildren() do
+				for _, Desc in Room:GetDescendants() do
+					if Desc.Name == "Drones" and (Desc:IsA("Model") or Desc:IsA("Folder") or Desc:IsA("BasePart")) then
+						local Pos = nil
+						if Desc:IsA("Model") then
+							local Ok, Pv = pcall(function() return Desc:GetPivot() end)
+							if Ok and Pv then Pos = Pv.Position end
+						elseif Desc:IsA("BasePart") then
+							Pos = Desc.Position
+						else
+							local First = Desc:FindFirstChildWhichIsA("BasePart", true)
+							if First then Pos = First.Position end
+						end
+						if Pos then table.insert(List, Pos) end
 					end
 				end
+			end
+			State._DronesCache = List
+		end
+		local Count = 0
+		local Cache = State._DronesCache or {}
+		for _, Pos in Cache do
+			if (Pos - BestExit.Position).Magnitude <= Dist then
+				Count += 1
 			end
 		end
 		if Count > 0 then
@@ -5204,10 +5221,8 @@ Functions.ReadMailBoxID = function(Model, Names)
 	end)
 	return Found
 end
-Functions.RefreshHonchoBoxESP = function()
-	if not (Toggles.HonchoBoxESPToggle and Toggles.HonchoBoxESPToggle.Value) then return end
+Functions.SweepHonchoBoxes = function()
 	pcall(function()
-		-- cache'i guncelle: yeni kutu/deposit var mi
 		for _, Obj in Services.Workspace:GetDescendants() do
 			if Obj.Name == "ArchivesStorageBox" or Obj.Name == "ArchivesPackageDeposit" then
 				local Known = false
@@ -5216,6 +5231,16 @@ Functions.RefreshHonchoBoxESP = function()
 				end
 				if not Known then table.insert(Globals.HonchoBoxes, { Model = Obj, Label = nil }) end
 			end
+		end
+	end)
+	Globals._LastHonchoSweep = tick()
+end
+Functions.RefreshHonchoBoxESP = function()
+	if not (Toggles.HonchoBoxESPToggle and Toggles.HonchoBoxESPToggle.Value) then return end
+	pcall(function()
+		-- agir tam tarama sadece cache bossa ve en son 15sn'den eskiyse (yeni eklenenleri DescendantAdded yakalar)
+		if #Globals.HonchoBoxes == 0 and tick() - (Globals._LastHonchoSweep or 0) > 15 then
+			Functions.SweepHonchoBoxes()
 		end
 		-- olu/silinenleri temizle
 		for I = #Globals.HonchoBoxes, 1, -1 do
