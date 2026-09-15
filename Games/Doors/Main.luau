@@ -574,7 +574,13 @@ Globals.DoorsNotify = function(NotifyOptions)
 	end)
 end
 
-Globals.STX = loadstring(game:HttpGet("https://raw.githubusercontent.com/arda201415/Abysall/refs/heads/main/Components/STX.luau"))()
+-- STX'i arkaplanda indir, yuklemeyi bloklamasin (inen kadar Abysall stili kullanilir)
+task.spawn(function()
+	local Ok, Mod = pcall(function()
+		return loadstring(game:HttpGet("https://raw.githubusercontent.com/arda201415/Abysall/refs/heads/main/Components/STX.luau"))()
+	end)
+	if Ok and Mod then Globals.STX = Mod end
+end)
 Functions.Notify = function(Settings)
 	local HiddenContainer = GetHiddenContainer()
 
@@ -607,7 +613,7 @@ Functions.Notify = function(Settings)
 			Image = Settings.Image,
 			Time = Settings.Time
 		})
-	elseif Options.NotifyStyle.Value == "STX" then
+	elseif Options.NotifyStyle.Value == "STX" and Globals.STX then
 		local Sound = Instance.new("Sound", HiddenContainer)
 		Sound.SoundId = "rbxassetid://4590657391"
 		Sound.Volume = (Toggles.NotifyPlaySound and Toggles.NotifyPlaySound.Value and Options.NotifySoundVolume.Value) or (Toggles.NotifyPlaySound and 0 or 3)
@@ -1062,7 +1068,11 @@ if not LocalPlayer.Character or not CurrentRooms:FindFirstChildOfClass("Model") 
 	while not LocalPlayer.Character or not CurrentRooms:FindFirstChildOfClass("Model") do
 		task.wait()
 	end
-	task.wait(4)
+	-- sabit 4sn yerine MainUI gelene kadar bekle (gelince aninda devam, en fazla 4sn)
+	local UIWaitStart = tick()
+	while not LocalPlayer.PlayerGui:FindFirstChild("MainUI") and tick() - UIWaitStart < 4 do
+		task.wait()
+	end
 end
 
 if not RemotesFolder then
@@ -4583,15 +4593,32 @@ Functions.QueueObject = function(Object)
 end
 
 Globals.QueueDone = true
+Globals.QueueHead = 1
 Connections.QueueConnection = Services.RunService.RenderStepped:Connect(function()
-	local Object = table.remove(Globals.ObjectQueue, 1)
-	if Object then
+	-- bastaki yigini eritmek icin frame basina 5 isle, bastan silme (O(n)) yerine index ile ilerle
+	for _ = 1, 5 do
+		local Object = Globals.ObjectQueue[Globals.QueueHead]
+		if not Object then break end
+		Globals.ObjectQueue[Globals.QueueHead] = nil
+		Globals.QueueHead += 1
 		Functions.HandleObject(Object)
+	end
+	if Globals.QueueHead > 5000 then
+		local Compacted = {}
+		for I = Globals.QueueHead, #Globals.ObjectQueue do
+			Compacted[#Compacted + 1] = Globals.ObjectQueue[I]
+		end
+		Globals.ObjectQueue = Compacted
+		Globals.QueueHead = 1
 	end
 end)
 
-for _, Object in Services.Workspace:GetDescendants() do
-	task.spawn(function() Functions.QueueObject(Object) end)
+do
+	local InitialDescendants = Services.Workspace:GetDescendants()
+	for I, Object in InitialDescendants do
+		Functions.QueueObject(Object)
+		if I % 500 == 0 then task.wait() end
+	end
 end
 
 Connections.InstanceHandler = Services.Workspace.DescendantAdded:Connect(function(Object)

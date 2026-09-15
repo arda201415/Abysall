@@ -1,15 +1,44 @@
 local Library = (Abysall.UILibrary == "Linoria" and "LinoriaLib" or "Obsidian")
 -- local BaseUrl = "https://raw.githubusercontent.com/mstudio45/" .. Library .. "/refs/heads/main/" -- broken since upio github got banned
-local BaseUrl = "https://raw.githubusercontent.com/deividcomsono/Obsidian/refs/heads/main/"
+local BaseUrl = "https://raw.githubusercontent.com/arda201415/Obsidian/refs/heads/main/Obsidian-main/"
 local AbysallUrl = "https://raw.githubusercontent.com/arda201415/Abysall/refs/heads/main/"
 
-local Interface = {
-  Library = loadstring(game:HttpGet(BaseUrl .. "Library.lua"))(),
-  SaveManager = loadstring(game:HttpGet(BaseUrl .. "addons/SaveManager.lua"))(),
-  ThemeManager = loadstring(game:HttpGet(BaseUrl .. "addons/ThemeManager.lua"))(),
+local InterfaceUrls = {
+  Library = BaseUrl .. "Library.lua",
+  SaveManager = BaseUrl .. "addons/SaveManager.lua",
+  ThemeManager = BaseUrl .. "addons/ThemeManager.lua",
+  InfoTab = AbysallUrl .. "Components/InfoTab.luau",
+  SettingsTab = AbysallUrl .. "Components/SettingsTab.luau",
+}
 
-  ApplyInfoTab = loadstring(game:HttpGet(AbysallUrl .. "Components/InfoTab.luau"))(),
-  ApplySettingsTab = loadstring(game:HttpGet(AbysallUrl .. "Components/SettingsTab.luau"))()
+-- 5 bagimsiz dosyayi paralel indir, sirasiyla calistir
+local InterfaceSources = {}
+for Key, Url in InterfaceUrls do
+	task.spawn(function()
+		local Ok, Res = pcall(function() return game:HttpGet(Url) end)
+		if Ok then InterfaceSources[Key] = Res end
+	end)
+end
+local InterfaceFetchStart = tick()
+while tick() - InterfaceFetchStart < 15 do
+	local Ready = true
+	for Key in InterfaceUrls do
+		if not InterfaceSources[Key] then Ready = false break end
+	end
+	if Ready then break end
+	task.wait()
+end
+for Key, Url in InterfaceUrls do
+	if not InterfaceSources[Key] then InterfaceSources[Key] = game:HttpGet(Url) end
+end
+
+local Interface = {
+  Library = loadstring(InterfaceSources.Library)(),
+  SaveManager = loadstring(InterfaceSources.SaveManager)(),
+  ThemeManager = loadstring(InterfaceSources.ThemeManager)(),
+
+  ApplyInfoTab = loadstring(InterfaceSources.InfoTab)(),
+  ApplySettingsTab = loadstring(InterfaceSources.SettingsTab)()
 }
 
 Interface.ThemeManager.BuiltInThemes = {

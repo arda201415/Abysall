@@ -15,9 +15,23 @@ local PlaceList = {
 }
 
 local BaseUrl = "https://raw.githubusercontent.com/arda201415/Abysall/refs/heads/main/"
+-- Bagimsiz modulleri paralel indir (sirali indirme yuklemeyi yavaslatiyordu)
+local EnvSource, ESPSource
+task.spawn(function()
+	local Ok, Res = pcall(function() return game:HttpGet(BaseUrl .. "Components/Environment.luau") end)
+	if Ok then EnvSource = Res end
+end)
+task.spawn(function()
+	local Ok, Res = pcall(function() return game:HttpGet(BaseUrl .. "Components/ESP.luau") end)
+	if Ok then ESPSource = Res end
+end)
+local FetchStart = tick()
+while (not EnvSource or not ESPSource) and tick() - FetchStart < 15 do task.wait() end
+if not EnvSource then EnvSource = game:HttpGet(BaseUrl .. "Components/Environment.luau") end
+if not ESPSource then ESPSource = game:HttpGet(BaseUrl .. "Components/ESP.luau") end
 getgenv().Abysall = {
-    Environment = loadstring(game:HttpGet(BaseUrl .. "Components/Environment.luau"))(),
-    ESPLibrary = loadstring(game:HttpGet(BaseUrl .. "Components/ESP.luau"))(),
+    Environment = loadstring(EnvSource)(),
+    ESPLibrary = loadstring(ESPSource)(),
 
     Legit = true, -- pog
 }

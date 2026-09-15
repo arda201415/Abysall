@@ -33,7 +33,12 @@ local RemotesFolder = Services.ReplicatedStorage:WaitForChild("RemotesFolder")
 while not LocalPlayer.Character do
     task.wait()
 end
-task.wait(1)
+do
+    local LobbyWaitStart = tick()
+    while not LocalPlayer.PlayerGui:FindFirstChild("MainUI") and tick() - LobbyWaitStart < 1 do
+        task.wait()
+    end
+end
 
 local Window = Library:CreateWindow({
     Title = "Abysall Hub",
