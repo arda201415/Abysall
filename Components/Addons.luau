@@ -32,6 +32,18 @@ return function(Window, CurrentGame)
     local Library = Abysall.Interface.Library
     local Env = Abysall.Environment or {}
 
+    -- Environment sadece testten gecen fonksiyonlari kaydeder (orn. isfolder
+    -- hic test edilmedigi icin hep nil'dir). Eksikleri globalden tamamla.
+    local G = getgenv()
+    local function FS(Name)
+        if type(Env[Name]) == "function" then return Env[Name] end
+        if type(G[Name]) == "function" then return G[Name] end
+        return nil
+    end
+    local isfolder, makefolder = FS("isfolder"), FS("makefolder")
+    local listfiles, readfile = FS("listfiles"), FS("readfile")
+    local isfile, writefile = FS("isfile"), FS("writefile")
+
     local function Notify(Title, Body, Time)
         pcall(function()
             Library:Notify({ Title = Title, Description = Body, Time = Time or 5 })
@@ -42,22 +54,27 @@ return function(Window, CurrentGame)
     end
 
     -- Dosya sistemi yoksa eklenti calismaz (mspaint ile ayni kural)
-    if not (Env.isfolder and Env.makefolder and Env.listfiles and Env.readfile) then
-        warn("[Abysall:Addons] executor dosya sistemini desteklemiyor, atlaniyor")
+    if not (isfolder and makefolder and listfiles and readfile) then
+        local Missing = {}
+        if not isfolder then table.insert(Missing, "isfolder") end
+        if not makefolder then table.insert(Missing, "makefolder") end
+        if not listfiles then table.insert(Missing, "listfiles") end
+        if not readfile then table.insert(Missing, "readfile") end
+        warn("[Abysall:Addons] eksik fonksiyon: " .. table.concat(Missing, ", "))
         return Loaded
     end
 
-    pcall(function() if not Env.isfolder("Abysall") then Env.makefolder("Abysall") end end)
-    pcall(function() if not Env.isfolder("Abysall/addons") then Env.makefolder("Abysall/addons") end end)
-    if not Env.isfolder("Abysall/addons") then
+    pcall(function() if not isfolder("Abysall") then makefolder("Abysall") end end)
+    pcall(function() if not isfolder("Abysall/addons") then makefolder("Abysall/addons") end end)
+    if not isfolder("Abysall/addons") then
         warn("[Abysall:Addons] Abysall/addons klasoru yok/acilamadi")
         return Loaded
     end
 
     -- Ilk kurulumda kisa bilgi dosyasi birak
     pcall(function()
-        if Env.isfile and Env.writefile and not Env.isfile("Abysall/addons/README.txt") then
-            Env.writefile("Abysall/addons/README.txt",
+        if isfile and writefile and not isfile("Abysall/addons/README.txt") then
+            writefile("Abysall/addons/README.txt",
                 "Abysall Addons\n" ..
                 "==============\n" ..
                 "Bu klasore .luau / .lua / .txt eklentileri koy (ornek: StarJug.luau).\n" ..
@@ -71,7 +88,7 @@ return function(Window, CurrentGame)
         end
     end)
 
-    local OkList, Files = pcall(function() return Env.listfiles("Abysall/addons") end)
+    local OkList, Files = pcall(function() return listfiles("Abysall/addons") end)
     if not OkList or type(Files) ~= "table" then
         warn("[Abysall:Addons] listfiles basarisiz")
         return Loaded
@@ -96,7 +113,7 @@ return function(Window, CurrentGame)
     -- Sekme karari: AddonInfo iceren dosya yoksa sekme acma (calistirmadan bak)
     local HasCandidate = false
     for _, Path in ipairs(Candidates) do
-        local Ok, Src = pcall(Env.readfile, Path)
+        local Ok, Src = pcall(readfile, Path)
         if Ok and type(Src) == "string" and Src:find("AddonInfo", 1, true) then
             HasCandidate = true
             break
@@ -137,7 +154,7 @@ return function(Window, CurrentGame)
     for _, Path in ipairs(Candidates) do
         local FileName = tostring(Path):match("([^/\\]+)$") or tostring(Path)
 
-        local OkRead, Source = pcall(Env.readfile, Path)
+        local OkRead, Source = pcall(readfile, Path)
         if not OkRead or type(Source) ~= "string" then
             Failed = Failed + 1
             pcall(function() Manager:AddLabel(FileName .. ": okunamadi", true) end)
