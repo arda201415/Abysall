@@ -27,6 +27,7 @@ return function(Window, CurrentGame)
     local Loaded = {}
     if not Window then return Loaded end
     CurrentGame = string.lower(tostring(CurrentGame or "*"))
+    warn("[Abysall:Addons] v2 yukleyici basladi, oyun: " .. CurrentGame)
 
     local Library = Abysall.Interface.Library
     local Env = Abysall.Environment or {}
@@ -42,12 +43,16 @@ return function(Window, CurrentGame)
 
     -- Dosya sistemi yoksa eklenti calismaz (mspaint ile ayni kural)
     if not (Env.isfolder and Env.makefolder and Env.listfiles and Env.readfile) then
+        warn("[Abysall:Addons] executor dosya sistemini desteklemiyor, atlaniyor")
         return Loaded
     end
 
     pcall(function() if not Env.isfolder("Abysall") then Env.makefolder("Abysall") end end)
     pcall(function() if not Env.isfolder("Abysall/addons") then Env.makefolder("Abysall/addons") end end)
-    if not Env.isfolder("Abysall/addons") then return Loaded end
+    if not Env.isfolder("Abysall/addons") then
+        warn("[Abysall:Addons] Abysall/addons klasoru yok/acilamadi")
+        return Loaded
+    end
 
     -- Ilk kurulumda kisa bilgi dosyasi birak
     pcall(function()
@@ -67,7 +72,11 @@ return function(Window, CurrentGame)
     end)
 
     local OkList, Files = pcall(function() return Env.listfiles("Abysall/addons") end)
-    if not OkList or type(Files) ~= "table" then return Loaded end
+    if not OkList or type(Files) ~= "table" then
+        warn("[Abysall:Addons] listfiles basarisiz")
+        return Loaded
+    end
+    warn("[Abysall:Addons] klasorde " .. #Files .. " girdi bulundu")
 
     local Candidates = {}
     for _, Path in ipairs(Files) do
@@ -81,6 +90,7 @@ return function(Window, CurrentGame)
         end
     end
     table.sort(Candidates)
+    warn("[Abysall:Addons] " .. #Candidates .. " eklenti adayi")
     if #Candidates == 0 then return Loaded end
 
     -- Sekme karari: AddonInfo iceren dosya yoksa sekme acma (calistirmadan bak)
@@ -92,7 +102,10 @@ return function(Window, CurrentGame)
             break
         end
     end
-    if not HasCandidate then return Loaded end
+    if not HasCandidate then
+        warn("[Abysall:Addons] AddonInfo iceren dosya yok, sekme acilmadi")
+        return Loaded
+    end
 
     -- Game eslesmesi: string | number (PlaceId) | table | "*"
     local function GameMatches(GameField)
@@ -231,6 +244,7 @@ return function(Window, CurrentGame)
     pcall(function()
         Manager:AddLabel(#Loaded .. " yuklendi, " .. Skipped .. " atlandi, " .. Failed .. " hatali", true)
     end)
+    warn("[Abysall:Addons] ozet: " .. #Loaded .. " yuklendi, " .. Skipped .. " atlandi, " .. Failed .. " hatali")
     if #Loaded > 0 then
         Notify("Addons", #Loaded .. " eklenti yuklendi.", 4)
     end
