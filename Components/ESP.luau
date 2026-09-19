@@ -32,6 +32,7 @@ local Library = {
 	ConnectionsTable = {},
 	Objects = {},
 	TotalObjects = {},
+	ErrorCount = {},
 }
 
 local RainbowState = {
@@ -160,6 +161,7 @@ local function DestroyObjectData(Object)
 	Library.ElementsEnabled[Object] = nil
 	Library.TransparencyEnabled[Object] = nil
 	Library.Objects[Object] = nil
+	Library.ErrorCount[Object] = nil
 
 	for Idx = #Library.TotalObjects, 1, -1 do
 		if Library.TotalObjects[Idx] == Object then
@@ -172,6 +174,7 @@ end
 function Library:AddESP(Parameters)
 	local Object = Parameters.Object
 	if Library.ElementsEnabled[Object] == true or Library.Unloaded == true then return end
+	if not Object or Object.Parent == nil then return end
 	if not Object:IsA("BasePart") and not Object:IsA("Model") then return end
 
 	Library.ElementsEnabled[Object] = true
@@ -397,7 +400,20 @@ function Library:AddESP(Parameters)
 					Connection:Disconnect()
 					return
 				end
-				Render()
+				-- Tek obje hata uretiyorsa tum donguyu zehirlemesin:
+				-- 3 ust uste hata -> ESP'yi kaldir, bir kez uyar.
+				local Ok, Err = pcall(Render)
+				if Ok then
+					Library.ErrorCount[Object] = nil
+				else
+					local N = (Library.ErrorCount[Object] or 0) + 1
+					Library.ErrorCount[Object] = N
+					if N >= 3 then
+						Library.ErrorCount[Object] = nil
+						warn("[Abysall:ESP] obje surekli hata verdi, kaldirildi: " .. tostring(Err):sub(1, 120))
+						Library:RemoveESP(Object)
+					end
+				end
 			end
 		end)
 		table.insert(Library.ConnectionsTable[Object], Connection)

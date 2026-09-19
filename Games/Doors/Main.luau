@@ -1395,6 +1395,11 @@ local ESPBlacklist = {}
 Functions.AddESP = function(ESPOptions, RoomBased)
 	local Object = ESPOptions.Object
 
+	-- Olu obje (odasi silinmis kapi/esya vs.): hayalet ESP olusmasin
+	if not Object or Object.Parent == nil then
+		return
+	end
+
 	if table.find(ESPBlacklist, Object) then
 		return
 	end
@@ -1405,6 +1410,16 @@ Functions.AddESP = function(ESPOptions, RoomBased)
 
 		if ObjectRoom == CurrentRoom or (table.find(Objects.Doors, Object) and ObjectRoom == CurrentRoom + 1) then
 			Abysall.ESPLibrary:AddESP(ESPOptions)
+		end
+
+		-- Ayni objeye ikinci baglanti sizmasin: eskisi varsa once kopar.
+		-- Yoksa her toggle/oda degisiminde handler birikir, ESP titrer/bozulur.
+		local OldConn = ESPConnections[Object]
+		if OldConn then
+			pcall(function() OldConn:Disconnect() end)
+			ESPConnections[Object] = nil
+			local OldPos = table.find(Connections, OldConn)
+			if OldPos then table.remove(Connections, OldPos) end
 		end
 
 		local RoomConnection = LocalPlayer:GetAttributeChangedSignal("CurrentRoom"):Connect(function()
