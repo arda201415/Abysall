@@ -1,7 +1,8 @@
 -- Abysall Addons (mspaint-tarzi eklenti sistemi)
--- Kullanim: executor'un workspace klasorunde "Abysall/addons" klasorune
--- .luau / .lua / .txt eklentileri koy. Sekme, bu oyunda gecerli en az
--- 1 eklenti varsa otomatik acilir.
+-- Kullanim: executor'un workspace klasorunde "Abysall/addons" VEYA
+-- "mspaint/addons" klasorune .luau / .lua / .txt eklentileri koy.
+-- (mspaint klasoru de taranir, eklentiyi tasimana gerek yok.)
+-- Sekme, bu oyunda gecerli en az 1 eklenti varsa otomatik acilir.
 --
 -- Eklenti sablonu:
 --   abysall.AddonInfo = {
@@ -78,6 +79,7 @@ return function(Window, CurrentGame)
                 "Abysall Addons\n" ..
                 "==============\n" ..
                 "Bu klasore .luau / .lua / .txt eklentileri koy (ornek: StarJug.luau).\n" ..
+                "mspaint/addons klasorun varsa oradakiler de otomatik yuklenir.\n" ..
                 "Her eklenti su blokla baslamali:\n\n" ..
                 '  abysall.AddonInfo = { Name = "Ornek", Title = "Ornek", Description = "", Game = "*" }\n' ..
                 "  abysall.Groupbox:AddButton({ Text = \"Merhaba\", Func = function() print(\"selam\") end })\n\n" ..
@@ -88,32 +90,43 @@ return function(Window, CurrentGame)
         end
     end)
 
-    local OkList, Files = pcall(function() return listfiles("Abysall/addons") end)
-    if not OkList or type(Files) ~= "table" then
-        warn("[Abysall:Addons] listfiles basarisiz")
-        return Loaded
-    end
-    warn("[Abysall:Addons] klasorde " .. #Files .. " girdi bulundu")
-
+    -- Iki klasor de taranir: once Abysall/addons, sonra mspaint/addons.
+    -- Ayni isim iki tarafta da varsa Abysall/addons kazanir.
+    local Folders = { "Abysall/addons", "mspaint/addons" }
     local Candidates = {}
-    for _, Path in ipairs(Files) do
-        local Base = string.lower(tostring(Path):match("([^/\\]+)$") or tostring(Path))
-        -- README ve "_" / "." ile baslayanlar ile .disabled bitenler yuklenmez
-        local Skipped = Base:sub(1, 6) == "readme" or Base:sub(1, 1) == "_" or Base:sub(1, 1) == "."
-            or Base:match("%.disabled$")
-        local IsAddon = Base:match("%.luau$") or Base:match("%.lua$") or Base:match("%.txt$")
-        if not Skipped and IsAddon then
-            table.insert(Candidates, Path)
+    local Seen = {}
+    local FolderCounts = {}
+    for _, Folder in ipairs(Folders) do
+        FolderCounts[Folder] = 0
+        if isfolder(Folder) then
+            local OkList, Files = pcall(function() return listfiles(Folder) end)
+            if OkList and type(Files) == "table" then
+                warn("[Abysall:Addons] " .. Folder .. ": " .. #Files .. " girdi")
+                for _, Path in ipairs(Files) do
+                    local Base = string.lower(tostring(Path):match("([^/\\]+)$") or tostring(Path))
+                    -- README ve "_" / "." ile baslayanlar ile .disabled bitenler yuklenmez
+                    local Skipped = Base:sub(1, 6) == "readme" or Base:sub(1, 1) == "_" or Base:sub(1, 1) == "."
+                        or Base:match("%.disabled$")
+                    local IsAddon = Base:match("%.luau$") or Base:match("%.lua$") or Base:match("%.txt$")
+                    if not Skipped and IsAddon and not Seen[Base] then
+                        Seen[Base] = true
+                        FolderCounts[Folder] = FolderCounts[Folder] + 1
+                        table.insert(Candidates, { Path = Path, Folder = Folder })
+                    end
+                end
+            else
+                warn("[Abysall:Addons] " .. Folder .. " listelenemedi")
+            end
         end
     end
-    table.sort(Candidates)
+    table.sort(Candidates, function(A, B) return tostring(A.Path) < tostring(B.Path) end)
     warn("[Abysall:Addons] " .. #Candidates .. " eklenti adayi")
     if #Candidates == 0 then return Loaded end
 
     -- Sekme karari: AddonInfo iceren dosya yoksa sekme acma (calistirmadan bak)
     local HasCandidate = false
-    for _, Path in ipairs(Candidates) do
-        local Ok, Src = pcall(readfile, Path)
+    for _, C in ipairs(Candidates) do
+        local Ok, Src = pcall(readfile, C.Path)
         if Ok and type(Src) == "string" and Src:find("AddonInfo", 1, true) then
             HasCandidate = true
             break
@@ -146,12 +159,13 @@ return function(Window, CurrentGame)
 
     local Tab = Window:AddTab("Addons", "puzzle")
     local Manager = Tab:AddLeftGroupbox("Addons")
-    Manager:AddLabel("Klasor: Abysall/addons", true)
+    Manager:AddLabel("Klasor: Abysall/addons + mspaint/addons", true)
 
     local UseLeft = false
     local Skipped, Failed = 0, 0
 
-    for _, Path in ipairs(Candidates) do
+    for _, C in ipairs(Candidates) do
+        local Path = C.Path
         local FileName = tostring(Path):match("([^/\\]+)$") or tostring(Path)
 
         local OkRead, Source = pcall(readfile, Path)
