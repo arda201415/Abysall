@@ -9,9 +9,10 @@ local InterfaceUrls = {
   ThemeManager = BaseUrl .. "addons/ThemeManager.lua",
   InfoTab = AbysallUrl .. "Components/InfoTab.luau",
   SettingsTab = AbysallUrl .. "Components/SettingsTab.luau",
+  Addons = AbysallUrl .. "Components/Addons.luau",
 }
 
--- 5 bagimsiz dosyayi paralel indir, sirasiyla calistir
+-- 6 bagimsiz dosyayi paralel indir, sirasiyla calistir
 local InterfaceSources = {}
 for Key, Url in InterfaceUrls do
 	task.spawn(function()
@@ -38,7 +39,8 @@ local Interface = {
   ThemeManager = loadstring(InterfaceSources.ThemeManager)(),
 
   ApplyInfoTab = loadstring(InterfaceSources.InfoTab)(),
-  ApplySettingsTab = loadstring(InterfaceSources.SettingsTab)()
+  ApplySettingsTab = loadstring(InterfaceSources.SettingsTab)(),
+  ApplyAddons = loadstring(InterfaceSources.Addons)(),
 }
 
 Interface.ThemeManager.BuiltInThemes = {

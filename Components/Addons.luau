@@ -1,0 +1,239 @@
+-- Abysall Addons (mspaint-tarzi eklenti sistemi)
+-- Kullanim: executor'un workspace klasorunde "Abysall/addons" klasorune
+-- .luau / .lua / .txt eklentileri koy. Sekme, bu oyunda gecerli en az
+-- 1 eklenti varsa otomatik acilir.
+--
+-- Eklenti sablonu:
+--   abysall.AddonInfo = {
+--       Name = "StarJug",            -- bosluk icermez
+--       Title = "Star Jug",          -- groupbox basligi
+--       Description = "Aciklama",    -- opsiyonel
+--       Game = "*",                  -- "*" hepsi; veya "doors/doors", "doors/lobby",
+--                                    -- "murderduels", "universal"; tablo da olur
+--   }
+--   abysall.Groupbox:AddButton({ Text = "Ver", Func = function() ... end })
+--   abysall.Groupbox:AddToggle("StarJug_Hiz", { Text = "Hiz", Default = false })
+--   abysall.Library.Toggles.StarJug_Hiz:OnChanged(function(V) ... end)
+--   abysall.AddonDisable = function() ... end  -- unload'da calisir (opsiyonel)
+--
+-- Kurallar (mspaint ile ayni):
+-- * AddonInfo dosyanin en ustunde set edilmeli; edilmeden Groupbox nil'dir.
+-- * Game uymazsa eklenti sessizce atlanir.
+-- * Element ID'lerini eklenti adiyla prefix'le (corton: "StarJug_Hiz"), yoksa
+--   baska eklentilerle cakisir. mspaint uyumlulugu icin `mspaint` globali de
+--   ayni tabloya baglidir.
+
+return function(Window, CurrentGame)
+    local Loaded = {}
+    if not Window then return Loaded end
+    CurrentGame = string.lower(tostring(CurrentGame or "*"))
+
+    local Library = Abysall.Interface.Library
+    local Env = Abysall.Environment or {}
+
+    local function Notify(Title, Body, Time)
+        pcall(function()
+            Library:Notify({ Title = Title, Description = Body, Time = Time or 5 })
+        end)
+        pcall(function()
+            warn("[Abysall:Addons] " .. tostring(Title) .. ": " .. tostring(Body))
+        end)
+    end
+
+    -- Dosya sistemi yoksa eklenti calismaz (mspaint ile ayni kural)
+    if not (Env.isfolder and Env.makefolder and Env.listfiles and Env.readfile) then
+        return Loaded
+    end
+
+    pcall(function() if not Env.isfolder("Abysall") then Env.makefolder("Abysall") end end)
+    pcall(function() if not Env.isfolder("Abysall/addons") then Env.makefolder("Abysall/addons") end end)
+    if not Env.isfolder("Abysall/addons") then return Loaded end
+
+    -- Ilk kurulumda kisa bilgi dosyasi birak
+    pcall(function()
+        if Env.isfile and Env.writefile and not Env.isfile("Abysall/addons/README.txt") then
+            Env.writefile("Abysall/addons/README.txt",
+                "Abysall Addons\n" ..
+                "==============\n" ..
+                "Bu klasore .luau / .lua / .txt eklentileri koy (ornek: StarJug.luau).\n" ..
+                "Her eklenti su blokla baslamali:\n\n" ..
+                '  abysall.AddonInfo = { Name = "Ornek", Title = "Ornek", Description = "", Game = "*" }\n' ..
+                "  abysall.Groupbox:AddButton({ Text = \"Merhaba\", Func = function() print(\"selam\") end })\n\n" ..
+                'Game: "*" (hepsi), "doors/doors", "doors/lobby", "murderduels", "universal".\n' ..
+                "Tablo da olur: Game = {\"doors/doors\", \"doors/lobby\"}.\n" ..
+                "Element ID'lerini eklenti adiyla baslat (\"Ornek_Hiz\" gibi), yoksa cakisir.\n" ..
+                "Dikkat: buradaki her dosya calistirilir, guvenmedigin dosyayi koyma.\n")
+        end
+    end)
+
+    local OkList, Files = pcall(function() return Env.listfiles("Abysall/addons") end)
+    if not OkList or type(Files) ~= "table" then return Loaded end
+
+    local Candidates = {}
+    for _, Path in ipairs(Files) do
+        local Base = string.lower(tostring(Path):match("([^/\\]+)$") or tostring(Path))
+        -- README ve "_" / "." ile baslayanlar ile .disabled bitenler yuklenmez
+        local Skipped = Base:sub(1, 6) == "readme" or Base:sub(1, 1) == "_" or Base:sub(1, 1) == "."
+            or Base:match("%.disabled$")
+        local IsAddon = Base:match("%.luau$") or Base:match("%.lua$") or Base:match("%.txt$")
+        if not Skipped and IsAddon then
+            table.insert(Candidates, Path)
+        end
+    end
+    table.sort(Candidates)
+    if #Candidates == 0 then return Loaded end
+
+    -- Sekme karari: AddonInfo iceren dosya yoksa sekme acma (calistirmadan bak)
+    local HasCandidate = false
+    for _, Path in ipairs(Candidates) do
+        local Ok, Src = pcall(Env.readfile, Path)
+        if Ok and type(Src) == "string" and Src:find("AddonInfo", 1, true) then
+            HasCandidate = true
+            break
+        end
+    end
+    if not HasCandidate then return Loaded end
+
+    -- Game eslesmesi: string | number (PlaceId) | table | "*"
+    local function GameMatches(GameField)
+        if GameField == nil then return false end
+        if GameField == "*" then return true end
+        local T = type(GameField)
+        if T == "table" then
+            for _, V in pairs(GameField) do
+                if GameMatches(V) then return true end
+            end
+            return false
+        end
+        if T == "number" then
+            local Ok, Pid = pcall(function() return game.PlaceId end)
+            return Ok and Pid == GameField
+        end
+        local S = string.lower(tostring(GameField))
+        if S == "*" or S == "all" then return true end
+        return S == CurrentGame
+    end
+
+    local Tab = Window:AddTab("Addons", "puzzle")
+    local Manager = Tab:AddLeftGroupbox("Addons")
+    Manager:AddLabel("Klasor: Abysall/addons", true)
+
+    local UseLeft = false
+    local Skipped, Failed = 0, 0
+
+    for _, Path in ipairs(Candidates) do
+        local FileName = tostring(Path):match("([^/\\]+)$") or tostring(Path)
+
+        local OkRead, Source = pcall(Env.readfile, Path)
+        if not OkRead or type(Source) ~= "string" then
+            Failed = Failed + 1
+            pcall(function() Manager:AddLabel(FileName .. ": okunamadi", true) end)
+        else
+            local Fn, CompErr = loadstring(Source, "@" .. FileName)
+            if not Fn then
+                Failed = Failed + 1
+                pcall(function() Manager:AddLabel(FileName .. ": syntax hatasi", true) end)
+                warn("[Abysall:Addons] " .. FileName .. " derlenemedi: " .. tostring(CompErr))
+            else
+                -- mspaint kurali: AddonInfo set edilmeden Groupbox nil'dir.
+                -- AddonInfo set edildigi anda game kontrolu yapilir, uyarsa
+                -- groupbox hemen kurulur; uymazsa yukleme orada durur.
+                local GroupboxRef = nil
+                local State = { Set = false, Ok = false, Info = nil }
+                local Ctx = {}
+                local Shared = {
+                    Library = Library,
+                    Environment = Env,
+                    Toggles = Library.Toggles,
+                    Options = Library.Options,
+                }
+                setmetatable(Ctx, {
+                    __index = function(_, Key)
+                        if Key == "Groupbox" then
+                            if State.Set and State.Ok then return GroupboxRef end
+                            return nil
+                        end
+                        local Own = rawget(Ctx, Key)
+                        if Own ~= nil then return Own end
+                        return Shared[Key]
+                    end,
+                    __newindex = function(_, Key, Value)
+                        if Key == "AddonInfo" then
+                            State.Info = Value
+                            State.Set = true
+                            if type(Value) ~= "table" or type(Value.Name) ~= "string" then
+                                error("__ABYSALL_ADDON_BAD_INFO__", 0)
+                            end
+                            if not GameMatches(Value.Game) then
+                                error("__ABYSALL_ADDON_GAME_MISMATCH__", 0)
+                            end
+                            State.Ok = true
+                            UseLeft = not UseLeft
+                            local Title = tostring(Value.Title or Value.Name)
+                            if UseLeft then
+                                GroupboxRef = Tab:AddLeftGroupbox(Title)
+                            else
+                                GroupboxRef = Tab:AddRightGroupbox(Title)
+                            end
+                            if type(Value.Description) == "string" and Value.Description ~= "" then
+                                GroupboxRef:AddLabel(Value.Description, true)
+                            end
+                            return
+                        end
+                        rawset(Ctx, Key, Value)
+                    end,
+                })
+
+                local PrevAbysall = nil
+                local PrevMspaint = nil
+                pcall(function()
+                    PrevAbysall = getgenv().abysall
+                    PrevMspaint = getgenv().mspaint
+                end)
+                getgenv().abysall = Ctx
+                getgenv().mspaint = Ctx
+                local OkRun, RunErr = pcall(Fn)
+                getgenv().abysall = PrevAbysall
+                getgenv().mspaint = PrevMspaint
+
+                if not OkRun then
+                    local Msg = tostring(RunErr)
+                    if Msg:find("__ABYSALL_ADDON_GAME_MISMATCH__", 1, true) then
+                        Skipped = Skipped + 1
+                    elseif Msg:find("__ABYSALL_ADDON_BAD_INFO__", 1, true) then
+                        Failed = Failed + 1
+                        pcall(function() Manager:AddLabel(FileName .. ": AddonInfo hatali", true) end)
+                    else
+                        Failed = Failed + 1
+                        pcall(function() Manager:AddLabel(FileName .. ": calisma hatasi", true) end)
+                        warn("[Abysall:Addons] " .. FileName .. " hatasi: " .. Msg)
+                    end
+                elseif not (State.Set and State.Ok) then
+                    Failed = Failed + 1
+                    pcall(function() Manager:AddLabel(FileName .. ": AddonInfo yok", true) end)
+                else
+                    local Info = State.Info
+                    local Disabler = rawget(Ctx, "AddonDisable") or rawget(Ctx, "AddonDisabled")
+                    if Disabler ~= nil and type(Disabler) ~= "function" then Disabler = nil end
+                    table.insert(Loaded, { Name = tostring(Info.Name), File = FileName, Disable = Disabler })
+                    if Disabler then
+                        if type(Abysall.AddonDisablers) ~= "table" then Abysall.AddonDisablers = {} end
+                        table.insert(Abysall.AddonDisablers, { Name = tostring(Info.Name), Fn = Disabler })
+                    end
+                    pcall(function()
+                        Manager:AddLabel("Yuklendi: " .. tostring(Info.Title or Info.Name), true)
+                    end)
+                end
+            end
+        end
+    end
+
+    pcall(function()
+        Manager:AddLabel(#Loaded .. " yuklendi, " .. Skipped .. " atlandi, " .. Failed .. " hatali", true)
+    end)
+    if #Loaded > 0 then
+        Notify("Addons", #Loaded .. " eklenti yuklendi.", 4)
+    end
+
+    return Loaded
+end

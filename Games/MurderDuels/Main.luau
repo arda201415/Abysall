@@ -492,8 +492,17 @@ Services.RunService.RenderStepped:Connect(function()
 end)
 
 Library:OnUnload(function()
+    if type(Abysall.AddonDisablers) == "table" then
+        for _, D in ipairs(Abysall.AddonDisablers) do
+            pcall(function() if D.Fn then D.Fn() end end)
+        end
+        Abysall.AddonDisablers = nil
+    end
+    pcall(function() getgenv().abysall = nil end)
+    pcall(function() getgenv().mspaint = nil end)
     getgenv().Abysall = nil
 end)
 
 Abysall.Interface.ApplySettingsTab(Window)
+Abysall.Interface.ApplyAddons(Window, "murderduels")
 Library:Notify("Murder Duels destegi yuklendi (" .. math.floor((tick() - LoadStart) * 100) / 100 .. "s).")

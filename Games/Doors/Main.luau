@@ -5631,9 +5631,19 @@ Library:OnUnload(function()
 		Controls.GetMoveVector = Globals.OriginalGetMoveVector
 	end
 
+	if type(Abysall.AddonDisablers) == "table" then
+		for _, D in ipairs(Abysall.AddonDisablers) do
+			pcall(function() if D.Fn then D.Fn() end end)
+		end
+		Abysall.AddonDisablers = nil
+	end
+	pcall(function() getgenv().abysall = nil end)
+	pcall(function() getgenv().mspaint = nil end)
+
 	getgenv().Abysall = nil
 end)
 
 while not Globals.MainUI do task.wait() end
 Abysall.Interface.ApplySettingsTab(Window)
+Abysall.Interface.ApplyAddons(Window, "doors/doors")
 Functions.Notify({ Title = "Successfully loaded in " .. math.floor((tick() - LoadStart) * 1000) / 1000 .. " seconds." , Body = "Press '" .. tostring(Options.MenuKeybind.Value) .. "' to toggle the UI."})
