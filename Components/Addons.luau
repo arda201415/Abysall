@@ -18,7 +18,8 @@
 --   abysall.AddonDisable = function() ... end  -- unload'da calisir (opsiyonel)
 --
 -- Kurallar (mspaint ile ayni):
--- * AddonInfo dosyanin en ustunde set edilmeli; edilmeden Groupbox nil'dir.
+-- * AddonInfo dosyanin en ustunde OLMALI; ama yazilmamissa dosya adindan
+--   otomatik uydurulur (Game = "*" sayilir) ve dosya yine calistirilir.
 -- * Game uymazsa eklenti sessizce atlanir.
 -- * Element ID'lerini eklenti adiyla prefix'le (corton: "StarJug_Hiz"), yoksa
 --   baska eklentilerle cakisir. mspaint uyumlulugu icin `mspaint` globali de
@@ -133,8 +134,7 @@ return function(Window, CurrentGame)
         end
     end
     if not HasCandidate then
-        warn("[Abysall:Addons] AddonInfo iceren dosya yok, sekme acilmadi")
-        return Loaded
+        warn("[Abysall:Addons] AddonInfo iceren dosya yok, hepsi otomatik taninacak")
     end
 
     -- Game eslesmesi: string | number (PlaceId) | table | "*"
@@ -253,8 +253,31 @@ return function(Window, CurrentGame)
                         warn("[Abysall:Addons] " .. FileName .. " hatasi: " .. Msg)
                     end
                 elseif not (State.Set and State.Ok) then
-                    Failed = Failed + 1
-                    pcall(function() Manager:AddLabel(FileName .. ": AddonInfo yok", true) end)
+                    -- AddonInfo yazilmamissa dosya adindan uydur: kendi
+                    -- groupbox'ini ac, yuklendi say (mspaint'ten farkli, kolaylik).
+                    local BaseName = tostring(FileName):gsub("%.[^.]*$", "")
+                    local AutoTitle = BaseName:gsub("[_%-%+]+", " "):gsub("^%s+", ""):gsub("%s+$", "")
+                    if AutoTitle == "" then AutoTitle = "Addon" end
+                    local AutoName = AutoTitle:gsub("%s+", "")
+                    if AutoName == "" then AutoName = "Addon" end
+                    UseLeft = not UseLeft
+                    local AutoBox
+                    if UseLeft then
+                        AutoBox = Tab:AddLeftGroupbox(AutoTitle)
+                    else
+                        AutoBox = Tab:AddRightGroupbox(AutoTitle)
+                    end
+                    AutoBox:AddLabel("Otomatik tanindi (AddonInfo yoktu)", true)
+                    local AutoDisabler = rawget(Ctx, "AddonDisable") or rawget(Ctx, "AddonDisabled")
+                    if AutoDisabler ~= nil and type(AutoDisabler) ~= "function" then AutoDisabler = nil end
+                    table.insert(Loaded, { Name = AutoName, Title = AutoTitle, File = FileName, Disable = AutoDisabler, Auto = true })
+                    if AutoDisabler then
+                        if type(Abysall.AddonDisablers) ~= "table" then Abysall.AddonDisablers = {} end
+                        table.insert(Abysall.AddonDisablers, { Name = AutoName, Fn = AutoDisabler })
+                    end
+                    pcall(function()
+                        Manager:AddLabel("Yuklendi: " .. AutoTitle .. " (otomatik)", true)
+                    end)
                 else
                     local Info = State.Info
                     local Disabler = rawget(Ctx, "AddonDisable") or rawget(Ctx, "AddonDisabled")
