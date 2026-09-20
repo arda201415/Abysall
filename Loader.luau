@@ -82,6 +82,7 @@ Abysall.Interface = loadstring(game:HttpGet(BaseUrl .. "Components/Interface.lua
 Abysall.Analytics = loadstring(game:HttpGet(BaseUrl .. "Components/Analytics.luau"))()
 
 local CurrentGame = GameList[game.GameId] or PlaceList[game.PlaceId]
+print("[Abysall] place " .. tostring(game.PlaceId) .. " -> " .. tostring(CurrentGame or "Universal"))
 if CurrentGame then
     loadstring(game:HttpGet(BaseUrl .. "Games/" .. CurrentGame .. "/Loader.luau"))()
 else
