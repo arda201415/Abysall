@@ -83,8 +83,14 @@ Abysall.Analytics = loadstring(game:HttpGet(BaseUrl .. "Components/Analytics.lua
 
 local CurrentGame = GameList[game.GameId] or PlaceList[game.PlaceId]
 print("[Abysall] place " .. tostring(game.PlaceId) .. " -> " .. tostring(CurrentGame or "Universal"))
-if CurrentGame then
-    loadstring(game:HttpGet(BaseUrl .. "Games/" .. CurrentGame .. "/Loader.luau"))()
-else
-    loadstring(game:HttpGet(BaseUrl .. "Games/Universal/Loader.luau"))()
+local OkLoad, ErrLoad = pcall(function()
+	if CurrentGame then
+		loadstring(game:HttpGet(BaseUrl .. "Games/" .. CurrentGame .. "/Loader.luau"))()
+	else
+		loadstring(game:HttpGet(BaseUrl .. "Games/Universal/Loader.luau"))()
+	end
+end)
+if not OkLoad then
+	warn("[Abysall] yukleme hatasi: " .. tostring(ErrLoad))
+	getgenv().Abysall = nil
 end
