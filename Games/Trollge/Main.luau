@@ -136,6 +136,121 @@ TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
     end
 end))
 
+-- // Combat: Ability Spy (dogru remote + arglari bulmak icin) //
+local RefireLast, DumpCooldownValues
+Groupboxes.Combat_Spy = Tabs.Combat:AddLeftGroupbox("Ability Spy")
+
+Groupboxes.Combat_Spy:AddToggle("LogAbilityArgs", {
+    Text = "Log Ability (F9)", Default = false,
+    Tooltip = "Ability kullanirken ateslenen remote + argumanlari F9'a ve hafizaya kaydeder. 1 kez normal ability kullan.",
+})
+Groupboxes.Combat_Spy:AddButton({
+    Text = "Son Ability'yi Atesle",
+    DoubleClick = false,
+    Func = function() RefireLast() end,
+})
+Groupboxes.Combat_Spy:AddToggle("SpamLastAbility", {
+    Text = "Spam Son Ability", Default = false,
+    Tooltip = "Kaydedilen son ability'yi araliklarla tekrar atesler.",
+})
+Groupboxes.Combat_Spy:AddSlider("SpamInterval", {
+    Text = "Spam Araligi (sn)", Min = 0.2, Max = 5, Default = 1, Rounding = 1, Compact = true,
+})
+Groupboxes.Combat_Spy:AddButton({
+    Text = "Dump Cooldown Degerleri (F9)",
+    DoubleClick = false,
+    Func = function() DumpCooldownValues() end,
+})
+
+local LastRecorded, LastLogAt, InternalFire, HookInstalled = nil, {}, false, false
+
+local function InstallSpy()
+    if HookInstalled then return end
+    if not CheckCompat({ "hookmetamethod", "getnamecallmethod", "newcclosure" }) then
+        Library:Notify("Executor hook desteklemiyor.")
+        return
+    end
+    HookInstalled = true
+    local Old
+    Old = hookmetamethod(game, "__namecall", newcclosure(function(Self, ...)
+        local Method = getnamecallmethod()
+        if Method == "FireServer" and typeof(Self) == "Instance" and Self:IsA("RemoteEvent") then
+            if not InternalFire and Toggles.LogAbilityArgs and Toggles.LogAbilityArgs.Value then
+                local Nm = Self:GetFullName()
+                local Now = tick()
+                if not LastLogAt[Nm] or Now - LastLogAt[Nm] > 2 then
+                    LastLogAt[Nm] = Now
+                    local Args = { ... }
+                    LastRecorded = { Name = Nm, Short = Self.Name, Remote = Self, Args = Args }
+                    print("[Abysall-Spy] " .. Nm)
+                    for I, A in ipairs(Args) do
+                        print("  arg" .. I .. " " .. typeof(A) .. " = " .. tostring(A):sub(1, 160))
+                    end
+                    Library:Notify("Kaydedildi: " .. Self.Name)
+                end
+            end
+        end
+        return Old(Self, ...)
+    end))
+end
+Toggles.LogAbilityArgs:OnChanged(function(Value)
+    if Value then InstallSpy() end
+end)
+
+RefireLast = function()
+    if not LastRecorded or not LastRecorded.Remote then
+        Library:Notify("Once log acikken ability kullan.")
+        return
+    end
+    local R, Args = LastRecorded.Remote, LastRecorded.Args
+    InternalFire = true
+    local Ok, Err = pcall(function() R:FireServer(table.unpack(Args)) end)
+    InternalFire = false
+    if Ok then
+        Library:Notify("Ateslendi: " .. tostring(LastRecorded.Short))
+    else
+        Library:Notify("Hata: " .. tostring(Err):sub(1, 80))
+    end
+end
+
+DumpCooldownValues = function()
+    local Char = LocalPlayer.Character
+    local function Scan(Root, Tag)
+        local OkAttr, Attrs = pcall(function() return Root:GetAttributes() end)
+        if OkAttr and type(Attrs) == "table" then
+            for Key, Val in pairs(Attrs) do
+                if LooksLikeCooldown(Key) then
+                    print("[Abysall-CD] attr " .. Tag .. "." .. tostring(Key) .. " = " .. tostring(Val))
+                end
+            end
+        end
+        for _, Desc in ipairs(Root:GetDescendants()) do
+            if (Desc:IsA("NumberValue") or Desc:IsA("IntValue")) and LooksLikeCooldown(Desc.Name) then
+                print("[Abysall-CD] value " .. Desc:GetFullName() .. " = " .. tostring(Desc.Value))
+            end
+        end
+    end
+    if Char then Scan(Char, "char") end
+    Scan(LocalPlayer, "player")
+    local Gui = LocalPlayer:FindFirstChild("PlayerGui")
+    if Gui then Scan(Gui, "gui") end
+    Library:Notify("Cooldown degerleri F9'da.")
+end
+
+local SpamAcc = 0
+TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
+    if Toggles.SpamLastAbility and Toggles.SpamLastAbility.Value and LastRecorded then
+        SpamAcc = SpamAcc + Delta
+        local Interval = (Options.SpamInterval and Options.SpamInterval.Value) or 1
+        if SpamAcc >= Interval then
+            SpamAcc = 0
+            RefireLast()
+        end
+    else
+        SpamAcc = 0
+    end
+end))
+
 -- // Combat: Remote araclari (dump'unda cikan 116 remote) //
 Groupboxes.Combat_Remotes = Tabs.Combat:AddRightGroupbox("Remotes")
 
