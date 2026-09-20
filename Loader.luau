@@ -12,6 +12,7 @@ local GameList = {
 local PlaceList = {
   [120851538706364] = "MurderDuels",
   [120783481568445] = "MurderDuels", -- Trading Plaza
+  [130031996774546] = "Trollge", -- Trollge Rebirth
 }
 
 local BaseUrl = "https://raw.githubusercontent.com/arda201415/Abysall/refs/heads/main/"

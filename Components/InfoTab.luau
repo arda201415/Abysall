@@ -1,6 +1,7 @@
 return function(Window)
     local LatestChangelog = {
         "14/9/2026",
+        "<font color='rgb(0, 255, 0)'>+ Added Trollge Rebirth support (NoCooldown, Auto Bags, ESP)</font>",
         "<font color='rgb(0, 255, 0)'>+ Added Addons tab (Abysall/addons klasoru, mspaint-tarzi API)</font>",
         "<font color='rgb(0, 255, 0)'>+ Added Drone Stampede Countdown + Early Warning (The Archives)</font>",
 		"<font color='rgb(0, 255, 0)'>+ Added Bypass Drone (WalkedInto)</font>",
