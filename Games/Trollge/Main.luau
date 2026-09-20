@@ -604,6 +604,17 @@ Library:OnUnload(function()
     for _, Conn in ipairs(Connections) do
         pcall(function() Conn:Disconnect() end)
     end
+    pcall(function() Abysall.ESPLibrary:Unload() end)
+    pcall(function()
+        local Char = LocalPlayer.Character
+        local Hum = Char and Char:FindFirstChildOfClass("Humanoid")
+        if Hum then Hum.WalkSpeed = 16 end
+    end)
+    pcall(function()
+        if _G.TR_FOVCircle then _G.TR_FOVCircle:Remove() end
+        _G.TR_FOVCircle = nil
+        _G.TR_Locked = nil
+    end)
     if type(Abysall.AddonDisablers) == "table" then
         for _, D in ipairs(Abysall.AddonDisablers) do
             pcall(function() if D.Fn then D.Fn() end end)

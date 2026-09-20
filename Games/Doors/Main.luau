@@ -5712,6 +5712,11 @@ Library:OnUnload(function()
 		Controls.GetMoveVector = Globals.OriginalGetMoveVector
 	end
 
+	if Globals.FlyBody then
+		Globals.FlyBody.Velocity = Vector3.zero
+		Globals.FlyBody.Parent = nil
+	end
+
 	if type(Abysall.AddonDisablers) == "table" then
 		for _, D in ipairs(Abysall.AddonDisablers) do
 			pcall(function() if D.Fn then D.Fn() end end)

@@ -492,6 +492,17 @@ Services.RunService.RenderStepped:Connect(function()
 end)
 
 Library:OnUnload(function()
+    pcall(function() Abysall.ESPLibrary:Unload() end)
+    pcall(function()
+        local Char = LocalPlayer.Character
+        local Hum = Char and Char:FindFirstChildOfClass("Humanoid")
+        if Hum then Hum.WalkSpeed = 16 end
+    end)
+    pcall(function()
+        if _G.MD_FOVCircle then _G.MD_FOVCircle:Remove() end
+        _G.MD_FOVCircle = nil
+        _G.MD_Locked = nil
+    end)
     if type(Abysall.AddonDisablers) == "table" then
         for _, D in ipairs(Abysall.AddonDisablers) do
             pcall(function() if D.Fn then D.Fn() end end)

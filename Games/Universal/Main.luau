@@ -582,6 +582,131 @@ Groupboxes.Misc_Move:AddToggle("WalkSpeedOn", { Text = "Speed", Default = false 
 Groupboxes.Misc_Move:AddToggle("InfiniteJump", {
     Text = "Infinite Jump", Default = false,
 })
+Groupboxes.Misc_Move:AddDivider()
+Groupboxes.Misc_Move:AddToggle("Fly", {
+    Text = "Fly", Default = false, Tooltip = "Serbest ucus.",
+})
+Toggles.Fly:AddKeyPicker("FlyKey", {
+    Text = "Fly", Default = "F", Mode = "Toggle", SyncToggleState = true,
+})
+Groupboxes.Misc_Move:AddSlider("FlySpeed", {
+    Text = "Fly Speed", Min = 0, Max = 200, Default = 50, Rounding = 0, Compact = true,
+})
+Groupboxes.Misc_Move:AddToggle("Noclip", {
+    Text = "Noclip", Default = false, Tooltip = "Duvardan gec.",
+})
+Toggles.Noclip:AddKeyPicker("NoclipKey", {
+    Text = "Noclip", Default = "N", Mode = "Toggle", SyncToggleState = true,
+})
+
+local FlyBody = Instance.new("BodyVelocity")
+FlyBody.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+FlyBody.Velocity = Vector3.zero
+
+local function FlyRoot()
+    local Char = LocalPlayer.Character
+    if not Char then return nil end
+    return Char:FindFirstChild("HumanoidRootPart") or Char:FindFirstChild("UpperTorso") or Char:FindFirstChild("Head")
+end
+
+local function FlyDir()
+    local Char = LocalPlayer.Character
+    local Hum = Char and Char:FindFirstChildOfClass("Humanoid")
+    if not Hum or Hum.MoveDirection == Vector3.zero or not Camera then
+        return Vector3.zero
+    end
+    local LookFlat = Vector3.new(Camera.CFrame.LookVector.X, 0, Camera.CFrame.LookVector.Z)
+    if LookFlat.Magnitude < 0.01 then LookFlat = Vector3.new(0, 0, -1) end
+    local FlatFrame = CFrame.new(Camera.CFrame.Position, Camera.CFrame.Position + LookFlat)
+    local Vel = (Camera.CFrame * CFrame.new(FlatFrame:VectorToObjectSpace(Hum.MoveDirection))).Position - Camera.CFrame.Position
+    if Vel.Magnitude < 0.01 then return Vector3.zero end
+    return Vel.Unit
+end
+
+TrackConn(Services.RunService.RenderStepped:Connect(function()
+    local R = FlyRoot()
+    if Toggles.Fly and Toggles.Fly.Value and R then
+        FlyBody.Parent = R
+        FlyBody.Velocity = FlyDir() * ((Options.FlySpeed and Options.FlySpeed.Value) or 50)
+    elseif FlyBody.Parent then
+        FlyBody.Velocity = Vector3.zero
+        FlyBody.Parent = nil
+    end
+end))
+
+TrackConn(Services.RunService.Stepped:Connect(function()
+    if Toggles.Noclip and Toggles.Noclip.Value and LocalPlayer.Character then
+        for _, P in ipairs(LocalPlayer.Character:GetDescendants()) do
+            if P:IsA("BasePart") and P.CanCollide then
+                P.CanCollide = false
+            end
+        end
+    end
+end))
+
+Groupboxes.Misc_World = Tabs.Misc:AddRightGroupbox("World")
+Groupboxes.Misc_World:AddToggle("Fullbright", {
+    Text = "Fullbright", Default = false, Tooltip = "Haritayi aydinlatir.",
+})
+Groupboxes.Misc_World:AddToggle("AntiAFK", {
+    Text = "Anti AFK", Default = false, Tooltip = "Idle kick'i engeller.",
+})
+
+local OldLight = {}
+local function ApplyBright(On)
+    local L = Services.Lighting
+    if On then
+        if OldLight.B == nil then
+            OldLight = { B = L.Brightness, C = L.ClockTime, G = L.GlobalShadows, F = L.FogEnd, A = L.Ambient }
+        end
+        L.Brightness = 2
+        L.ClockTime = 14
+        L.GlobalShadows = false
+        L.FogEnd = 100000
+        L.Ambient = Color3.new(1, 1, 1)
+    elseif OldLight.B ~= nil then
+        L.Brightness = OldLight.B
+        L.ClockTime = OldLight.C
+        L.GlobalShadows = OldLight.G
+        L.FogEnd = OldLight.F
+        L.Ambient = OldLight.A
+    end
+end
+Toggles.Fullbright:OnChanged(function(V) pcall(ApplyBright, V) end)
+
+local BrightAcc = 0
+TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
+    if Toggles.Fullbright and Toggles.Fullbright.Value then
+        BrightAcc = BrightAcc + Delta
+        if BrightAcc >= 2 then
+            BrightAcc = 0
+            pcall(ApplyBright, true)
+        end
+    else
+        BrightAcc = 0
+    end
+end))
+
+local AFKConn = nil
+Toggles.AntiAFK:OnChanged(function(Value)
+    if Value then
+        local Ok, VU = pcall(function() return game:GetService("VirtualUser") end)
+        if Ok and VU then
+            AFKConn = LocalPlayer.Idled:Connect(function()
+                pcall(function()
+                    VU:CaptureController()
+                    VU:ClickButton2(Vector2.new())
+                end)
+            end)
+            TrackConn(AFKConn)
+        else
+            Library:Notify("VirtualUser yok.")
+        end
+    elseif AFKConn then
+        pcall(function() AFKConn:Disconnect() end)
+        AFKConn = nil
+    end
+end)
 
 TrackConn(Services.RunService.RenderStepped:Connect(function()
     if Toggles.WalkSpeedOn and Toggles.WalkSpeedOn.Value and LocalPlayer.Character then
@@ -601,6 +726,35 @@ Library:OnUnload(function()
     for _, Conn in ipairs(Connections) do
         pcall(function() Conn:Disconnect() end)
     end
+    -- ESP cizimleri kalmasin
+    pcall(function() Abysall.ESPLibrary:Unload() end)
+    -- Fly dur
+    pcall(function()
+        FlyBody.Velocity = Vector3.zero
+        FlyBody.Parent = nil
+    end)
+    -- Noclip + speed geri al
+    pcall(function()
+        local Char = LocalPlayer.Character
+        local Hum = Char and Char:FindFirstChildOfClass("Humanoid")
+        if Hum then Hum.WalkSpeed = 16 end
+        if Char then
+            for _, P in ipairs(Char:GetDescendants()) do
+                if P:IsA("BasePart") and P.Name ~= "HumanoidRootPart" then
+                    P.CanCollide = true
+                end
+            end
+        end
+    end)
+    -- Isiklari geri al
+    pcall(ApplyBright, false)
+    -- FOV dairesi kalmasin
+    pcall(function()
+        if _G.UNI_FOVCircle then _G.UNI_FOVCircle:Remove() end
+        _G.UNI_FOVCircle = nil
+        _G.UNI_Locked = nil
+    end)
+    if AFKConn then pcall(function() AFKConn:Disconnect() end) AFKConn = nil end
     if type(Abysall.AddonDisablers) == "table" then
         for _, D in ipairs(Abysall.AddonDisablers) do
             pcall(function() if D.Fn then D.Fn() end end)
