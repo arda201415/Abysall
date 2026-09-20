@@ -131,6 +131,141 @@ TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
     end
 end))
 
+-- // Combat: Aimbot (kamera kilidi) //
+Groupboxes.Combat_Aim = Tabs.Combat:AddLeftGroupbox("Aimbot")
+
+Groupboxes.Combat_Aim:AddToggle("AimbotEnabled", {
+    Text = "Aimbot", Default = false,
+    Tooltip = "Tus basiliyken kamerayi fareye en yakin dusmana kilitler.",
+})
+Toggles.AimbotEnabled:AddKeyPicker("AimbotKey", {
+    Text = "Aimbot Key", Default = "Q", Mode = "Hold", SyncToggleState = false,
+})
+Groupboxes.Combat_Aim:AddToggle("AimbotUseRMB", {
+    Text = "Sag Click ile de calissin", Default = true,
+})
+Groupboxes.Combat_Aim:AddDropdown("AimbotPart", {
+    Text = "Hedef Parca", Values = { "Head", "HumanoidRootPart" }, Default = 1,
+})
+Groupboxes.Combat_Aim:AddSlider("AimbotFOV", {
+    Text = "FOV", Min = 10, Max = 1000, Default = 200, Rounding = 0, Compact = true,
+})
+Groupboxes.Combat_Aim:AddToggle("AimbotTeamCheck", { Text = "Team Check", Default = true })
+Groupboxes.Combat_Aim:AddToggle("AimbotWallCheck", {
+    Text = "Wall Check", Default = false, Tooltip = "Duvar arkasi hedefi gormezden gelir.",
+})
+Groupboxes.Combat_Aim:AddSlider("AimSmooth", {
+    Text = "Yumusatma", Min = 1, Max = 20, Default = 1, Rounding = 0, Compact = true,
+})
+Groupboxes.Combat_Aim:AddToggle("AimSticky", { Text = "Sticky Target", Default = true })
+Groupboxes.Combat_Aim:AddToggle("AimFOVCircle", { Text = "FOV Dairesi", Default = true })
+
+local function AimIsEnemy(Player)
+    if Player == LocalPlayer then return false end
+    if not Player.Character then return false end
+    if Player:GetAttribute("Alive") == false then return false end
+    if Toggles.AimbotTeamCheck and Toggles.AimbotTeamCheck.Value then
+        if LocalPlayer.Team ~= nil and Player.Team ~= nil and Player.Team == LocalPlayer.Team then
+            return false
+        end
+    end
+    local Hum = Player.Character:FindFirstChildOfClass("Humanoid")
+    if Hum and Hum.Health <= 0 then return false end
+    return true
+end
+
+local function AimIsVisible(TargetPart)
+    if not Toggles.AimbotWallCheck or not Toggles.AimbotWallCheck.Value then
+        return true
+    end
+    local Ok, Res = pcall(function()
+        local RayParams = RaycastParams.new()
+        RayParams.FilterType = Enum.RaycastFilterType.Exclude
+        RayParams.FilterDescendantsInstances = { LocalPlayer.Character, Camera }
+        return Services.Workspace:Raycast(Camera.CFrame.Position, (TargetPart.Position - Camera.CFrame.Position), RayParams)
+    end)
+    if not Ok or not Res then return true end
+    return Res.Instance:IsDescendantOf(TargetPart.Parent)
+end
+
+local function AimGetMouse()
+    local Loc = Services.UserInputService:GetMouseLocation()
+    return Vector2.new(Loc.X, Loc.Y)
+end
+
+local function AimGetTarget()
+    local Best, BestDist = nil, Options.AimbotFOV and Options.AimbotFOV.Value or 200
+    local PartName = Options.AimbotPart and Options.AimbotPart.Value or "Head"
+    local Mouse = AimGetMouse()
+    for _, Player in pairs(Services.Players:GetPlayers()) do
+        if AimIsEnemy(Player) then
+            local Part = Player.Character:FindFirstChild(PartName)
+            if Part then
+                local Pos, OnScreen = Camera:WorldToViewportPoint(Part.Position)
+                if OnScreen then
+                    local Dist = (Vector2.new(Pos.X, Pos.Y) - Mouse).Magnitude
+                    if Dist < BestDist and AimIsVisible(Part) then
+                        BestDist = Dist
+                        Best = Part
+                    end
+                end
+            end
+        end
+    end
+    return Best
+end
+
+TrackConn(Services.RunService.RenderStepped:Connect(function()
+    pcall(function()
+        if not _G.UNI_FOVCircle and typeof(Drawing) == "function" then
+            local C = Drawing.new("Circle")
+            C.Thickness = 1
+            C.NumSides = 64
+            C.Filled = false
+            C.Color = Color3.fromRGB(255, 255, 255)
+            _G.UNI_FOVCircle = C
+        end
+        if _G.UNI_FOVCircle then
+            local Show = Toggles.AimbotEnabled and Toggles.AimbotEnabled.Value and Toggles.AimFOVCircle and Toggles.AimFOVCircle.Value
+            _G.UNI_FOVCircle.Visible = Show or false
+            if Show then
+                _G.UNI_FOVCircle.Position = AimGetMouse()
+                _G.UNI_FOVCircle.Radius = Options.AimbotFOV and Options.AimbotFOV.Value or 200
+            end
+        end
+    end)
+
+    if Toggles.AimbotEnabled and Toggles.AimbotEnabled.Value then
+        local HoldingKey = Options.AimbotKey and Options.AimbotKey:GetState()
+        local HoldingRMB = Toggles.AimbotUseRMB and Toggles.AimbotUseRMB.Value and Services.UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2)
+        if HoldingKey or HoldingRMB then
+            local Target = AimGetTarget()
+            local FOV = (Options.AimbotFOV and Options.AimbotFOV.Value) or 200
+            if Toggles.AimSticky and Toggles.AimSticky.Value and _G.UNI_Locked and _G.UNI_Locked.Parent then
+                local LP = _G.UNI_Locked
+                local Pos, On = Camera:WorldToViewportPoint(LP.Position)
+                if On and (Vector2.new(Pos.X, Pos.Y) - AimGetMouse()).Magnitude <= (FOV + 50) then
+                    Target = LP
+                else
+                    _G.UNI_Locked = nil
+                end
+            end
+            if Target then
+                _G.UNI_Locked = Target
+                local Goal = CFrame.new(Camera.CFrame.Position, Target.Position)
+                local Smooth = (Options.AimSmooth and Options.AimSmooth.Value) or 1
+                if Smooth <= 1 then
+                    Camera.CFrame = Goal
+                else
+                    Camera.CFrame = Camera.CFrame:Lerp(Goal, 1 / Smooth)
+                end
+            end
+        else
+            _G.UNI_Locked = nil
+        end
+    end
+end))
+
 -- // Combat: Ability Spy //
 local RefireLast, DumpCooldownValues
 Groupboxes.Combat_Spy = Tabs.Combat:AddLeftGroupbox("Ability Spy")
