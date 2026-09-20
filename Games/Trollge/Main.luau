@@ -174,14 +174,16 @@ local function InstallSpy()
     local Old
     Old = hookmetamethod(game, "__namecall", newcclosure(function(Self, ...)
         local Method = getnamecallmethod()
-        if Method == "FireServer" and typeof(Self) == "Instance" and Self:IsA("RemoteEvent") then
+        local IsFire = Method == "FireServer" and typeof(Self) == "Instance" and Self:IsA("RemoteEvent")
+        local IsInvoke = Method == "InvokeServer" and typeof(Self) == "Instance" and Self:IsA("RemoteFunction")
+        if IsFire or IsInvoke then
             if not InternalFire and Toggles.LogAbilityArgs and Toggles.LogAbilityArgs.Value then
-                local Nm = Self:GetFullName()
+                local Nm = Method .. " | " .. Self:GetFullName()
                 local Now = tick()
                 if not LastLogAt[Nm] or Now - LastLogAt[Nm] > 2 then
                     LastLogAt[Nm] = Now
                     local Args = { ... }
-                    LastRecorded = { Name = Nm, Short = Self.Name, Remote = Self, Args = Args }
+                    LastRecorded = { Name = Nm, Short = Self.Name, Remote = Self, Args = Args, IsInvoke = IsInvoke }
                     print("[Abysall-Spy] " .. Nm)
                     for I, A in ipairs(Args) do
                         print("  arg" .. I .. " " .. typeof(A) .. " = " .. tostring(A):sub(1, 160))
@@ -194,7 +196,23 @@ local function InstallSpy()
     end))
 end
 Toggles.LogAbilityArgs:OnChanged(function(Value)
-    if Value then InstallSpy() end
+    if Value then
+        InstallSpy()
+        -- Self test: sahte remote atesle, hook yakaliyor mu bak
+        task.delay(0.5, function()
+            local Saved = LastRecorded
+            local T = Instance.new("RemoteEvent")
+            pcall(function() T:FireServer("abysall_hook_test") end)
+            T:Destroy()
+            task.wait(0.3)
+            if LastRecorded and LastRecorded.Args[1] == "abysall_hook_test" then
+                Library:Notify("Hook calisiyor, simdi ability kullan.")
+            else
+                Library:Notify("Hook CALISMIYOR (executor desteklemiyor).")
+            end
+            LastRecorded = Saved
+        end)
+    end
 end)
 
 RefireLast = function()
@@ -204,7 +222,14 @@ RefireLast = function()
     end
     local R, Args = LastRecorded.Remote, LastRecorded.Args
     InternalFire = true
-    local Ok, Err = pcall(function() R:FireServer(table.unpack(Args)) end)
+    local Ok, Err = pcall(function()
+        if LastRecorded.IsInvoke then
+            local Ret = { R:InvokeServer(table.unpack(Args)) }
+            print("[Abysall-Spy] invoke dondu, " .. #Ret .. " deger")
+        else
+            R:FireServer(table.unpack(Args))
+        end
+    end)
     InternalFire = false
     if Ok then
         Library:Notify("Ateslendi: " .. tostring(LastRecorded.Short))
