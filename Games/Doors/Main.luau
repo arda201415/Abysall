@@ -1392,6 +1392,12 @@ Globals.PromptContainer.Parent = GetHiddenContainer()
 
 local ESPBlacklist = {}
 
+-- MotorReplication yoksa/yendien adlandirilmissa patlamasin diye guvenli ates
+Functions.FireMotor = function(...)
+	local MR = RemotesFolder:FindFirstChild("MotorReplication")
+	if MR then pcall(function() MR:FireServer(...) end) end
+end
+
 Functions.AddESP = function(ESPOptions, RoomBased)
 	local Object = ESPOptions.Object
 
@@ -1799,14 +1805,16 @@ Groupboxes.Exploits_Bypass:AddToggle("BypassDrone",          { Text = "Bypass Dr
 Toggles.BypassGiggle:OnChanged(function(Value)
 	for _, Object in Objects.Entities do
 		if Object.Name == "GiggleCeiling" then
-			Object:WaitForChild("Hitbox").CanTouch = not Value
+			local Hitbox = Object:WaitForChild("Hitbox", 5)
+			if Hitbox then Hitbox.CanTouch = not Value end
 		end
 	end
 end)
 Toggles.BypassDupe:OnChanged(function(Value)
 	for _, Object in Objects.Entities do
 		if Object.Name == "DoorFake" or Object.Name == "FakeDoor" then
-			Object:WaitForChild("Hidden").CanTouch = not Value
+			local Hidden = Object:WaitForChild("Hidden", 5)
+			if Hidden then Hidden.CanTouch = not Value end
 			if Object:FindFirstChild("Lock") then
 				Object.Lock.UnlockPrompt.Enabled = not Value
 			end
@@ -1816,18 +1824,18 @@ end)
 Toggles.BypassEyes:OnChanged(function(Value)
 	if Value and Globals.IsEyes then
 		if Floor == "Fools" or Floor == "OldHotel" then
-			RemotesFolder.MotorReplication:FireServer(0, (Globals.SpoofOffset == 200 and 65 or -65), 0, false)
+			Functions.FireMotor(0, (Globals.SpoofOffset == 200 and 65 or -65), 0, false)
 		else
-			RemotesFolder.MotorReplication:FireServer(-650)
+			Functions.FireMotor(-650)
 		end
 	end
 end)
 Toggles.BypassLookman:OnChanged(function(Value)
 	if Value and Globals.IsLookman then
 		if Floor == "Fools" or Floor == "OldHotel" then
-			RemotesFolder.MotorReplication:FireServer(0, (Globals.SpoofOffset == 200 and 65 or -65), 0, false)
+			Functions.FireMotor(0, (Globals.SpoofOffset == 200 and 65 or -65), 0, false)
 		else
-			RemotesFolder.MotorReplication:FireServer(-650)
+			Functions.FireMotor(-650)
 		end
 	end
 end)
@@ -1855,8 +1863,11 @@ end)
 Toggles.BypassVacuum:OnChanged(function(Value)
 	for _, Object in Objects.Entities do
 		if Object.Name == "SideroomSpace" then
-			Object:WaitForChild("Collision").CanCollide = Value
-			Object:WaitForChild("Collision").CanTouch = not Value
+			local Collision = Object:WaitForChild("Collision", 5)
+			if Collision then
+				Collision.CanCollide = Value
+				Collision.CanTouch = not Value
+			end
 		end
 	end
 end)
@@ -1900,7 +1911,8 @@ Toggles.BypassJeff:OnChanged(function(Value)
 					Part.CanTouch = not Value
 				end
 			end
-			Object:WaitForChild("Humanoid").Health = 0
+			local Humanoid = Object:WaitForChild("Humanoid", 5)
+			if Humanoid then Humanoid.Health = 0 end
 		end
 	end
 end)
@@ -3748,9 +3760,9 @@ Functions.HandleCharacter = function(NewCharacter)
 		local DoEyesBypass = (Toggles.BypassEyes.Value and Globals.IsEyes) or (Toggles.BypassLookman.Value and Globals.IsLookman)
 		if DoEyesBypass then
 			if Floor == "Fools" or Floor == "OldHotel" then
-				RemotesFolder.MotorReplication:FireServer(0, (Globals.SpoofOffset == 200 and 65 or -65), 0, false)
+				Functions.FireMotor(0, (Globals.SpoofOffset == 200 and 65 or -65), 0, false)
 			else
-				RemotesFolder.MotorReplication:FireServer(-650)
+				Functions.FireMotor(-650)
 			end
 		end
 
@@ -4060,20 +4072,24 @@ Functions.HandleObject = function(Object)
 			table.insert(Objects.Doors, HighlightModel)
 			if Toggles.DoorESPToggle.Value then Functions.AddESP({ Object = HighlightModel, Text = "Door " .. Functions.GetDoorNumber(Object), Color = Options.DoorESPColor.Value }, true) end
 		else
-			local Root = Object:WaitForChild("Door", 9e9)
-			local HP = Instance.new("Part", Object)
-			HP.Transparency = 0.999
-			HP.Size = Root.Size
-			HP.CanCollide = false
-			HP.CFrame = Root.CFrame
-			HP.Name = "HighlightPart"
-			HP.Material = Enum.Material.Plastic
-			HP:SetAttribute("ParentRoom", tonumber(Object.Parent.Name))
-			local W = Instance.new("WeldConstraint", HP)
-			W.Part0 = HP W.Part1 = Root W.Enabled = true
-			Instance.new("Humanoid", Object).Name = "HighlightHumanoid"
-			table.insert(Objects.Doors, HP)
-			if Toggles.DoorESPToggle.Value then Functions.AddESP({ Object = HP, Text = "Door " .. Functions.GetDoorNumber(Object), Color = Options.DoorESPColor.Value }, true) end
+			local Root = Object:WaitForChild("Door", 10)
+			if Root then
+				local HP = Instance.new("Part", Object)
+				HP.Transparency = 0.999
+				HP.Size = Root.Size
+				HP.CanCollide = false
+				HP.CFrame = Root.CFrame
+				HP.Name = "HighlightPart"
+				HP.Material = Enum.Material.Plastic
+				HP:SetAttribute("ParentRoom", tonumber(Object.Parent.Name))
+				local W = Instance.new("WeldConstraint", HP)
+				W.Part0 = HP W.Part1 = Root W.Enabled = true
+				Instance.new("Humanoid", Object).Name = "HighlightHumanoid"
+				table.insert(Objects.Doors, HP)
+				if Toggles.DoorESPToggle.Value then Functions.AddESP({ Object = HP, Text = "Door " .. Functions.GetDoorNumber(Object), Color = Options.DoorESPColor.Value }, true) end
+			else
+				warn("[Abysall] kapi 'Door' parcasi gelmedi: " .. tostring(Object:GetFullName()))
+			end
 		end
 
 		local LastDoorFire = tick()
@@ -4088,9 +4104,16 @@ Functions.HandleObject = function(Object)
 				end
 			end
 		end)
-		Object:WaitForChild("Door"):WaitForChild("Open").Played:Once(function()
-			DoorConn:Disconnect()
-		end)
+		Object:WaitForChild("Door", 10)
+		local DoorInst = Object:FindFirstChild("Door")
+		if DoorInst then
+			local OpenSound = DoorInst:WaitForChild("Open", 10)
+			if OpenSound then
+				OpenSound.Played:Once(function()
+					DoorConn:Disconnect()
+				end)
+			end
+		end
 		table.insert(Connections, DoorConn)
 
 	elseif Name == "PathLights" then
@@ -4288,9 +4311,11 @@ Functions.HandleObject = function(Object)
 			end)
 		end
 
-		if Toggles.NotifyItemsToggle.Value and Options.NotifyItemList.Value[ItemNames[Name]] and Object.Parent.Name ~= "Drops" then
+		if Toggles.NotifyItemsToggle.Value and Options.NotifyItemList.Value[ItemNames[Name]] and Object.Parent and Object.Parent.Name ~= "Drops" then
+			local PP = Object.PrimaryPart
+			local Dist = (PP and Camera) and math.round(LocalPlayer:DistanceFromCharacter(PP.Position)) or "?"
 			if Toggles.NotifyItemsShowDistance.Value then
-				Functions.Notify({ Title = "Item '" .. ItemNames[Name] .. "' has spawned.", Body = "It is '" .. math.round(LocalPlayer:DistanceFromCharacter(Object.PrimaryPart.Position)) .. "' studs away from you." })
+				Functions.Notify({ Title = "Item '" .. ItemNames[Name] .. "' has spawned.", Body = "It is '" .. tostring(Dist) .. "' studs away from you." })
 			else
 				Functions.Notify({ Title = "Item '" .. ItemNames[Name] .. "' has spawned."})
 			end
@@ -4308,7 +4333,10 @@ Functions.HandleObject = function(Object)
 		table.insert(Objects.Currency, Object)
 	elseif Name == "GiggleCeiling" then
 		if Toggles.EntityESPToggle.Value and Options.EntityESPOptions.Value["Giggle"] then Functions.AddESP({ Object = Object, Text = "Giggle", Color = Options.EntityESPColor.Value }, true) end
-		if Toggles.BypassGiggle.Value then Object:WaitForChild("Hitbox").CanTouch = false end
+		if Toggles.BypassGiggle.Value then
+			local Hitbox = Object:WaitForChild("Hitbox", 5)
+			if Hitbox then Hitbox.CanTouch = false end
+		end
 		table.insert(Objects.Entities, Object)
 	elseif Name == "GloomPile" then
 		if Toggles.BypassGloombatEggs.Value then
@@ -4346,7 +4374,8 @@ Functions.HandleObject = function(Object)
 	elseif Name == "DoorFake" or Name == "FakeDoor" then
 		if Object.Parent and Object:FindFirstChild("Hidden") then
 			if Toggles.BypassDupe.Value then
-				Object:WaitForChild("Hidden").CanTouch = false
+				local Hidden = Object:WaitForChild("Hidden", 5)
+				if Hidden then Hidden.CanTouch = false end
 				local Lock = Object:FindFirstChild("Lock")
 				if Lock and Lock:FindFirstChild("UnlockPrompt") then Lock.UnlockPrompt.Enabled = false end
 			end
@@ -4357,8 +4386,11 @@ Functions.HandleObject = function(Object)
 		end
 	elseif Name == "SideroomSpace" then
 		if Toggles.BypassVacuum.Value then
-			Object:WaitForChild("Collision").CanCollide = true
-			Object:WaitForChild("Collision").CanTouch = false
+			local Collision = Object:WaitForChild("Collision", 5)
+			if Collision then
+				Collision.CanCollide = true
+				Collision.CanTouch = false
+			end
 		end
 		table.insert(Objects.Entities, Object)
 	elseif Name == "Snare" then
@@ -4373,8 +4405,13 @@ Functions.HandleObject = function(Object)
 		table.insert(Objects.Entities, Object)
 
 		if Object:FindFirstChild("Snare") then
-			Object:WaitForChild("Snare"):WaitForChild("Roots").Transparency = 1
-			Object:WaitForChild("Snare"):WaitForChild("SnareBase").Transparency = 1
+			local Snare = Object:WaitForChild("Snare", 5)
+			if Snare then
+				local Roots = Snare:WaitForChild("Roots", 5)
+				if Roots then Roots.Transparency = 1 end
+				local SnareBase = Snare:WaitForChild("SnareBase", 5)
+				if SnareBase then SnareBase.Transparency = 1 end
+			end
 		end
 		if Object:FindFirstChild("Void") then
 			Object.Void.Transparency = 0
@@ -4419,8 +4456,10 @@ Functions.HandleObject = function(Object)
 			for _, Part in Object:GetDescendants() do
 				if Part:IsA("BasePart") then Part.CanCollide = false Part.CanTouch = false end
 			end
-			Object:WaitForChild("Humanoid").Health = 0
+			local Humanoid = Object:WaitForChild("Humanoid", 5)
+			if Humanoid then Humanoid.Health = 0 end
 		end
+		table.insert(Objects.Entities, Object)
 	elseif Name == "GrumbleRig" then
 		if Toggles.EntityESPToggle.Value and Options.EntityESPOptions.Value["Grumble"] then Functions.AddESP({ Object = Object, Text = "Grumble", Color = Options.EntityESPColor.Value }, true) end
 		table.insert(Objects.Entities, Object)
