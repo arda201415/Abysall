@@ -29,6 +29,15 @@ local Services = setmetatable({}, {
 
 local LocalPlayer = Services.Players.LocalPlayer
 
+local function CheckCompat(Array)
+    for _, Name in pairs(Array) do
+        if not Abysall.Environment[Name] then
+            return false
+        end
+    end
+    return true
+end
+
 local Connections = {}
 local function TrackConn(Conn)
     table.insert(Connections, Conn)
@@ -50,6 +59,7 @@ local Window = Library:CreateWindow({
 Abysall.Interface.ApplyInfoTab(Window)
 
 local Tabs = {
+    Combat = Window:AddTab("Combat", "swords"),
     Zones = Window:AddTab("Zones", "flag"),
     Visuals = Window:AddTab("Visuals", "eye"),
     Misc = Window:AddTab("Misc", "house"),
@@ -210,6 +220,181 @@ Groupboxes.Zones_Claim:AddButton({
 Groupboxes.Zones_Claim:AddLabel("Her zone'da 10 sn bekler.", true)
 
 FindZones()
+
+-- // Combat: Ability Spy //
+local RefireLast
+Groupboxes.Combat_Spy = Tabs.Combat:AddLeftGroupbox("Ability Spy")
+
+Groupboxes.Combat_Spy:AddToggle("LogAbilityArgs", {
+    Text = "Log Ability (F9)", Default = false,
+    Tooltip = "Ability kullanirken ateslenen remote + argumanlari kaydeder (FireServer ve InvokeServer).",
+})
+Groupboxes.Combat_Spy:AddButton({
+    Text = "Son Ability'yi Atesle",
+    DoubleClick = false,
+    Func = function() RefireLast() end,
+})
+Groupboxes.Combat_Spy:AddToggle("SpamLastAbility", {
+    Text = "Spam Son Ability", Default = false,
+})
+Groupboxes.Combat_Spy:AddSlider("SpamInterval", {
+    Text = "Spam Araligi (sn)", Min = 0.2, Max = 5, Default = 1, Rounding = 1, Compact = true,
+})
+
+local LastRecorded, LastLogAt, InternalFire, HookInstalled = nil, {}, false, false
+
+local function InstallSpy()
+    if HookInstalled then return end
+    if not CheckCompat({ "hookmetamethod", "getnamecallmethod", "newcclosure" }) then
+        Library:Notify("Executor hook desteklemiyor.")
+        return
+    end
+    HookInstalled = true
+    local Old
+    Old = hookmetamethod(game, "__namecall", newcclosure(function(Self, ...)
+        local Method = getnamecallmethod()
+        local IsFire = Method == "FireServer" and typeof(Self) == "Instance" and Self:IsA("RemoteEvent")
+        local IsInvoke = Method == "InvokeServer" and typeof(Self) == "Instance" and Self:IsA("RemoteFunction")
+        if IsFire or IsInvoke then
+            if not InternalFire and Toggles.LogAbilityArgs and Toggles.LogAbilityArgs.Value then
+                local Nm = Method .. " | " .. Self:GetFullName()
+                local Now = tick()
+                if not LastLogAt[Nm] or Now - LastLogAt[Nm] > 2 then
+                    LastLogAt[Nm] = Now
+                    local Args = { ... }
+                    LastRecorded = { Name = Nm, Short = Self.Name, Remote = Self, Args = Args, IsInvoke = IsInvoke }
+                    print("[Abysall-Spy] " .. Nm)
+                    for I, A in ipairs(Args) do
+                        print("  arg" .. I .. " " .. typeof(A) .. " = " .. tostring(A):sub(1, 160))
+                    end
+                    Library:Notify("Kaydedildi: " .. Self.Name)
+                end
+            end
+        end
+        return Old(Self, ...)
+    end))
+end
+Toggles.LogAbilityArgs:OnChanged(function(Value)
+    if Value then
+        InstallSpy()
+        task.delay(0.5, function()
+            local Saved = LastRecorded
+            local T = Instance.new("RemoteEvent")
+            pcall(function() T:FireServer("abysall_hook_test") end)
+            T:Destroy()
+            task.wait(0.3)
+            if LastRecorded and LastRecorded.Args[1] == "abysall_hook_test" then
+                Library:Notify("Hook calisiyor, simdi ability kullan.")
+            else
+                Library:Notify("Hook CALISMIYOR (executor desteklemiyor).")
+            end
+            LastRecorded = Saved
+        end)
+    end
+end)
+
+RefireLast = function()
+    if not LastRecorded or not LastRecorded.Remote then
+        Library:Notify("Once log acikken ability kullan.")
+        return
+    end
+    local R, Args = LastRecorded.Remote, LastRecorded.Args
+    InternalFire = true
+    local Ok, Err = pcall(function()
+        if LastRecorded.IsInvoke then
+            local Ret = { R:InvokeServer(table.unpack(Args)) }
+            print("[Abysall-Spy] invoke dondu, " .. #Ret .. " deger")
+        else
+            R:FireServer(table.unpack(Args))
+        end
+    end)
+    InternalFire = false
+    if Ok then
+        Library:Notify("Ateslendi: " .. tostring(LastRecorded.Short))
+    else
+        Library:Notify("Hata: " .. tostring(Err):sub(1, 80))
+    end
+end
+
+local SpamAcc = 0
+TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
+    if Toggles.SpamLastAbility and Toggles.SpamLastAbility.Value and LastRecorded then
+        SpamAcc = SpamAcc + Delta
+        local Interval = (Options.SpamInterval and Options.SpamInterval.Value) or 1
+        if SpamAcc >= Interval then
+            SpamAcc = 0
+            RefireLast()
+        end
+    else
+        SpamAcc = 0
+    end
+end))
+
+-- // Combat: Remote araclari //
+Groupboxes.Combat_Remotes = Tabs.Combat:AddRightGroupbox("Remotes")
+
+local function FindRemote(Name)
+    local Found = Services.ReplicatedStorage:FindFirstChild(Name, true)
+    if Found and (Found:IsA("RemoteEvent") or Found:IsA("RemoteFunction")) then
+        return Found
+    end
+    return nil
+end
+
+local function FireNamed(Name)
+    local R = FindRemote(Name)
+    if not R then
+        Library:Notify("Bulunamadi: " .. Name)
+        return
+    end
+    InternalFire = true
+    local Ok, Err = pcall(function()
+        if R:IsA("RemoteEvent") then R:FireServer() else R:InvokeServer() end
+    end)
+    InternalFire = false
+    if Ok then Library:Notify("Ateslendi: " .. Name)
+    else Library:Notify("Hata: " .. tostring(Err):sub(1, 80)) end
+end
+
+Groupboxes.Combat_Remotes:AddButton({
+    Text = "Dump Remotes (F9'a bas)",
+    DoubleClick = false,
+    Func = function()
+        for _, Obj in pairs(Services.ReplicatedStorage:GetDescendants()) do
+            if Obj:IsA("RemoteEvent") or Obj:IsA("RemoteFunction") then
+                print("[Abysall-Dump] " .. Obj.ClassName .. " | " .. Obj:GetFullName())
+            end
+        end
+        Library:Notify("Dump konsola yazildi (F9).")
+    end
+})
+Groupboxes.Combat_Remotes:AddInput("FireRemoteName", {
+    Text = "Remote Adi", Default = "", Numeric = false, Finished = false,
+    Placeholder = "Orn: Eat",
+})
+Groupboxes.Combat_Remotes:AddButton({
+    Text = "Isimle Atesle (argsiz)",
+    DoubleClick = false,
+    Func = function()
+        local Name = Options.FireRemoteName and Options.FireRemoteName.Value or ""
+        if Name == "" then
+            Library:Notify("Once remote adi yaz.")
+            return
+        end
+        FireNamed(Name)
+    end
+})
+Groupboxes.Combat_Remotes:AddDivider()
+Groupboxes.Combat_Remotes:AddButton({
+    Text = "Eat",
+    DoubleClick = false,
+    Func = function() FireNamed("Eat") end,
+})
+Groupboxes.Combat_Remotes:AddButton({
+    Text = "Abilities (argsiz dene)",
+    DoubleClick = false,
+    Func = function() FireNamed("AbilitiesRemotes") end,
+})
 
 -- // Misc: hareket //
 Groupboxes.Misc_Move = Tabs.Misc:AddLeftGroupbox("Movement")
