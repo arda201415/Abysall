@@ -5459,17 +5459,39 @@ Connections.FogHandler2 = Services.Lighting.DescendantAdded:Connect(function(Obj
 	table.insert(Globals.FogInstances, Object)
 end)
 
-local RusherAliases = { Rush=true, Ambush=true, Eyes=true, Lookman=true, Blitz=true, ["A-60"]=true, ["A-120"]=true, AR0xMBUSH=true, ["RNIUSHCG=="]=true, ["Custom Entity"]=true }
+local RusherAliases = { Rush=true, Ambush=true, Eyes=true, Lookman=true, Blitz=true, ["A-60"]=true, ["A-120"]=true, AR0xMBUSH=true, ["RNIUSHCG=="]=true, ["Custom Entity"]=true, CustomEntity=true }
 
 Connections.EntityHandler = Services.Workspace.ChildAdded:Connect(function(Entity)
 	local EntityData = Entities[Entity.Name]
-	if not EntityData then return end
+	if not EntityData then
+		-- Bilinmeyen workspace modeli: sessiz gecme, F9'a dus (throttle'li).
+		-- Boylece yeni/degisen entity isimleri hemen belli olur.
+		if Entity:IsA("Model") and Entity.Name ~= "CurrentRooms" then
+			Globals._UnknownWarned = Globals._UnknownWarned or {}
+			local Last = Globals._UnknownWarned[Entity.Name] or 0
+			if tick() - Last > 30 then
+				Globals._UnknownWarned[Entity.Name] = tick()
+				warn("[Abysall] bilinmeyen entity (algilanmadi): " .. tostring(Entity.Name))
+			end
+		end
+		return
+	end
 
-	while not Entity.PrimaryPart do
-		for _, Child in Entity:GetChildren() do
-			if Child:IsA("BasePart") then Entity.PrimaryPart = Child end
+	local PPStart = tick()
+	while not Entity.PrimaryPart and tick() - PPStart < 10 do
+		local Prefer = Entity:FindFirstChild("HumanoidRootPart") or Entity:FindFirstChild("RushNew")
+		if Prefer and Prefer:IsA("BasePart") then
+			Entity.PrimaryPart = Prefer
+		else
+			for _, Child in Entity:GetChildren() do
+				if Child:IsA("BasePart") then Entity.PrimaryPart = Child break end
+			end
 		end
 		task.wait()
+	end
+	if not Entity.PrimaryPart then
+		warn("[Abysall] entity PrimaryPart yok: " .. tostring(Entity.Name))
+		return
 	end
 	task.wait(0.1)
 
@@ -5484,7 +5506,9 @@ Connections.EntityHandler = Services.Workspace.ChildAdded:Connect(function(Entit
 
 		if Entity.Name == "RushMoving" and Entity.PrimaryPart.Name ~= "RushNew" then
 			NotifyTitle = NotifyTitle:gsub("Rush", Entity.PrimaryPart.Name)
-			NotifyImage = Entity.PrimaryPart:WaitForChild("Attachment").ParticleEmitter.Texture
+			local Attachment = Entity.PrimaryPart:WaitForChild("Attachment", 5)
+			local Emitter = Attachment and Attachment:FindFirstChildOfClass("ParticleEmitter")
+			if Emitter then NotifyImage = Emitter.Texture end
 			Alias = Entity.PrimaryPart.Name
 		end
 

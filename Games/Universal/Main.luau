@@ -468,6 +468,9 @@ Toggles.PlayerESP:AddColorPicker("PlayerESPColor", {
 Groupboxes.Visuals_ESP:AddToggle("ESPTeamCheck", {
     Text = "Team Check", Default = true,
 })
+Groupboxes.Visuals_ESP:AddToggle("ESPShowHealth", {
+    Text = "Show Health", Default = true, Tooltip = "Ismin yaninda cani gosterir.",
+})
 
 local function ShouldESP(Player)
     if Player == LocalPlayer then return false end
@@ -480,20 +483,54 @@ local function ShouldESP(Player)
     return true
 end
 
+local HealthConns = {}
+local function TrackHealth(Player, Char)
+    local Old = HealthConns[Char]
+    if Old then pcall(function() Old:Disconnect() end) HealthConns[Char] = nil end
+    if not (Toggles.ESPShowHealth and Toggles.ESPShowHealth.Value) then
+        Abysall.ESPLibrary:UpdateObjectText(Char, Player.Name)
+        return
+    end
+    local Hum = Char:FindFirstChildOfClass("Humanoid")
+    if not Hum then return end
+    local function Refresh()
+        if Hum.Parent then
+            Abysall.ESPLibrary:UpdateObjectText(Char, Player.Name .. " [" .. math.floor(Hum.Health + 0.5) .. "]")
+        end
+    end
+    Refresh()
+    local Conn = Hum.HealthChanged:Connect(Refresh)
+    HealthConns[Char] = Conn
+    TrackConn(Conn)
+    Char.Destroying:Once(function()
+        local C = HealthConns[Char]
+        if C then pcall(function() C:Disconnect() end) HealthConns[Char] = nil end
+    end)
+end
+
 local function AddPlayerESP(Data)
     pcall(function()
         Abysall.ESPLibrary:AddESP(Data)
+        if Data.Player and Data.Object then TrackHealth(Data.Player, Data.Object) end
         Data.Object.Destroying:Once(function()
             if Abysall then Abysall.ESPLibrary:RemoveESP(Data.Object) end
         end)
     end)
 end
 
+Toggles.ESPShowHealth:OnChanged(function()
+    for _, Player in pairs(Services.Players:GetPlayers()) do
+        if Player ~= LocalPlayer and Player.Character and Toggles.PlayerESP.Value and ShouldESP(Player) then
+            TrackHealth(Player, Player.Character)
+        end
+    end
+end)
+
 Toggles.PlayerESP:OnChanged(function(Value)
     for _, Player in pairs(Services.Players:GetPlayers()) do
         if Player.Character then
             if Value and ShouldESP(Player) then
-                AddPlayerESP({ Object = Player.Character, Text = Player.Name, Color = Options.PlayerESPColor.Value })
+                AddPlayerESP({ Object = Player.Character, Text = Player.Name, Color = Options.PlayerESPColor.Value, Player = Player })
             else
                 Abysall.ESPLibrary:RemoveESP(Player.Character)
             end
@@ -512,7 +549,7 @@ TrackConn(Services.Players.PlayerAdded:Connect(function(Player)
     Player.CharacterAdded:Connect(function(Char)
         task.wait(1)
         if Toggles.PlayerESP.Value and ShouldESP(Player) then
-            AddPlayerESP({ Object = Char, Text = Player.Name, Color = Options.PlayerESPColor.Value })
+            AddPlayerESP({ Object = Char, Text = Player.Name, Color = Options.PlayerESPColor.Value, Player = Player })
         end
     end)
 end))
@@ -521,7 +558,7 @@ for _, Player in pairs(Services.Players:GetPlayers()) do
         Player.CharacterAdded:Connect(function(Char)
             task.wait(1)
             if Toggles.PlayerESP.Value and ShouldESP(Player) then
-                AddPlayerESP({ Object = Char, Text = Player.Name, Color = Options.PlayerESPColor.Value })
+                AddPlayerESP({ Object = Char, Text = Player.Name, Color = Options.PlayerESPColor.Value, Player = Player })
             end
         end)
     end
