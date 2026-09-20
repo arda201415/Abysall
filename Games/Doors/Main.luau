@@ -1394,8 +1394,9 @@ local ESPBlacklist = {}
 
 -- MotorReplication yoksa/yendien adlandirilmissa patlamasin diye guvenli ates
 Functions.FireMotor = function(...)
+	local Args = { ... }
 	local MR = RemotesFolder:FindFirstChild("MotorReplication")
-	if MR then pcall(function() MR:FireServer(...) end) end
+	if MR then pcall(function() MR:FireServer(table.unpack(Args)) end) end
 end
 
 Functions.AddESP = function(ESPOptions, RoomBased)
