@@ -85,6 +85,21 @@ Groupboxes.General_Survival:AddToggle("AutoRevive", {
     Text = "Auto Revive", Default = false,
     Tooltip = "Olunce ReviveEvent atesler.",
 })
+Groupboxes.General_Survival:AddButton({
+    Text = "Revive",
+    DoubleClick = false,
+    Func = function()
+        local R = FindRemote("ReviveEvent")
+        if not R then
+            Library:Notify("ReviveEvent bulunamadi.")
+            return
+        end
+        local Ok = pcall(function()
+            if R:IsA("RemoteEvent") then R:FireServer() else R:InvokeServer() end
+        end)
+        Library:Notify(Ok and "Revive ateslendi." or "Revive basarisiz.")
+    end,
+})
 
 local function HookDeath(Char)
     local Hum = Char:WaitForChild("Humanoid", 10)
