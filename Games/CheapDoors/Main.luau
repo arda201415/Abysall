@@ -100,6 +100,41 @@ Groupboxes.General_Survival:AddButton({
         Library:Notify(Ok and "Revive ateslendi." or "Revive basarisiz.")
     end,
 })
+Groupboxes.General_Survival:AddInput("ReviveName", {
+    Text = "Oyuncu", Default = "", Numeric = false, Finished = false,
+    Placeholder = "Isim yaz",
+})
+Groupboxes.General_Survival:AddButton({
+    Text = "Revive Player",
+    DoubleClick = false,
+    Func = function()
+        local Name = Options.ReviveName and Options.ReviveName.Value or ""
+        if Name == "" then
+            Library:Notify("Once oyuncu adi yaz.")
+            return
+        end
+        local Target = nil
+        for _, P in pairs(Services.Players:GetPlayers()) do
+            if P ~= LocalPlayer and P.Name:lower():find(Name:lower(), 1, true) then
+                Target = P
+                break
+            end
+        end
+        if not Target then
+            Library:Notify("Oyuncu bulunamadi.")
+            return
+        end
+        local R = FindRemote("ReviveEvent")
+        if not R then
+            Library:Notify("ReviveEvent bulunamadi.")
+            return
+        end
+        local Ok = pcall(function()
+            if R:IsA("RemoteEvent") then R:FireServer(Target) else R:InvokeServer(Target) end
+        end)
+        Library:Notify(Ok and ("Revive denendi: " .. Target.Name) or "Revive basarisiz.")
+    end,
+})
 
 local function HookDeath(Char)
     local Hum = Char:WaitForChild("Humanoid", 10)
@@ -165,8 +200,124 @@ Groupboxes.General_Survival:AddButton({
     end
 })
 
-local EntityHooked = false
-local function HookEntities()
+-- // General: kapi isinlanma (en yuksek numarali oda taramasi) //
+Groupboxes.General_TP = Tabs.General:AddRightGroupbox("Door Teleport")
+
+local LastTP = 0
+
+local function SortedRooms()
+    local List = {}
+    local Seen = {}
+    for _, D in ipairs(Services.Workspace:GetDescendants()) do
+        if D:IsA("Model") and tonumber(D.Name) and not Seen[D] then
+            local Door = D:FindFirstChild("Door", true)
+            if Door then
+                Seen[D] = true
+                table.insert(List, { Num = tonumber(D.Name), Model = D, Door = Door })
+            end
+        end
+    end
+    table.sort(List, function(A, B) return A.Num < B.Num end)
+    return List
+end
+
+local function DoorCF(Door)
+    if Door:IsA("BasePart") then return Door.CFrame end
+    if Door:IsA("Model") then
+        local Ok, CF = pcall(function() return Door:GetBoundingBox() end)
+        if Ok and CF then return CF end
+        local PP = Door.PrimaryPart
+        if PP then return PP.CFrame end
+    end
+    return nil
+end
+
+local function AliveHRP()
+    local Char = LocalPlayer.Character
+    local Hum = Char and Char:FindFirstChildOfClass("Humanoid")
+    local HRP = Char and Char:FindFirstChild("HumanoidRootPart")
+    if Hum and HRP and Hum.Health > 0 then return HRP end
+    return nil
+end
+
+local function TPTo(Entry)
+    if tick() - LastTP < 0.2 then return end
+    LastTP = tick()
+    local HRP = AliveHRP()
+    local CF = Entry and DoorCF(Entry.Door) or nil
+    if HRP and CF then
+        pcall(function() HRP.CFrame = CF + Vector3.new(0, 5, 0) end)
+        Library:Notify("Oda " .. Entry.Num)
+    end
+end
+
+local function NearestNum(List)
+    local HRP = AliveHRP()
+    if not HRP then return nil end
+    local BestNum, BestDist = nil, math.huge
+    for _, E in ipairs(List) do
+        local CF = DoorCF(E.Door)
+        if CF then
+            local D = (CF.Position - HRP.Position).Magnitude
+            if D < BestDist then BestDist = D BestNum = E.Num end
+        end
+    end
+    return BestNum
+end
+
+Groupboxes.General_TP:AddButton({
+    Text = "En Son Kapi",
+    DoubleClick = false,
+    Func = function()
+        local List = SortedRooms()
+        if #List == 0 then
+            Library:Notify("Oda bulunamadi.")
+            return
+        end
+        TPTo(List[#List])
+    end,
+})
+Groupboxes.General_TP:AddButton({
+    Text = "Sonraki Kapi",
+    DoubleClick = false,
+    Func = function()
+        local List = SortedRooms()
+        if #List == 0 then
+            Library:Notify("Oda bulunamadi.")
+            return
+        end
+        local Cur = NearestNum(List) or List[#List].Num
+        for _, E in ipairs(List) do
+            if E.Num > Cur then
+                TPTo(E)
+                return
+            end
+        end
+        TPTo(List[#List])
+    end,
+})
+Groupboxes.General_TP:AddButton({
+    Text = "Onceki Kapi",
+    DoubleClick = false,
+    Func = function()
+        local List = SortedRooms()
+        if #List == 0 then
+            Library:Notify("Oda bulunamadi.")
+            return
+        end
+        local Cur = NearestNum(List) or List[1].Num
+        for I = #List, 1, -1 do
+            if List[I].Num < Cur then
+                TPTo(List[I])
+                return
+            end
+        end
+        TPTo(List[1])
+    end,
+})
+Groupboxes.General_TP:AddLabel("Tiklar arasi 0.2sn bekleme var.", true)
+
+local EntityHooked = falselocal function HookEntities()
     if EntityHooked then return end
     local CE = FindRemote("ClientEntityEvent")
     if not CE then
