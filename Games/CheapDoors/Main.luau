@@ -179,15 +179,43 @@ local function HookEntities()
         for I, A in ipairs(Args) do
             print("[Abysall-Entity] arg" .. I .. " " .. typeof(A) .. " = " .. tostring(A):sub(1, 160))
         end
-        if Toggles.EntityAlerts and Toggles.EntityAlerts.Value then
-            local Title = "Entity!"
+        -- Isim tespiti: A-60 / A-120 oncelikli, yoksa ilk kisa string
+        local EntName = nil
+        for _, A in ipairs(Args) do
+            if typeof(A) == "string" then
+                local U = A:upper():gsub("%s+", "")
+                if U:find("A%-?60") then EntName = "A-60" break end
+                if U:find("A%-?120") then EntName = "A-120" break end
+            end
+        end
+        if not EntName then
             for _, A in ipairs(Args) do
                 if typeof(A) == "string" and #A < 40 then
-                    Title = A
+                    EntName = A
                     break
                 end
             end
-            Library:Notify(Title)
+        end
+        if Toggles.EntityAlerts and Toggles.EntityAlerts.Value then
+            if EntName == "A-60" or EntName == "A-120" then
+                Library:Notify(EntName .. " geliyor! Saklan!")
+            else
+                Library:Notify(EntName or "Entity!")
+            end
+        end
+        if Toggles.EntityESP and Toggles.EntityESP.Value then
+            local Color = Options.EntityESPColor and Options.EntityESPColor.Value or Color3.fromRGB(255, 165, 0)
+            for _, A in ipairs(Args) do
+                if typeof(A) == "Instance" and (A:IsA("Model") or A:IsA("BasePart")) and A.Parent == Services.Workspace then
+                    local Target = A
+                    pcall(function()
+                        Abysall.ESPLibrary:AddESP({ Object = Target, Text = EntName or "Entity", Color = Color })
+                        Target.Destroying:Once(function()
+                            if Abysall then Abysall.ESPLibrary:RemoveESP(Target) end
+                        end)
+                    end)
+                end
+            end
         end
     end))
     Library:Notify("Entity dinleyici baglandi.")
@@ -210,6 +238,15 @@ Groupboxes.Visuals_ESP:AddToggle("ESPTeamCheck", {
 })
 Groupboxes.Visuals_ESP:AddToggle("ESPShowHealth", {
     Text = "Show Health", Default = true,
+})
+
+Groupboxes.Visuals_Entity = Tabs.Visuals:AddRightGroupbox("Entity ESP")
+Groupboxes.Visuals_Entity:AddToggle("EntityESP", {
+    Text = "Entity ESP", Default = false,
+    Tooltip = "Event'ten gelen entity modellerini isaretler (A-60, A-120...).",
+})
+Toggles.EntityESP:AddColorPicker("EntityESPColor", {
+    Text = "ESP Rengi", Default = Color3.fromRGB(255, 165, 0), Transparency = 0,
 })
 
 local function ShouldESP(Player)
