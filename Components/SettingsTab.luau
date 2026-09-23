@@ -19,6 +19,24 @@ return function(Window)
 	
 	local Toggles = Library.Toggles
 	local Options = Library.Options
+
+	-- Obsidian fork'umuzda eksik olan makefolder adimini burada kapat:
+	-- config klasorleri yoksa SaveManager listesi/autoload sessizce olur.
+	pcall(function()
+		local Env = Abysall.Environment
+		if Env.makefolder and Env.isfolder then
+			local Paths = {
+				"Abysall",
+				"Abysall/" .. tostring(Abysall.SavePath),
+				"Abysall/" .. tostring(Abysall.SavePath) .. "/settings",
+				"Abysall/themes",
+				"Abysall/themes/settings",
+			}
+			for _, P in ipairs(Paths) do
+				if not Env.isfolder(P) then Env.makefolder(P) end
+			end
+		end
+	end)
 	
 	local SettingsTab = Window:AddTab("Settings", "settings")
 	local MenuGroup = SettingsTab:AddLeftGroupbox("Menu")

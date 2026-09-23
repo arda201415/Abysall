@@ -17,6 +17,7 @@ local PlaceList = {
   [10926417608] = "CheapDoors", -- DOORS but kinda cheap
   [10873387885] = "CheapDoors", -- root/lobi
   [12696293710] = "CheapDoors", -- rooms
+  [133809021725719] = "CheapDoors", -- hotel remake
 }
 
 local BaseUrl = "https://raw.githubusercontent.com/arda201415/Abysall/refs/heads/main/"
