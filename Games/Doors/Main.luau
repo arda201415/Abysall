@@ -1940,7 +1940,6 @@ end)
 
 -- Archives: saat / entity bastirma / cozumler
 Groupboxes.Archives_Misc = Tabs.Exploits:AddLeftGroupbox("Archives")
-Groupboxes.Archives_Misc:AddToggle("TimeShower", { Text = "Time Shower", Default = false, Tooltip = "Archives saatini ekrana yazar." })
 Groupboxes.Archives_Misc:AddToggle("BypassDronesStampede", { Text = "Stop Time / Anti Stampede", Default = false, Tooltip = "Saat remote'unu spam'leyerek stampede'i durdurur." })
 Groupboxes.Archives_Misc:AddToggle("AntiRansom", { Text = "Anti Ransom", Default = false, Tooltip = "Ransom spawn olmaz." })
 Groupboxes.Archives_Misc:AddToggle("AntiClosetTrash", { Text = "Anti Closet Trash", Default = false, Tooltip = "Binder/Shoe/Shelf cisimleri spawn olmaz." })
@@ -1980,84 +1979,29 @@ Groupboxes.Archives_Misc:AddButton({
 	end
 })
 
-local TimeShowerLabel = Instance.new("TextLabel")
-TimeShowerLabel.Name = "AbysallTimeShower"
-TimeShowerLabel.AnchorPoint = Vector2.new(0, 1)
-TimeShowerLabel.Position = UDim2.new(0, 12, 1, -12)
-TimeShowerLabel.Size = UDim2.new(0, 180, 0, 32)
-TimeShowerLabel.BackgroundTransparency = 1
-TimeShowerLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-TimeShowerLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-TimeShowerLabel.TextStrokeTransparency = 0.35
-TimeShowerLabel.Font = Enum.Font.GothamBold
-TimeShowerLabel.TextSize = 18
-TimeShowerLabel.TextXAlignment = Enum.TextXAlignment.Left
-TimeShowerLabel.Text = "Time: --:--"
-TimeShowerLabel.Visible = false
-TimeShowerLabel.Parent = Container
-
-local TimeShowerToken, TimeShowerConnection, TimeShowerSource = 0, nil, nil
 local DroneWalkedIntoParents, DroneMovedConn = {}, nil
 local WaterParts, WaterConn = {}, nil
 local ForgetRunning, ForgetProcessing, ForgetNotified = false, {}, {}
 local TpNextDoorThread = nil
 
-local function GetArchivesClockLabel(Room)
-	local Assets = Room and Room:FindFirstChild("Assets", true)
-	local Clock = Assets and Assets:FindFirstChild("ArchivesClock", true)
-	local Time = Clock and Clock:FindFirstChild("Time", true)
-	local Label = Time and Time:FindFirstChild("TextLabel")
-	if Label and Label:IsA("TextLabel") then return Label end
-	return nil
-end
-
-local function ResolveClockLabel()
-	if TimeShowerSource and TimeShowerSource.Parent and TimeShowerSource:IsDescendantOf(game) then
-		return TimeShowerSource
-	end
-	local Rooms = {}
-	if not CurrentRooms then return nil end
-	for _, Room in ipairs(CurrentRooms:GetChildren()) do
-		local N = tonumber(Room.Name)
-		if N then table.insert(Rooms, { Room = Room, N = N }) end
-	end
-	table.sort(Rooms, function(A, B) return A.N > B.N end)
-	for I = 1, math.min(6, #Rooms) do
-		local Label = GetArchivesClockLabel(Rooms[I].Room)
-		if Label then TimeShowerSource = Label return Label end
-	end
-	return nil
-end
-
+-- Mevcut ArchivesClock okuyucumuzu kullan (Functions.ScanStampedeClockSources)
 local function ResolveClockRemote()
-	local Label = ResolveClockLabel()
-	if not Label then return nil end
-	local Clock = Label:FindFirstAncestor("ArchivesClock")
-	if not Clock then return nil end
-	local Remote = Clock:FindFirstChild("LookedAtRemote", true)
-	return (Remote and Remote:IsA("RemoteEvent")) and Remote or nil
-end
-
-Toggles.TimeShower:OnChanged(function(Value)
-	TimeShowerToken += 1
-	if TimeShowerConnection then
-		pcall(function() TimeShowerConnection:Disconnect() end)
-		TimeShowerConnection = nil
+	local State = Globals.DroneStampedeState
+	if not State then return nil end
+	if not State.CachedArchivesClocks or #State.CachedArchivesClocks == 0 then
+		pcall(function() Functions.ScanStampedeClockSources() end)
 	end
-	TimeShowerLabel.Visible = Value and true or false
-	if not Value then return end
-	local Token = TimeShowerToken
-	TimeShowerConnection = Services.RunService.Heartbeat:Connect(function()
-		if Token ~= TimeShowerToken then return end
-		local Label = ResolveClockLabel()
-		TimeShowerLabel.Text = "Time: " .. (Label and Label.Text or "--:--")
-	end)
-	table.insert(Connections, TimeShowerConnection)
-end)
+	for _, Clock in ipairs(State.CachedArchivesClocks or {}) do
+		if Clock and Clock:IsDescendantOf(game) then
+			local Remote = Clock:FindFirstChild("LookedAtRemote", true)
+			if Remote and Remote:IsA("RemoteEvent") then return Remote end
+		end
+	end
+	return nil
+end
 
 Toggles.BypassDronesStampede:OnChanged(function(Value)
 	if not Value then return end
-	local Token = TimeShowerToken
 	table.spawn(function()
 		while Toggles.BypassDronesStampede.Value do
 			local Remote = ResolveClockRemote()
@@ -6117,7 +6061,6 @@ Library:OnUnload(function()
 		Globals.FlyBody.Velocity = Vector3.zero
 		Globals.FlyBody.Parent = nil
 	end
-	pcall(function() TimeShowerLabel:Destroy() end)
 	pcall(function()
 		for _, P in pairs(WaterParts) do
 			if P then P:Destroy() end
