@@ -1938,6 +1938,375 @@ Toggles.BypassDrone:OnChanged(function(Value)
 	end)
 end)
 
+-- Archives: saat / entity bastirma / cozumler
+Groupboxes.Archives_Misc = Tabs.Exploits:AddLeftGroupbox("Archives")
+Groupboxes.Archives_Misc:AddToggle("TimeShower", { Text = "Time Shower", Default = false, Tooltip = "Archives saatini ekrana yazar." })
+Groupboxes.Archives_Misc:AddToggle("BypassDronesStampede", { Text = "Stop Time / Anti Stampede", Default = false, Tooltip = "Saat remote'unu spam'leyerek stampede'i durdurur." })
+Groupboxes.Archives_Misc:AddToggle("AntiRansom", { Text = "Anti Ransom", Default = false, Tooltip = "Ransom spawn olmaz." })
+Groupboxes.Archives_Misc:AddToggle("AntiClosetTrash", { Text = "Anti Closet Trash", Default = false, Tooltip = "Binder/Shoe/Shelf cisimleri spawn olmaz." })
+Groupboxes.Archives_Misc:AddToggle("BypassAlma", { Text = "Bypass Alma", Default = false, Tooltip = "Alma spawn olmaz." })
+Groupboxes.Archives_Misc:AddToggle("AntiScribbles", { Text = "Bypass Scribbles", Default = false, Tooltip = "Scribbles'in uyari objesini siler." })
+Groupboxes.Archives_Misc:AddToggle("BypassWater", { Text = "Bypass Electric Water", Default = false, Tooltip = "Elektrikli suyun hasarini onler." })
+Groupboxes.Archives_Misc:AddToggle("ForgetMeNotSolver", { Text = "Forget Me Not Skipper", Default = false, Tooltip = "Forget Me Not odalarini otomatik gecer." })
+Groupboxes.Archives_Misc:AddToggle("TpNextDoorToggle", { Text = "Auto Tp Next Door", Default = false, Tooltip = "Sirasiyla acik olmayan kapiya isinlanir." })
+Groupboxes.Archives_Misc:AddButton({
+	Text = "Tp Next Door",
+	Tooltip = "Sonraki acik olmayan kapiya isinlanir.",
+	Func = function()
+		local Door = Functions.GetNextClosedDoor()
+		if Door and Character then
+			Character:PivotTo(Door:GetPivot())
+		end
+	end
+})
+Groupboxes.Archives_Misc:AddButton({
+	Text = "Bring Dropped Items",
+	Tooltip = "Yerdeki butun esyalari yanina toplar.",
+	DoubleClick = false,
+	Func = function()
+		local Drops = Services.Workspace:FindFirstChild("Drops")
+		local HRP = Character and Character:FindFirstChild("HumanoidRootPart")
+		if not Drops or not HRP then
+			Functions.Notify({ Title = "Drops/Character yok." })
+			return
+		end
+		for _, Item in ipairs(Drops:GetChildren()) do
+			if Item:IsA("Model") then
+				Item:PivotTo(HRP.CFrame)
+			elseif Item:IsA("BasePart") then
+				Item.CFrame = HRP.CFrame
+			end
+		end
+	end
+})
+
+local TimeShowerLabel = Instance.new("TextLabel")
+TimeShowerLabel.Name = "AbysallTimeShower"
+TimeShowerLabel.AnchorPoint = Vector2.new(0, 1)
+TimeShowerLabel.Position = UDim2.new(0, 12, 1, -12)
+TimeShowerLabel.Size = UDim2.new(0, 180, 0, 32)
+TimeShowerLabel.BackgroundTransparency = 1
+TimeShowerLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TimeShowerLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+TimeShowerLabel.TextStrokeTransparency = 0.35
+TimeShowerLabel.Font = Enum.Font.GothamBold
+TimeShowerLabel.TextSize = 18
+TimeShowerLabel.TextXAlignment = Enum.TextXAlignment.Left
+TimeShowerLabel.Text = "Time: --:--"
+TimeShowerLabel.Visible = false
+TimeShowerLabel.Parent = Container
+
+local TimeShowerToken, TimeShowerConnection, TimeShowerSource = 0, nil, nil
+local DroneWalkedIntoParents, DroneMovedConn = {}, nil
+local WaterParts, WaterConn = {}, nil
+local ForgetRunning, ForgetProcessing, ForgetNotified = false, {}, {}
+local TpNextDoorThread = nil
+
+local function GetArchivesClockLabel(Room)
+	local Assets = Room and Room:FindFirstChild("Assets", true)
+	local Clock = Assets and Assets:FindFirstChild("ArchivesClock", true)
+	local Time = Clock and Clock:FindFirstChild("Time", true)
+	local Label = Time and Time:FindFirstChild("TextLabel")
+	if Label and Label:IsA("TextLabel") then return Label end
+	return nil
+end
+
+local function ResolveClockLabel()
+	if TimeShowerSource and TimeShowerSource.Parent and TimeShowerSource:IsDescendantOf(game) then
+		return TimeShowerSource
+	end
+	local Rooms = {}
+	if not CurrentRooms then return nil end
+	for _, Room in ipairs(CurrentRooms:GetChildren()) do
+		local N = tonumber(Room.Name)
+		if N then table.insert(Rooms, { Room = Room, N = N }) end
+	end
+	table.sort(Rooms, function(A, B) return A.N > B.N end)
+	for I = 1, math.min(6, #Rooms) do
+		local Label = GetArchivesClockLabel(Rooms[I].Room)
+		if Label then TimeShowerSource = Label return Label end
+	end
+	return nil
+end
+
+local function ResolveClockRemote()
+	local Label = ResolveClockLabel()
+	if not Label then return nil end
+	local Clock = Label:FindFirstAncestor("ArchivesClock")
+	if not Clock then return nil end
+	local Remote = Clock:FindFirstChild("LookedAtRemote", true)
+	return (Remote and Remote:IsA("RemoteEvent")) and Remote or nil
+end
+
+Toggles.TimeShower:OnChanged(function(Value)
+	TimeShowerToken += 1
+	if TimeShowerConnection then
+		pcall(function() TimeShowerConnection:Disconnect() end)
+		TimeShowerConnection = nil
+	end
+	TimeShowerLabel.Visible = Value and true or false
+	if not Value then return end
+	local Token = TimeShowerToken
+	TimeShowerConnection = Services.RunService.Heartbeat:Connect(function()
+		if Token ~= TimeShowerToken then return end
+		local Label = ResolveClockLabel()
+		TimeShowerLabel.Text = "Time: " .. (Label and Label.Text or "--:--")
+	end)
+	table.insert(Connections, TimeShowerConnection)
+end)
+
+Toggles.BypassDronesStampede:OnChanged(function(Value)
+	if not Value then return end
+	local Token = TimeShowerToken
+	table.spawn(function()
+		while Toggles.BypassDronesStampede.Value do
+			local Remote = ResolveClockRemote()
+			if Remote then pcall(function() Remote:FireServer() end) end
+			task.wait(1)
+		end
+	end)
+end)
+
+Toggles.AntiRansom:OnChanged(function(Value)
+	if not Value then return end
+	local Conn = Services.Workspace.ChildAdded:Connect(function(Child)
+		if Toggles.AntiRansom.Value and Child.Name == "Ransom" then
+			pcall(function() Child:Destroy() end)
+		end
+	end)
+	table.insert(Connections, Conn)
+end)
+
+Toggles.AntiClosetTrash:OnChanged(function(Value)
+	if not Value then return end
+	local Conn = Services.Workspace.ChildAdded:Connect(function(Child)
+		if not Toggles.AntiClosetTrash.Value then return end
+		local N = Child.Name
+		if N:sub(1, 6) == "Binder" or N:sub(1, 4) == "Shoe" or N:sub(1, 5) == "Shelf" then
+			pcall(function() Child:Destroy() end)
+		end
+	end)
+	table.insert(Connections, Conn)
+end)
+
+Toggles.BypassAlma:OnChanged(function(Value)
+	if Value then
+		for _, Child in ipairs(Services.Workspace:GetChildren()) do
+			if Child.Name == "Alma" then pcall(function() Child:Destroy() end) end
+		end
+		local Conn = Services.Workspace.ChildAdded:Connect(function(Child)
+			if Toggles.BypassAlma.Value and Child.Name == "Alma" then
+				pcall(function() Child:Destroy() end)
+			end
+		end)
+		table.insert(Connections, Conn)
+	end
+end)
+
+Toggles.AntiScribbles:OnChanged(function(Value)
+	if not Value then return end
+	local Conn = Services.Workspace.ChildAdded:Connect(function(Child)
+		if Toggles.AntiScribbles.Value and Child.Name == "Scribbles" then
+			local Warn = Child:FindFirstChild("IfYoureExploitingDeleteThis")
+			if Warn then pcall(function() Warn:Destroy() end) end
+		end
+	end)
+	table.insert(Connections, Conn)
+end)
+
+Toggles.BypassWater:OnChanged(function(Value)
+	if Value then
+		Functions.Notify({ Title = "PositionSpoof bunu bozar." })
+		local function ProcessRoom(Room)
+			if not tonumber(Room.Name) then return end
+			task.wait(3)
+			local Water = Room:FindFirstChild("Water")
+			if not Water or WaterParts[Water] then return end
+			local Part = Instance.new("Part")
+			Part.Name = "AbysallWaterBypass"
+			Part.Anchored = true
+			Part.CanCollide = true
+			Part.CanTouch = false
+			Part.CanQuery = false
+			Part.Transparency = 0.25
+			Part.Color = Color3.fromRGB(0, 150, 255)
+			Part.Material = Enum.Material.ForceField
+			if Water:IsA("BasePart") then
+				Part.Size = Water.Size + Vector3.new(0, 0.5, 0)
+				Part.CFrame = Water.CFrame * CFrame.new(0, 0.25, 0)
+			elseif Water:IsA("Model") then
+				local CF, Size = Water:GetBoundingBox()
+				Part.Size = Size + Vector3.new(0, 0.5, 0)
+				Part.CFrame = CF * CFrame.new(0, 0.25, 0)
+			else
+				Part.Size = Vector3.new(10, 1.5, 10)
+				Part.CFrame = Water:GetPivot() * CFrame.new(0, 0.25, 0)
+			end
+			if Part.Size.Y > 3 then
+				Part:Destroy()
+				Functions.Notify({ Title = "Water Bypass kaldirildi: softlock." })
+				return
+			end
+			Part.Parent = Room
+			WaterParts[Water] = Part
+		end
+		local Latest = tonumber(LatestRoom.Value) or 0
+		for N = math.max(0, Latest - 4), Latest do
+			local Room = CurrentRooms and CurrentRooms:FindFirstChild(tostring(N))
+			if Room then task.spawn(ProcessRoom, Room) end
+		end
+		WaterConn = CurrentRooms.ChildAdded:Connect(function(Room)
+			task.spawn(ProcessRoom, Room)
+		end)
+	else
+		if WaterConn then pcall(function() WaterConn:Disconnect() end) WaterConn = nil end
+		for _, P in pairs(WaterParts) do
+			if P then pcall(function() P:Destroy() end) end
+		end
+		WaterParts = {}
+	end
+end)
+
+Functions.GetNextClosedDoor = function()
+	if not Character then return nil end
+	local Start = tonumber(LatestRoom.Value) or 0
+	local Best, BestNum = nil, math.huge
+	for _, Obj in ipairs(Services.Workspace:GetDescendants()) do
+		if Obj.Name == "Door" and Obj:IsA("Model") then
+			local Open = Obj:GetAttribute("Open")
+			if Open == false or Open == nil then
+				local N = tonumber(Obj.Parent and Obj.Parent.Name)
+				if N and N >= Start and N < BestNum then
+					BestNum = N
+					Best = Obj
+				end
+			end
+		end
+	end
+	return Best
+end
+
+Toggles.TpNextDoorToggle:OnChanged(function(Value)
+	if not Value then return end
+	TpNextDoorThread = table.spawn(function()
+		while Toggles.TpNextDoorToggle.Value do
+			local Door = Functions.GetNextClosedDoor()
+			if Door and Character then pcall(function() Character:PivotTo(Door:GetPivot()) end) end
+			task.wait(0.15)
+		end
+	end)
+end)
+
+Toggles.ForgetMeNotSolver:OnChanged(function(Value)
+	ForgetRunning = false
+	ForgetProcessing = {}
+	ForgetNotified = {}
+	if not Value then return end
+	ForgetRunning = true
+
+	local function GetCharacter()
+		return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+	end
+
+	local function GetNextRoom(Number)
+		while ForgetRunning do
+			for N = Number + 1, Number + 5 do
+				local Room = CurrentRooms and CurrentRooms:FindFirstChild(tostring(N))
+				if Room then return Room end
+			end
+			task.wait(0.1)
+		end
+		return nil
+	end
+
+	local function FireLookAts(Room)
+		for I = 1, 6 do
+			local Obj = Room:FindFirstChild(tostring(I))
+			local LookAt = Obj and Obj:FindFirstChild("LookAt")
+			if LookAt then pcall(function() LookAt:FireServer() end) end
+		end
+	end
+
+	local function Run(Room)
+		if not ForgetRunning or ForgetProcessing[Room] then return end
+		ForgetProcessing[Room] = true
+		task.wait(2)
+		if not ForgetRunning or not Room.Parent or not Room:FindFirstChild("ForgetMeNotVineDoors", true) then
+			ForgetProcessing[Room] = nil
+			return
+		end
+		FireLookAts(Room)
+		local NextRoom = GetNextRoom(tonumber(Room.Name) or 0)
+		local Door = NextRoom and NextRoom:FindFirstChild("Door")
+		if not NextRoom or not Door or Door:GetAttribute("Opened") == true then
+			ForgetProcessing[Room] = nil
+			return
+		end
+		if not Room:FindFirstChild(LocalPlayer.Name, true) then
+			if not ForgetNotified[Room] then
+				ForgetNotified[Room] = true
+				Functions.Notify({ Title = "Once ilk ForgetMeNot kapisina gir." })
+			end
+			repeat task.wait() until Room:FindFirstChild(LocalPlayer.Name, true) or not ForgetRunning or not Room.Parent
+		end
+		if not ForgetRunning or Door:GetAttribute("Opened") == true then
+			ForgetProcessing[Room] = nil
+			return
+		end
+		local Hidden = Door:WaitForChild("Hidden", 10)
+		if not Hidden then ForgetProcessing[Room] = nil return end
+		task.wait(3)
+		while ForgetRunning and NextRoom.Parent and Door:GetAttribute("Opened") ~= true do
+			local Ch = GetCharacter()
+			if Ch then
+				if Hidden:IsA("BasePart") then
+					Ch:PivotTo(Hidden.CFrame)
+				elseif Hidden:IsA("Model") then
+					Ch:PivotTo(Hidden:GetPivot())
+				end
+			end
+			pcall(function() Door.ClientOpen:Fire() end)
+			pcall(function() Door.ClientOpen:FireServer() end)
+			task.wait()
+		end
+		if ForgetRunning and Door:GetAttribute("Opened") == true then
+			local Ch = GetCharacter()
+			if Ch then
+				Ch:PivotTo(CFrame.new(0, -120, 0))
+				Functions.Notify({ Title = "Takildiysan void'e atildin." })
+			end
+			ForgetNotified[Room] = nil
+		end
+		ForgetProcessing[Room] = nil
+	end
+
+	local function CheckRooms()
+		local Latest = tonumber(LatestRoom.Value) or 0
+		for N = math.max(0, Latest - 4), Latest do
+			if not ForgetRunning then return end
+			local Room = CurrentRooms and CurrentRooms:FindFirstChild(tostring(N))
+			if Room and not ForgetProcessing[Room] then task.spawn(Run, Room) end
+		end
+	end
+
+	local Conn = CurrentRooms.ChildAdded:Connect(function(Room)
+		if not tonumber(Room.Name) then return end
+		task.spawn(function()
+			task.wait(2)
+			if ForgetRunning and Room.Parent then task.spawn(Run, Room) end
+		end)
+	end)
+	table.insert(Connections, Conn)
+
+	table.spawn(function()
+		while ForgetRunning do
+			CheckRooms()
+			task.wait(2)
+		end
+	end)
+	CheckRooms()
+end)
+
 Groupboxes.Exploits_BypassRight = Tabs.Exploits:AddRightGroupbox("Bypass")
 Groupboxes.Exploits_BypassRight:AddToggle("DisableAnticheat", {
 	Text = "Anticheat Bypass", Default = false,
@@ -2457,6 +2826,7 @@ Groupboxes.Visuals_ESP_Toggles:AddDropdown("EntityESPOptions",     {
 	AllowNull = true
 })
 Groupboxes.Visuals_ESP_Toggles:AddToggle("EntityESPToggle",     { Text = "Entities",      Default = false, Tooltip = "Highlights all entities that spawn." })
+Groupboxes.Visuals_ESP_Toggles:AddToggle("MirrorShadowESPToggle", { Text = "Mirror Shadow", Default = false, Tooltip = "Highlights your 'MirrorShadow_<name>' model." })
 Groupboxes.Visuals_ESP_Toggles:AddToggle("HonchoBoxESPToggle", { Text = "Honcho Boxes",  Default = false, Tooltip = "Highlights 'ArchivesStorageBox' crates whose ID matches an 'ArchivesPackageDeposit' (Honcho mail room)." })
 
 Toggles.DoorESPToggle:AddColorPicker("DoorESPColor",           { Text = "Doors",        Default = Color3.fromRGB(0, 200, 255),  Transparency = 0 })
@@ -2624,6 +2994,37 @@ end)
 Options.EntityESPColor:OnChanged(function(Value)
 	for _, Object in Objects.Entities do Abysall.ESPLibrary:UpdateObjectColor(Object, Value) end
 end)
+
+local function MirrorShadowName()
+	return "MirrorShadow_" .. LocalPlayer.Name
+end
+
+local function HookMirrorShadow(Model)
+	if not Model:IsA("Model") or Model.Name ~= MirrorShadowName() then return end
+	if Toggles.MirrorShadowESPToggle and Toggles.MirrorShadowESPToggle.Value then
+		Functions.AddESP({ Object = Model, Text = "Mirror Shadow", Color = Options.EntityESPColor.Value }, false)
+		Model.Destroying:Once(function()
+			if Abysall then Functions.RemoveESP(Model) end
+		end)
+	end
+end
+
+Toggles.MirrorShadowESPToggle:OnChanged(function(Value)
+	if Value then
+		for _, D in ipairs(Services.Workspace:GetDescendants()) do
+			if D:IsA("Model") then HookMirrorShadow(D) end
+		end
+	else
+		for _, D in ipairs(Services.Workspace:GetDescendants()) do
+			if D:IsA("Model") and D.Name == MirrorShadowName() then
+				Functions.RemoveESP(D)
+			end
+		end
+	end
+end)
+table.insert(Connections, Services.Workspace.DescendantAdded:Connect(function(Obj)
+	if Obj:IsA("Model") then HookMirrorShadow(Obj) end
+end))
 
 Toggles.HonchoBoxESPToggle:OnChanged(function(Value)
 	if not Globals.HonchoBoxes then return end
@@ -5716,6 +6117,13 @@ Library:OnUnload(function()
 		Globals.FlyBody.Velocity = Vector3.zero
 		Globals.FlyBody.Parent = nil
 	end
+	pcall(function() TimeShowerLabel:Destroy() end)
+	pcall(function()
+		for _, P in pairs(WaterParts) do
+			if P then P:Destroy() end
+		end
+	end)
+	ForgetRunning = false
 
 	if type(Abysall.AddonDisablers) == "table" then
 		for _, D in ipairs(Abysall.AddonDisablers) do
