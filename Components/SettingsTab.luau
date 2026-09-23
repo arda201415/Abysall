@@ -116,6 +116,24 @@ return function(Window)
 	
 	Library.ToggleKeybind = Options.MenuKeybind
 	
+	-- Config yuklemesi sirasinda bir toggle callback'i patlarsa tum hatt
+	-- susturuluyordu; kim oldugu belli olmuyordu. Artik adini + hatayi yaziyor
+	-- ve hatanin gecerlilik zincirini kesmiyor.
+	local OldSafeCallback = Library.SafeCallback
+	Library.SafeCallback = function(self, Func, ...)
+		if not (Func and typeof(Func) == "function") then return end
+		local Name = "?"
+		pcall(function()
+			local Info = debug.info(Func, "sl")
+			if Info then Name = Info.short_src .. ":" .. tostring(Info.currentline) end
+		end)
+		local Ok, Err = xpcall(Func, function(E) return E end, ...)
+		if not Ok then
+			warn("[Abysall:Config] callback patladi -> " .. tostring(Name) .. " | " .. tostring(Err))
+		end
+		return Ok, Err
+	end
+	
 	ThemeManager:SetLibrary(Library)
 	SaveManager:SetLibrary(Library)
 	SaveManager:IgnoreThemeSettings()
@@ -124,5 +142,9 @@ return function(Window)
 	SaveManager:SetFolder("Abysall/" .. Abysall.SavePath)
 	SaveManager:BuildConfigSection(SettingsTab)
 	ThemeManager:ApplyToTab(SettingsTab)
-	SaveManager:LoadAutoloadConfig()
+	local OkLoad, ErrLoad = pcall(function() SaveManager:LoadAutoloadConfig() end)
+	if not OkLoad then
+		warn("[Abysall:Config] autoload basarisiz: " .. tostring(ErrLoad))
+	end
+	Library.SafeCallback = OldSafeCallback
 end
