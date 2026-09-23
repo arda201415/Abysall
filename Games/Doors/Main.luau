@@ -200,6 +200,52 @@ local Entities = {
 		Alias = "Forget-Me-Not",
 		NotifyMessage = { Title = "Entity 'Forget-Me-Not' has spawned.", Body = "Take notes." }
 	},
+	-- HandleObject'ta islenip bu tabloda olmayan entity'ler.
+	-- Eksik olunca EntityHandler ve dropdown'lar nil donup ESP'yi kapatiyordu.
+	["Snare"] = {
+		Alias = "Snare",
+		NotifyMessage = { Title = "Entity 'Snare' has spawned.", Body = "Don't get caught." }
+	},
+	["GiggleCeiling"] = {
+		Alias = "Giggle",
+		NotifyMessage = { Title = "Entity 'Giggle' has spawned.", Body = "Don't look up." }
+	},
+	["GloomPile"] = {
+		Alias = "Gloombat Eggs",
+		NotifyMessage = { Title = "Entity 'Gloombat Eggs' has spawned.", Body = "Walk around the eggs." }
+	},
+	["DoorFake"] = {
+		Alias = "Dupe",
+		NotifyMessage = { Title = "Entity 'Dupe' has spawned.", Body = "Don't open the fake door." }
+	},
+	["FakeDoor"] = {
+		Alias = "Dupe",
+		NotifyMessage = { Title = "Entity 'Dupe' has spawned.", Body = "Don't open the fake door." }
+	},
+	["SideroomSpace"] = {
+		Alias = "Sideroom",
+		NotifyMessage = { Title = "Entity 'Sideroom' has spawned.", Body = "The floor is not solid." }
+	},
+	["BananaPeel"] = {
+		Alias = "Banana Peel",
+		NotifyMessage = { Title = "Entity 'Banana Peel' has spawned.", Body = "Watch your step." }
+	},
+	["LiveEntityBramble"] = {
+		Alias = "Bramble",
+		NotifyMessage = { Title = "Entity 'Bramble' has spawned.", Body = "Run." }
+	},
+	["GrumbleRig"] = {
+		Alias = "Grumble",
+		NotifyMessage = { Title = "Entity 'Grumble' has spawned.", Body = "Hide." }
+	},
+	["Figure"] = {
+		Alias = "Figure",
+		NotifyMessage = { Title = "Entity 'Figure' has spawned.", Body = "Survive the minigame." }
+	},
+	["FigureRagdoll"] = {
+		Alias = "Figure",
+		NotifyMessage = { Title = "Entity 'Figure' has spawned.", Body = "Survive the minigame." }
+	},
 	-- The Stairwell (secret Mines subfloor) entities
 	["Creak"] = {
 		Alias = "Creak",
@@ -2765,7 +2811,7 @@ Groupboxes.Visuals_ESP_Toggles:AddToggle("LadderESPToggle",     { Text = "Ladder
 Groupboxes.Visuals_ESP_Toggles:AddDivider()
 Groupboxes.Visuals_ESP_Toggles:AddDropdown("EntityESPOptions",     { 
 	Text = "Entity List",
-	Values = { "Rush","Ambush","Eyes","Dupe","Figure","Blitz","Lookman","Snare","Giggle","Gloombat Eggs","Grumble","A-60","A-120","Sally","Jeff the Killer","Groundskeeper","Mandrake Hole","Monument","Bramble","Caws","Grampy","Honcho","Bash","Ransom","Scribbles","Drone","Alma","Fih","Teller","Portrait","Forget-Me-Not","Creak","Noise","Stem","Meld","Cobbler","AR0xMBUSH","RNIUSHCG==" },
+	Values = { "Rush","Ambush","Eyes","Dupe","Figure","Blitz","Lookman","Snare","Giggle","Gloombat Eggs","Grumble","A-60","A-120","Sally","Jeff the Killer","Groundskeeper","Mandrake Hole","Monument","Bramble","Caws","Grampy","Honcho","Bash","Ransom","Scribbles","Drone","Alma","Fih","Teller","Portrait","Forget-Me-Not","Creak","Noise","Stem","Meld","Cobbler","AR0xMBUSH","RNIUSHCG==","Sideroom","Banana Peel" },
 	Multi = true,
 	AllowNull = true
 })
