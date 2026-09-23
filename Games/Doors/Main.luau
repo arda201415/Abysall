@@ -5044,7 +5044,14 @@ Connections.QueueConnection = Services.RunService.RenderStepped:Connect(function
 		if not Object then break end
 		Globals.ObjectQueue[Globals.QueueHead] = nil
 		Globals.QueueHead += 1
-		Functions.HandleObject(Object)
+		-- Tek bir objede hata olursa HandleObjectRenderStepped callback'i
+		-- dusup kalan 4 objeyi ve sonraki frame'leri bosuna yitirmek demekti:
+		-- butun algilama/ESP hatti tek bir hata yuzunden sessizce oluyordu.
+		local Ok, Err = pcall(Functions.HandleObject, Object)
+		if not Ok then
+			Globals.HandleErrors = (Globals.HandleErrors or 0) + 1
+			Globals.HandleErrorLast = tostring(Err):sub(1, 200)
+		end
 	end
 	if Globals.QueueHead > 5000 then
 		local Compacted = {}
@@ -6084,3 +6091,16 @@ while not Globals.MainUI do task.wait() end
 Abysall.Interface.ApplySettingsTab(Window)
 Abysall.Interface.ApplyAddons(Window, "doors/doors")
 Functions.Notify({ Title = "Successfully loaded in " .. math.floor((tick() - LoadStart) * 1000) / 1000 .. " seconds." , Body = "Press '" .. tostring(Options.MenuKeybind.Value) .. "' to toggle the UI."})
+
+-- Algilama/ESP sagligi: kuyruk birikiyorsa veya islenen obje hata veriyorsa F9'a yaz
+task.spawn(function()
+	local LastReported = 0
+	while task.wait(3) do
+		local Pending = math.max(0, #Globals.ObjectQueue - Globals.QueueHead + 1)
+		local Errs = Globals.HandleErrors or 0
+		if (Pending > 40 or Errs > LastReported) and tick() - LastReported > 5 then
+			LastReported = tick()
+			warn("[Abysall] kuyruk bekleyen=" .. Pending .. " islenen_hata=" .. Errs .. " son_hata=" .. tostring(Globals.HandleErrorLast))
+		end
+	end
+end)
