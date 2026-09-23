@@ -5078,30 +5078,46 @@ Functions.QueueObject = function(Object)
 	if not AllowedInstances[Object.Name] and Object.ClassName ~= "ProximityPrompt" and Object.Parent ~= CurrentRooms and not ItemNames[Object.Name] then
 		return
 	end
+	-- Ayni objeyi iki kez kuyruga koyma (bypass/ESP toggle'larinda
+	-- cift kayit birikmesin diye)
+	if Object._AbysallQueued then return end
+	Object._AbysallQueued = true
+	Globals.QueueCount = (Globals.QueueCount or 0) + 1
 	table.insert(Globals.ObjectQueue, Object)
 end
 
 Globals.QueueDone = true
 Globals.QueueHead = 1
+Globals.QueueCount = 0
+Globals.QueueInFlight = 0
+Globals.HandleErrors = 0
+-- HandleObject icinde task.wait() var. Eskiden RenderStepped callback'i
+-- icinde dogrudan cagriliyordu: bir obje beklerken kuyruga yeni obje
+-- table.insert ile giriyor, #tanimi deliklerde belirsiz oldugu icin
+-- objeler EZILIYOR/ KAYBOLUYORDU -> HandleObject hic calismiyor,
+-- Objects.* tablolari bos kaliyor, bypass + ESP + promptlar etkisizdi.
 Connections.QueueConnection = Services.RunService.RenderStepped:Connect(function()
-	-- bastaki yigini eritmek icin frame basina 5 isle, bastan silme (O(n)) yerine index ile ilerle
-	for _ = 1, 5 do
+	while Globals.QueueCount > 0 and Globals.QueueInFlight < 8 do
 		local Object = Globals.ObjectQueue[Globals.QueueHead]
-		if not Object then break end
+		if Object == nil then break end
 		Globals.ObjectQueue[Globals.QueueHead] = nil
 		Globals.QueueHead += 1
-		-- Tek bir objede hata olursa HandleObjectRenderStepped callback'i
-		-- dusup kalan 4 objeyi ve sonraki frame'leri bosuna yitirmek demekti:
-		-- butun algilama/ESP hatti tek bir hata yuzunden sessizce oluyordu.
-		local Ok, Err = pcall(Functions.HandleObject, Object)
-		if not Ok then
-			Globals.HandleErrors = (Globals.HandleErrors or 0) + 1
-			Globals.HandleErrorLast = tostring(Err):sub(1, 200)
-		end
+		Globals.QueueCount -= 1
+		Globals.QueueInFlight += 1
+
+		task.spawn(function()
+			local Ok, Err = pcall(Functions.HandleObject, Object)
+			if not Ok then
+				Globals.HandleErrors += 1
+				Globals.HandleErrorLast = tostring(Err):sub(1, 200)
+			end
+			Globals.QueueInFlight -= 1
+		end)
 	end
-	if Globals.QueueHead > 5000 then
+	--Bosluk birikmesin: sayimla sıkıştır (# delikli tabloda belirsiz)
+	if Globals.QueueHead > 2000 then
 		local Compacted = {}
-		for I = Globals.QueueHead, #Globals.ObjectQueue do
+		for I = Globals.QueueHead, Globals.QueueHead + Globals.QueueCount - 1 do
 			Compacted[#Compacted + 1] = Globals.ObjectQueue[I]
 		end
 		Globals.ObjectQueue = Compacted
@@ -6139,14 +6155,14 @@ Abysall.Interface.ApplyAddons(Window, "doors/doors")
 Functions.Notify({ Title = "Successfully loaded in " .. math.floor((tick() - LoadStart) * 1000) / 1000 .. " seconds." , Body = "Press '" .. tostring(Options.MenuKeybind.Value) .. "' to toggle the UI."})
 
 -- Algilama/ESP sagligi: kuyruk birikiyorsa veya islenen obje hata veriyorsa F9'a yaz
-task.spawn(function()
-	local LastReported = 0
-	while task.wait(3) do
-		local Pending = math.max(0, #Globals.ObjectQueue - Globals.QueueHead + 1)
-		local Errs = Globals.HandleErrors or 0
-		if (Pending > 40 or Errs > LastReported) and tick() - LastReported > 5 then
-			LastReported = tick()
-			warn("[Abysall] kuyruk bekleyen=" .. Pending .. " islenen_hata=" .. Errs .. " son_hata=" .. tostring(Globals.HandleErrorLast))
+	task.spawn(function()
+		local LastReported = 0
+		while task.wait(3) do
+			local Pending = Globals.QueueCount or 0
+			local Errs = Globals.HandleErrors or 0
+			if (Pending > 40 or Errs > LastReported) and tick() - LastReported > 5 then
+				LastReported = tick()
+				warn("[Abysall] kuyruk bekleyen=" .. Pending .. " islenen_hata=" .. Errs .. " son_hata=" .. tostring(Globals.HandleErrorLast))
+			end
 		end
-	end
-end)
+	end)
