@@ -5078,10 +5078,10 @@ Functions.QueueObject = function(Object)
 	if not AllowedInstances[Object.Name] and Object.ClassName ~= "ProximityPrompt" and Object.Parent ~= CurrentRooms and not ItemNames[Object.Name] then
 		return
 	end
-	-- Ayni objeyi iki kez kuyruga koyma (bypass/ESP toggle'larinda
-	-- cift kayit birikmesin diye)
-	if Object._AbysallQueued then return end
-	Object._AbysallQueued = true
+	-- Ayni objeyi iki kez kuyruga koyma (Instance'a property set edilemez)
+	Globals.QueuedSet = Globals.QueuedSet or setmetatable({}, { __mode = "k" })
+	if Globals.QueuedSet[Object] then return end
+	Globals.QueuedSet[Object] = true
 	Globals.QueueCount = (Globals.QueueCount or 0) + 1
 	table.insert(Globals.ObjectQueue, Object)
 end
@@ -5106,6 +5106,7 @@ Connections.QueueConnection = Services.RunService.RenderStepped:Connect(function
 		Globals.QueueInFlight += 1
 
 		task.spawn(function()
+			if Globals.QueuedSet then Globals.QueuedSet[Object] = nil end
 			local Ok, Err = pcall(Functions.HandleObject, Object)
 			if not Ok then
 				Globals.HandleErrors += 1
