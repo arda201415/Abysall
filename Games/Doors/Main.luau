@@ -5107,13 +5107,18 @@ Globals.QueueHead = 1
 Globals.QueueCount = 0
 Globals.QueueInFlight = 0
 Globals.HandleErrors = 0
+Globals.Stuck = setmetatable({}, { __mode = "k" })
 -- HandleObject icinde task.wait() var. Eskiden RenderStepped callback'i
 -- icinde dogrudan cagriliyordu: bir obje beklerken kuyruga yeni obje
 -- table.insert ile giriyor, #tanimi deliklerde belirsiz oldugu icin
 -- objeler EZILIYOR/ KAYBOLUYORDU -> HandleObject hic calismiyor,
 -- Objects.* tablolari bos kaliyor, bypass + ESP + promptlar etkisizdi.
 Connections.QueueConnection = Services.RunService.RenderStepped:Connect(function()
-	while Globals.QueueCount > 0 and Globals.QueueInFlight < 8 do
+	-- Slot kapısı yok: HandleObject kendi thread'inde, sonsuza kadar
+	-- takılan bir obje pompayi durdurmamalı. Takilanlar watchdog ile loglanir.
+	local Budget = 40
+	while Globals.QueueCount > 0 and Budget > 0 do
+		Budget -= 1
 		local Object = Globals.ObjectQueue[Globals.QueueHead]
 		if Object == nil then break end
 		Globals.ObjectQueue[Globals.QueueHead] = nil
@@ -5129,6 +5134,17 @@ Connections.QueueConnection = Services.RunService.RenderStepped:Connect(function
 				Globals.HandleErrorLast = tostring(Err):sub(1, 200)
 			end
 			Globals.QueueInFlight -= 1
+			if Globals.Stuck[Object] then
+				Globals.Stuck[Object] = nil
+				Globals.StuckCount = math.max(0, (Globals.StuckCount or 1) - 1)
+			end
+		end)
+
+		-- Watchdog: 20sn'de bitmeyen objeyi isaretle (timeout'suz WaitForChild)
+		task.delay(20, function()
+			Globals.Stuck[Object] = true
+			Globals.StuckCount = (Globals.StuckCount or 0) + 1
+			Globals.StuckLast = Object.Name .. " (" .. Object.ClassName .. ")"
 		end)
 	end
 	--Bosluk birikmesin: sayimla sıkıştır (# delikli tabloda belirsiz)
@@ -6177,9 +6193,12 @@ Functions.Notify({ Title = "Successfully loaded in " .. math.floor((tick() - Loa
 		while task.wait(3) do
 			local Pending = Globals.QueueCount or 0
 			local Errs = Globals.HandleErrors or 0
-			if (Pending > 40 or Errs > LastReported) and tick() - LastReported > 5 then
+			local Stuck = Globals.StuckCount or 0
+			if (Pending > 40 or Errs > LastReported or Stuck > 0) and tick() - LastReported > 5 then
 				LastReported = tick()
-				warn("[Abysall] kuyruk bekleyen=" .. Pending .. " islenen_hata=" .. Errs .. " son_hata=" .. tostring(Globals.HandleErrorLast))
+				warn("[Abysall] kuyruk bekleyen=" .. Pending .. " takilan=" .. Stuck
+					.. " islenen_hata=" .. Errs .. " takilan_son=" .. tostring(Globals.StuckLast)
+					.. " son_hata=" .. tostring(Globals.HandleErrorLast))
 			end
 		end
 	end)
