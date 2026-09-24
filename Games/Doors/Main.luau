@@ -2048,7 +2048,7 @@ end
 
 Toggles.BypassDronesStampede:OnChanged(function(Value)
 	if not Value then return end
-	table.spawn(function()
+	task.spawn(function()
 		while Toggles.BypassDronesStampede.Value do
 			local Remote = ResolveClockRemote()
 			if Remote then pcall(function() Remote:FireServer() end) end
@@ -2178,7 +2178,7 @@ end
 
 Toggles.TpNextDoorToggle:OnChanged(function(Value)
 	if not Value then return end
-	TpNextDoorThread = table.spawn(function()
+	task.spawn(function()
 		while Toggles.TpNextDoorToggle.Value do
 			local Door = Functions.GetNextClosedDoor()
 			if Door and Character then pcall(function() Character:PivotTo(Door:GetPivot()) end) end
@@ -2288,7 +2288,7 @@ Toggles.ForgetMeNotSolver:OnChanged(function(Value)
 	end)
 	table.insert(Connections, Conn)
 
-	table.spawn(function()
+	task.spawn(function()
 		while ForgetRunning do
 			CheckRooms()
 			task.wait(2)
@@ -4289,12 +4289,28 @@ Functions.HandleHidingTransparency = function(Model)
 end
 
 Functions.HandleObject = function(Object)
-	for _, Room in CurrentRooms:GetChildren() do
-		if Object:IsDescendantOf(Room) then
-			Object:SetAttribute("ParentRoom", tonumber(Room.Name))
-			break
+	-- Oda atamasi: eskiden her oda icin task.wait() vardi, 50+ odada obje
+	-- basina 50 frame -> kuyruk saatlerce birikiyordu. Tek geciste bak.
+	if not Object:GetAttribute("ParentRoom") then
+		local Parent = Object.Parent
+		while Parent and Parent ~= Services.Workspace do
+			local N = tonumber(Parent.Name)
+			if N and Parent.Parent == CurrentRooms then
+				Object:SetAttribute("ParentRoom", N)
+				break
+			end
+			Parent = Parent.Parent
 		end
-		task.wait()
+	end
+	if not Object:GetAttribute("ParentRoom") and CurrentRooms then
+		local Found = nil
+		for _, Room in CurrentRooms:GetChildren() do
+			if Object:IsDescendantOf(Room) then
+				Found = tonumber(Room.Name)
+				break
+			end
+		end
+		if Found then Object:SetAttribute("ParentRoom", Found) end
 	end
 
 	if Object.Parent == CurrentRooms then
