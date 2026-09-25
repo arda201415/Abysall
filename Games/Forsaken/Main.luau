@@ -207,6 +207,115 @@ TrackConn(Services.RunService.RenderStepped:Connect(function()
     end
 end))
 
+-- // Combat: Kill Aura //
+Groupboxes.Combat_Aura = Tabs.Combat:AddRightGroupbox("Kill Aura")
+
+Groupboxes.Combat_Aura:AddToggle("KillAura", {
+    Text = "Kill Aura", Default = false,
+    Tooltip = "Menzil icindeki hedeflere hasar verir.",
+})
+Groupboxes.Combat_Aura:AddSlider("KillAuraRange", {
+    Text = "Menzil", Min = 5, Max = 200, Default = 30, Rounding = 0, Compact = true,
+})
+Groupboxes.Combat_Aura:AddSlider("KillAuraDamage", {
+    Text = "Hasar", Min = 1, Max = 100, Default = 25, Rounding = 0, Compact = true,
+})
+Groupboxes.Combat_Aura:AddSlider("KillAuraInterval", {
+    Text = "Aralik (sn)", Min = 0.1, Max = 3, Default = 0.5, Rounding = 1, Compact = true,
+})
+Groupboxes.Combat_Aura:AddToggle("KillAuraAllTargets", {
+    Text = "Tum Menzil", Default = true,
+    Tooltip = "Kapaliyken sadece en yakin hedefe vurur.",
+})
+Groupboxes.Combat_Aura:AddToggle("KillAuraTeamCheck", { Text = "Team Check", Default = true })
+Groupboxes.Combat_Aura:AddToggle("KillAuraWallCheck", {
+    Text = "Wall Check", Default = false, Tooltip = "Duvar arkasinin hasarini engeller.",
+})
+Groupboxes.Combat_Aura:AddToggle("KillAuraToolOnly", {
+    Text = "Sadece Tool", Default = false,
+    Tooltip = "Sadece elinde tool varken calisir.",
+})
+
+local function AuraIsEnemy(Player)
+    if Player == LocalPlayer then return false end
+    if not Player.Character then return false end
+    if Player:GetAttribute("Alive") == false then return false end
+    if Toggles.KillAuraTeamCheck and Toggles.KillAuraTeamCheck.Value then
+        if LocalPlayer.Team ~= nil and Player.Team ~= nil and Player.Team == LocalPlayer.Team then
+            return false
+        end
+    end
+    local Hum = Player.Character:FindFirstChildOfClass("Humanoid")
+    if Hum and Hum.Health <= 0 then return false end
+    return true
+end
+
+local function AuraVisible(TargetPart, Origin)
+    if not Toggles.KillAuraWallCheck or not Toggles.KillAuraWallCheck.Value then
+        return true
+    end
+    local Ok, Res = pcall(function()
+        local RayParams = RaycastParams.new()
+        RayParams.FilterType = Enum.RaycastFilterType.Exclude
+        RayParams.FilterDescendantsInstances = { LocalPlayer.Character, Camera }
+        return Services.Workspace:Raycast(Origin, (TargetPart.Position - Origin), RayParams)
+    end)
+    if not Ok or not Res then return true end
+    return Res.Instance:IsDescendantOf(TargetPart.Parent)
+end
+
+local AuraAccum = 0
+
+TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
+    if not (Toggles.KillAura and Toggles.KillAura.Value) then return end
+    if not LocalPlayer.Character then return end
+    if Toggles.KillAuraToolOnly and Toggles.KillAuraToolOnly.Value then
+        if not LocalPlayer.Character:FindFirstChildOfClass("Tool") then return end
+    end
+    AuraAccum = AuraAccum + Delta
+    local Interval = (Options.KillAuraInterval and Options.KillAuraInterval.Value) or 0.5
+    if AuraAccum < Interval then return end
+    AuraAccum = 0
+
+    local HRP = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not HRP then return end
+    local Range = (Options.KillAuraRange and Options.KillAuraRange.Value) or 30
+    local Damage = (Options.KillAuraDamage and Options.KillAuraDamage.Value) or 25
+    local OnlyClosest = not (Toggles.KillAuraAllTargets and Toggles.KillAuraAllTargets.Value)
+    local Targets = {}
+    local Best, BestDist = nil, Range
+
+    for _, Player in pairs(Services.Players:GetPlayers()) do
+        if AuraIsEnemy(Player) then
+            local Part = Player.Character:FindFirstChild("HumanoidRootPart")
+            if Part then
+                local Dist = (Part.Position - HRP.Position).Magnitude
+                if Dist <= Range and AuraVisible(Part, HRP.Position) then
+                    if OnlyClosest then
+                        if Dist < BestDist then Best, BestDist = Player, Dist end
+                    else
+                        table.insert(Targets, { Player = Player, Part = Part })
+                    end
+                end
+            end
+        end
+    end
+    if OnlyClosest and Best then
+        table.insert(Targets, { Player = Best, Part = Best.Character:FindFirstChild("HumanoidRootPart") })
+    end
+    if #Targets == 0 then return end
+
+    for _, Entry in ipairs(Targets) do
+        local Hum = Entry.Player.Character and Entry.Player.Character:FindFirstChildOfClass("Humanoid")
+        if Hum and Hum.Health > 0 then
+            pcall(function() Hum:TakeDamage(Damage) end)
+            if Hum.Health > 0 then
+                Hum.Health = math.max(0, Hum.Health - Damage)
+            end
+        end
+    end
+end))
+
 -- // Combat: Ability Spy //
 local RefireLast
 Groupboxes.Combat_Spy = Tabs.Combat:AddRightGroupbox("Ability Spy")
