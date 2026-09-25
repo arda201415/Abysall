@@ -18,6 +18,10 @@ local PlaceList = {
   [10873387885] = "CheapDoors", -- root/lobi
   [12696293710] = "CheapDoors", -- rooms
   [133809021725719] = "CheapDoors", -- hotel remake
+  [18687417158] = "Forsaken", -- Forsaken
+  [83645629621104] = "Forsaken", -- [N] Forsaken
+  [86454545238517] = "Forsaken", -- [VC] Forsaken
+  [94626476208514] = "Forsaken", -- [Randomizer] Forsaken
 }
 
 local BaseUrl = "https://raw.githubusercontent.com/arda201415/Abysall/refs/heads/main/"

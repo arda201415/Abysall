@@ -4345,10 +4345,14 @@ Functions.HandleObject = function(Object)
 			if Object.Parent then
 				Object:SetAttribute("AddTime", Object.TakeTimer.TextLabel.Text == "01:00" and 60 or 30)
 				if Toggles.ObjectiveESPToggle.Value then Functions.AddESP({ Object = Object, Text = "Time Lever [+" .. Object:GetAttribute("AddTime") .. "s]", Color = Options.ObjectiveESPColor.Value }, true) end
-				Object:WaitForChild("Main").SoundToPlay.Played:Once(function()
-					Functions.RemoveESP(Object)
-					Functions.BlacklistESP(Object)
-				end)
+				local Main = Object:WaitForChild("Main", 10)
+				local Snd = Main and Main:WaitForChild("SoundToPlay", 10)
+				if Snd then
+					Snd.Played:Once(function()
+						Functions.RemoveESP(Object)
+						Functions.BlacklistESP(Object)
+					end)
+				end
 				table.insert(Objects.Objectives, Object)
 			end
 		end)
@@ -4367,7 +4371,9 @@ Functions.HandleObject = function(Object)
 		if Toggles.ObjectiveESPToggle.Value then Functions.AddESP({ Object = Object, Text = "Hint Paper", Color = Options.ObjectiveESPColor.Value }, true) end
 		table.insert(Objects.Objectives, Object)
 	elseif Name == "MinesAnchor" then
-		if Toggles.ObjectiveESPToggle.Value then Functions.AddESP({ Object = Object, Text = "Anchor [" .. Object:WaitForChild("Sign").TextLabel.Text .. "]", Color = Options.ObjectiveESPColor.Value }, true) end
+		local Sign = Object:WaitForChild("Sign", 10)
+		local CodeText = Sign and Sign:FindFirstChild("TextLabel", true) and Sign.TextLabel.Text or "?"
+		if Toggles.ObjectiveESPToggle.Value then Functions.AddESP({ Object = Object, Text = "Anchor [" .. tostring(CodeText) .. "]", Color = Options.ObjectiveESPColor.Value }, true) end
 		Object:GetAttributeChangedSignal("Activated"):Once(function()
 			Functions.RemoveESP(Object)
 			Functions.BlacklistESP(Object)
@@ -4381,72 +4387,103 @@ Functions.HandleObject = function(Object)
 				Functions.AddESP({ Object = Wheel, Text = "Water Pump", Color = Options.ObjectiveESPColor.Value }, true)
 			end
 		end
-		Object:WaitForChild("Wheel").Sound.Played:Once(function()
-			Object:SetAttribute("Abysall_Completed", true)
-
-			Functions.RemoveESP(Object)
-			if Object:FindFirstChild("Wheel") then
-				Functions.RemoveESP(Object.Wheel)
-				Functions.BlacklistESP(Object.Wheel)
-			end
-		end)
+		local Wheel2 = Object:WaitForChild("Wheel", 10)
+		local WheelSnd = Wheel2 and Wheel2:FindFirstChild("Sound", true)
+		if WheelSnd then
+			WheelSnd.Played:Once(function()
+				Object:SetAttribute("Abysall_Completed", true)
+				Functions.RemoveESP(Object)
+				if Object:FindFirstChild("Wheel") then
+					Functions.RemoveESP(Object.Wheel)
+					Functions.BlacklistESP(Object.Wheel)
+				end
+			end)
+		end
 		table.insert(Objects.Objectives, Object)
 	elseif Name == "RiftSpawn" then
 		if Toggles.ObjectiveESPToggle.Value then Functions.AddESP({ Object = Object, Text = "Rift", Color = Options.ObjectiveESPColor.Value }, true) end
 		table.insert(Objects.Objectives, Object)
 	elseif Name == "CringlePresent" then
 		if Toggles.ObjectiveESPToggle.Value then Functions.AddESP({ Object = Object, Text = "Present", Color = Options.ObjectiveESPColor.Value }, true) end
-		Object:WaitForChild("ToolProp").Highlight:Destroy()
+		local ToolProp = Object:WaitForChild("ToolProp", 10)
+		local CringleHL = ToolProp and ToolProp:FindFirstChild("Highlight", true)
+		if CringleHL then pcall(function() CringleHL:Destroy() end) end
 		table.insert(Objects.Objectives, Object)
 	elseif Name == "LeverForGate" then
 		if Toggles.ObjectiveESPToggle.Value then Functions.AddESP({ Object = Object, Text = "Gate Lever", Color = Options.ObjectiveESPColor.Value }, true) end
-		Object:WaitForChild("Main").SoundToPlay.Played:Once(function()
-			Functions.RemoveESP(Object)
-			Functions.BlacklistESP(Object)
-		end)
+		local LMain = Object:WaitForChild("Main", 10)
+		local LSnd = LMain and LMain:WaitForChild("SoundToPlay", 10)
+		if LSnd then
+			LSnd.Played:Once(function()
+				Functions.RemoveESP(Object)
+				Functions.BlacklistESP(Object)
+			end)
+		end
 		table.insert(Objects.Objectives, Object)
 	elseif Name == "VineGuillotine" then
-		if Toggles.ObjectiveESPToggle.Value then Functions.AddESP({ Object = Object.Lever, Text = "Vine Lever", Color = Options.ObjectiveESPColor.Value }, true) end
-		Object.Lever:WaitForChild("ActivateEventPrompt"):GetAttributeChangedSignal("Interactions"):Once(function()
-			Functions.RemoveESP(Object)
-			Functions.BlacklistESP(Object)
-		end)
+		if Toggles.ObjectiveESPToggle.Value and Object:FindFirstChild("Lever") then Functions.AddESP({ Object = Object.Lever, Text = "Vine Lever", Color = Options.ObjectiveESPColor.Value }, true) end
+		local Lever = Object:WaitForChild("Lever", 10)
+		local AEP = Lever and Lever:WaitForChild("ActivateEventPrompt", 10)
+		if AEP then
+			AEP:GetAttributeChangedSignal("Interactions"):Once(function()
+				Functions.RemoveESP(Object)
+				Functions.BlacklistESP(Object)
+			end)
+		end
 		table.insert(Objects.Objectives, Object)
 	elseif Name == "MandrakeLive" then
-		if Toggles.ObjectiveESPToggle.Value and Options.EntityESPOptions.Value["Mandrake Hole"] then Functions.AddESP({ Object = Object.Hole, Text = "Mandrake Hole", Color = Options.EntityESPColor.Value }, true) end
-		table.insert(Objects.Entities, Object.Hole)
+		local Hole = Object:FindFirstChild("Hole")
+		if Toggles.ObjectiveESPToggle.Value and Options.EntityESPOptions.Value["Mandrake Hole"] and Hole then Functions.AddESP({ Object = Hole, Text = "Mandrake Hole", Color = Options.EntityESPColor.Value }, true) end
+		if Hole then table.insert(Objects.Entities, Hole) end
 	elseif Name == "MinesGenerator" then
 		task.spawn(function()
 			task.wait(0.75)
 			if Object.Parent then
 				if Toggles.ObjectiveESPToggle.Value then Functions.AddESP({ Object = Object, Text = "Generator", Color = Options.ObjectiveESPColor.Value }, true) end
-				Object:WaitForChild("Lever").Sound.Played:Once(function()
-					Functions.RemoveESP(Object)
-					Functions.BlacklistESP(Object)
-				end)
+				local Lever = Object:WaitForChild("Lever", 10)
+				local LeverSnd = Lever and Lever:FindFirstChild("Sound", true)
+				if LeverSnd then
+					LeverSnd.Played:Once(function()
+						Functions.RemoveESP(Object)
+						Functions.BlacklistESP(Object)
+					end)
+				end
 				table.insert(Objects.Objectives, Object)
 			end
 		end)
 	elseif Name == "FuseObtain" then
 		if Toggles.ObjectiveESPToggle.Value then Functions.AddESP({ Object = Object, Text = "Generator Fuse", Color = Options.ObjectiveESPColor.Value }, true) end
-		Object:WaitForChild("Hitbox").FuseModel:GetPropertyChangedSignal("LocalTransparencyModifier"):Once(function()
-			Functions.RemoveESP(Object)
-			Functions.BlacklistESP(Object)
-		end)
+		local Hitbox = Object:WaitForChild("Hitbox", 10)
+		local FuseModel = Hitbox and Hitbox:FindFirstChild("FuseModel", true)
+		if FuseModel then
+			FuseModel:GetPropertyChangedSignal("LocalTransparencyModifier"):Once(function()
+				Functions.RemoveESP(Object)
+				Functions.BlacklistESP(Object)
+			end)
+		end
 		table.insert(Objects.Objectives, Object)
 	elseif Name == "MinesGateButton" then
 		if Toggles.ObjectiveESPToggle.Value then Functions.AddESP({ Object = Object, Text = "Gate Button", Color = Options.ObjectiveESPColor.Value }, true) end
-		Object.Parent:WaitForChild("MinesGate").Main.SoundOpen.Played:Once(function()
-			Functions.RemoveESP(Object)
-			Functions.BlacklistESP(Object)
-		end)
+		local Gate = Object.Parent and Object.Parent:FindFirstChild("MinesGate")
+		local Open = Gate and Gate:FindFirstChild("Main", true) and Gate.Main:FindFirstChild("SoundOpen", true)
+		if Open then
+			Open.Played:Once(function()
+				Functions.RemoveESP(Object)
+				Functions.BlacklistESP(Object)
+			end)
+		end
 		table.insert(Objects.Objectives, Object)
 	elseif Name == "GardenGateButton" then
 		if Toggles.ObjectiveESPToggle.Value then Functions.AddESP({ Object = Object, Text = "Gate Button", Color = Options.ObjectiveESPColor.Value }, true) end
-		Object.Parent:WaitForChild("GardenGate").Collision.Sound.Played:Once(function()
-			Functions.RemoveESP(Object)
-			Functions.BlacklistESP(Object)
-		end)
+		local Gate = Object.Parent and Object.Parent:FindFirstChild("GardenGate")
+		local Col = Gate and Gate:FindFirstChild("Collision", true)
+		local GateSound = Col and Col:FindFirstChild("Sound", true)
+		if GateSound then
+			GateSound.Played:Once(function()
+				Functions.RemoveESP(Object)
+				Functions.BlacklistESP(Object)
+			end)
+		end
 		table.insert(Objects.Objectives, Object)
 	elseif Name == "Ladder" then
 		if Toggles.LadderESPToggle.Value then Functions.AddESP({ Object = Object, Text = "Ladder", Color = Options.LadderESPColor.Value }, true) end
@@ -4931,16 +4968,21 @@ Functions.HandleObject = function(Object)
 			Functions.Notify({ Title = "Interact with the breaker box.", Body = "It will be automatically solved." })
 			Globals.BreakerBoxNotified = true
 		end
-		Connections.BreakerConnection = Object:WaitForChild("SurfaceGui").Frame.Code:GetPropertyChangedSignal("Text"):Connect(function()
-			if Toggles.AutoBreakerBox.Value then
-				if not Globals.BreakerBoxStartNotified and (Floor == "Fools" or Floor == "OldHotel") then
-					Functions.Notify({ Title = "Attempting to solve the breaker box.", Body = "Please wait." })
-					Globals.BreakerBoxStartNotified = true
+		local Surface = Object:WaitForChild("SurfaceGui", 10)
+		local CodeLabel = Surface and Surface:FindFirstChild("Frame", true) and Surface.Frame:FindFirstChild("Code", true)
+		if CodeLabel then
+			Connections.BreakerConnection = CodeLabel:GetPropertyChangedSignal("Text"):Connect(function()
+				if Toggles.AutoBreakerBox.Value then
+					if not Globals.BreakerBoxStartNotified and (Floor == "Fools" or Floor == "OldHotel") then
+						Functions.Notify({ Title = "Attempting to solve the breaker box.", Body = "Please wait." })
+						Globals.BreakerBoxStartNotified = true
+					end
+					RemotesFolder.EBF:FireServer()
 				end
-				RemotesFolder.EBF:FireServer()
-			end
-			Globals.BreakerBoxInteracted = true
-		end)
+				Globals.BreakerBoxInteracted = true
+			end)
+			table.insert(Connections, Connections.BreakerConnection)
+		end
 	elseif Name == "ElevatorCar" then
 		local ElevConn = Object.DescendantAdded:Connect(function(Desc)
 			if Toggles.AutoBreakerBox.Value and Desc.Name == "TouchInterest" and not Globals.BreakerBoxFinishedNotified then
@@ -5061,11 +5103,15 @@ Connections.PromptAnimationFixer1 = Services.ProximityPromptService.PromptButton
 	if Prompt.Parent.Name == "Lock1" and not Functions.HasItem("Lockpick", true) and not Functions.HasItem("Multitool", true) or Prompt.Parent.Name == "Lock2" and not Functions.HasItem("Lockpick", true) and not Functions.HasItem("Multitool", true) then return end
 	if Functions.HasItem("Shears", true) and IsLockPrompt and Prompt.Parent.Name ~= "CuttableVines" and Prompt.Parent.Name ~= "Chest_Vine" and Prompt.Parent.Name ~= "Cellar" then return end
 	
-	if Tool and table.find(AnimateToolNames, Tool.Name) and Globals.UseAnimation then
+	if Tool and table.find(AnimateToolNames, Tool.Name) and Globals.UseAnimation and Globals.UseAnimationBreak then
 		Globals.UseAnimationBreak:Stop()
 		Globals.UseAnimation:Stop()
-		Globals.UseAnimation:Play()
-		if Tool.Name == "Shears" then Tool:WaitForChild("Handle"):WaitForChild("sound_prompt"):Play() end
+		Globals.UseAnimationBreak:Play()
+		if Tool.Name == "Shears" then
+			local Handle = Tool:WaitForChild("Handle", 5)
+			local Snd = Handle and Handle:WaitForChild("sound_prompt", 5)
+			if Snd then pcall(function() Snd:Play() end) end
+		end
 	end
 end)
 
@@ -5442,7 +5488,11 @@ Connections.InfiniteItemsHandler = Services.ProximityPromptService.PromptTrigger
 		Globals.UseAnimation:Stop()
 		Globals.UseAnimationBreak:Stop()
 		Globals.UseAnimationBreak:Play()
-		if Tool.Name == "Shears" then Tool:WaitForChild("Handle"):WaitForChild("sound_prompt"):Play() end
+		if Tool.Name == "Shears" then
+			local H = Tool:WaitForChild("Handle", 5)
+			local S = H and H:WaitForChild("sound_prompt", 5)
+			if S then pcall(function() S:Play() end) end
+		end
 	end
 
 	local AnyTool = Character:FindFirstChildOfClass("Tool")
@@ -5455,7 +5505,11 @@ Connections.InfiniteItemsHandler = Services.ProximityPromptService.PromptTrigger
 			Functions.FirePrompt(RealPrompt)
 		end)
 		Character.ChildAdded:Once(function(NewTool)
-			if NewTool.Name == "Shears" then NewTool:WaitForChild("Handle"):WaitForChild("sound_promptend"):Play() end
+			if NewTool.Name == "Shears" then
+				local H = NewTool:WaitForChild("Handle", 5)
+				local S = H and H:WaitForChild("sound_promptend", 5)
+				if S then pcall(function() S:Play() end) end
+			end
 		end)
 		RemotesFolder.DropItem:FireServer(AnyTool)
 	else

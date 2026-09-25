@@ -1,6 +1,7 @@
 return function(Window)
     local LatestChangelog = {
         "14/9/2026",
+        "<font color='rgb(0, 255, 0)'>+ Added Forsaken support (Aimbot, Ability Spy, ESP)</font>",
         "<font color='rgb(0, 255, 0)'>+ Added Cheap Doors support (Auto Revive, Entity Alerts, ESP)</font>",
         "<font color='rgb(0, 255, 0)'>+ Added Primeval Earth support (Zone ESP + Claim Every Zone)</font>",
         "<font color='rgb(0, 255, 0)'>+ Added Trollge Rebirth support (NoCooldown, Auto Bags, ESP)</font>",
