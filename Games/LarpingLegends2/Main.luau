@@ -1,11 +1,10 @@
--- Abysall Hub | Forsaken (Forsaken Dev Team)
--- PlaceIds: 18687417158 (ana), 83645629621104 [N], 86454545238517 [VC],
---           94626476208514 [Randomizer]
--- Remotelar conch_networking + Modules.Network uzerinden gidiyor;
--- dogru ability'yi bulmak icin Ability Spy var.
+-- Abysall Hub | Larping Legends 2
+-- PlaceId: 7331291885
+-- Remote'lar ReplicatedStorage.rEvents.* altinda; cogu argsiz cagrilmiyor
+-- (InvokeServer(tablo, ...)). Dogru format icin Ability Spy kullanilir.
 
 local LoadStart = tick()
-Abysall.SavePath = "Forsaken"
+Abysall.SavePath = "LarpingLegends2"
 
 local Library = Abysall.Interface.Library
 local SaveManager = Abysall.Interface.SaveManager
@@ -50,8 +49,23 @@ local function TrackConn(Conn)
     return Conn
 end
 
+local function GetStat(Name)
+    local Ls = LocalPlayer:FindFirstChild("leaderstats")
+    local V = Ls and Ls:FindFirstChild(Name)
+    return V and V.Value or nil
+end
+
+local function StatLabel(Base)
+    local Parts = { Base }
+    local Hp = GetStat("Health") or GetStat("HP")
+    if Hp then table.insert(Parts, tostring(math.floor(Hp + 0.5))) end
+    local Cash = GetStat("Cash") or GetStat("Coins") or GetStat("Money")
+    if Cash then table.insert(Parts, tostring(math.floor(Cash + 0.5))) end
+    return table.concat(Parts, " [") .. "]"
+end
+
 local Window = Library:CreateWindow({
-    Title = "Abysall Hub | Forsaken",
+    Title = "Abysall Hub | Larping Legends 2",
     Footer = "dsc.gg/abysallhub",
     NotifySide = "Right",
     ShowCustomCursor = false,
@@ -66,13 +80,14 @@ Abysall.Interface.ApplyInfoTab(Window)
 
 local Tabs = {
     Combat = Window:AddTab("Combat", "swords"),
+    Farm = Window:AddTab("Farm", "wheat"),
     Visuals = Window:AddTab("Visuals", "eye"),
     Misc = Window:AddTab("Misc", "house"),
 }
 
 local Groupboxes = {}
 
--- // Combat: Aimbot (kamera kilidi) //
+-- // Combat: Aimbot //
 Groupboxes.Combat_Aim = Tabs.Combat:AddLeftGroupbox("Aimbot")
 
 Groupboxes.Combat_Aim:AddToggle("AimbotEnabled", {
@@ -92,9 +107,7 @@ Groupboxes.Combat_Aim:AddSlider("AimbotFOV", {
     Text = "FOV", Min = 10, Max = 1000, Default = 200, Rounding = 0, Compact = true,
 })
 Groupboxes.Combat_Aim:AddToggle("AimbotTeamCheck", { Text = "Team Check", Default = true })
-Groupboxes.Combat_Aim:AddToggle("AimbotWallCheck", {
-    Text = "Wall Check", Default = false, Tooltip = "Duvar arkasi hedefi gormezden gelir.",
-})
+Groupboxes.Combat_Aim:AddToggle("AimbotWallCheck", { Text = "Wall Check", Default = false })
 Groupboxes.Combat_Aim:AddSlider("AimSmooth", {
     Text = "Yumusatma", Min = 1, Max = 20, Default = 1, Rounding = 0, Compact = true,
 })
@@ -115,23 +128,21 @@ local function AimIsEnemy(Player)
     return true
 end
 
-local function AimIsVisible(TargetPart)
-    if not Toggles.AimbotWallCheck or not Toggles.AimbotWallCheck.Value then
-        return true
-    end
+local function AimIsVisible(Part)
+    if not Toggles.AimbotWallCheck or not Toggles.AimbotWallCheck.Value then return true end
     local Ok, Res = pcall(function()
         local RayParams = RaycastParams.new()
         RayParams.FilterType = Enum.RaycastFilterType.Exclude
         RayParams.FilterDescendantsInstances = { LocalPlayer.Character, Camera }
-        return Services.Workspace:Raycast(Camera.CFrame.Position, (TargetPart.Position - Camera.CFrame.Position), RayParams)
+        return Services.Workspace:Raycast(Camera.CFrame.Position, (Part.Position - Camera.CFrame.Position), RayParams)
     end)
     if not Ok or not Res then return true end
-    return Res.Instance:IsDescendantOf(TargetPart.Parent)
+    return Res.Instance:IsDescendantOf(Part.Parent)
 end
 
 local function AimGetMouse()
-    local Loc = Services.UserInputService:GetMouseLocation()
-    return Vector2.new(Loc.X, Loc.Y)
+    local L = Services.UserInputService:GetMouseLocation()
+    return Vector2.new(L.X, L.Y)
 end
 
 local function AimGetTarget()
@@ -142,13 +153,10 @@ local function AimGetTarget()
         if AimIsEnemy(Player) then
             local Part = Player.Character:FindFirstChild(PartName)
             if Part then
-                local Pos, OnScreen = Camera:WorldToViewportPoint(Part.Position)
-                if OnScreen then
-                    local Dist = (Vector2.new(Pos.X, Pos.Y) - Mouse).Magnitude
-                    if Dist < BestDist and AimIsVisible(Part) then
-                        BestDist = Dist
-                        Best = Part
-                    end
+                local Pos, On = Camera:WorldToViewportPoint(Part.Position)
+                if On then
+                    local D = (Vector2.new(Pos.X, Pos.Y) - Mouse).Magnitude
+                    if D < BestDist and AimIsVisible(Part) then BestDist = D Best = Part end
                 end
             end
         end
@@ -158,20 +166,20 @@ end
 
 TrackConn(Services.RunService.RenderStepped:Connect(function()
     pcall(function()
-        if not _G.FS_FOVCircle and typeof(Drawing) == "function" then
+        if not _G.SIM_FOVCircle and typeof(Drawing) == "function" then
             local C = Drawing.new("Circle")
             C.Thickness = 1
             C.NumSides = 64
             C.Filled = false
             C.Color = Color3.fromRGB(255, 255, 255)
-            _G.FS_FOVCircle = C
+            _G.SIM_FOVCircle = C
         end
-        if _G.FS_FOVCircle then
+        if _G.SIM_FOVCircle then
             local Show = Toggles.AimbotEnabled and Toggles.AimbotEnabled.Value and Toggles.AimFOVCircle and Toggles.AimFOVCircle.Value
-            _G.FS_FOVCircle.Visible = Show or false
+            _G.SIM_FOVCircle.Visible = Show or false
             if Show then
-                _G.FS_FOVCircle.Position = AimGetMouse()
-                _G.FS_FOVCircle.Radius = Options.AimbotFOV and Options.AimbotFOV.Value or 200
+                _G.SIM_FOVCircle.Position = AimGetMouse()
+                _G.SIM_FOVCircle.Radius = Options.AimbotFOV and Options.AimbotFOV.Value or 200
             end
         end
     end)
@@ -182,27 +190,23 @@ TrackConn(Services.RunService.RenderStepped:Connect(function()
         if HoldingKey or HoldingRMB then
             local Target = AimGetTarget()
             local FOV = (Options.AimbotFOV and Options.AimbotFOV.Value) or 200
-            if Toggles.AimSticky and Toggles.AimSticky.Value and _G.FS_Locked and _G.FS_Locked.Parent then
-                local LP = _G.FS_Locked
+            if Toggles.AimSticky and Toggles.AimSticky.Value and _G.SIM_Locked and _G.SIM_Locked.Parent then
+                local LP = _G.SIM_Locked
                 local Pos, On = Camera:WorldToViewportPoint(LP.Position)
                 if On and (Vector2.new(Pos.X, Pos.Y) - AimGetMouse()).Magnitude <= (FOV + 50) then
                     Target = LP
                 else
-                    _G.FS_Locked = nil
+                    _G.SIM_Locked = nil
                 end
             end
             if Target then
-                _G.FS_Locked = Target
+                _G.SIM_Locked = Target
                 local Goal = CFrame.new(Camera.CFrame.Position, Target.Position)
                 local Smooth = (Options.AimSmooth and Options.AimSmooth.Value) or 1
-                if Smooth <= 1 then
-                    Camera.CFrame = Goal
-                else
-                    Camera.CFrame = Camera.CFrame:Lerp(Goal, 1 / Smooth)
-                end
+                Camera.CFrame = (Smooth <= 1) and Goal or Camera.CFrame:Lerp(Goal, 1 / Smooth)
             end
         else
-            _G.FS_Locked = nil
+            _G.SIM_Locked = nil
         end
     end
 end))
@@ -223,18 +227,9 @@ Groupboxes.Combat_Aura:AddSlider("KillAuraDamage", {
 Groupboxes.Combat_Aura:AddSlider("KillAuraInterval", {
     Text = "Aralik (sn)", Min = 0.1, Max = 3, Default = 0.5, Rounding = 1, Compact = true,
 })
-Groupboxes.Combat_Aura:AddToggle("KillAuraAllTargets", {
-    Text = "Tum Menzil", Default = true,
-    Tooltip = "Kapaliyken sadece en yakin hedefe vurur.",
-})
+Groupboxes.Combat_Aura:AddToggle("KillAuraAllTargets", { Text = "Tum Menzil", Default = true })
 Groupboxes.Combat_Aura:AddToggle("KillAuraTeamCheck", { Text = "Team Check", Default = true })
-Groupboxes.Combat_Aura:AddToggle("KillAuraWallCheck", {
-    Text = "Wall Check", Default = false, Tooltip = "Duvar arkasinin hasarini engeller.",
-})
-Groupboxes.Combat_Aura:AddToggle("KillAuraToolOnly", {
-    Text = "Sadece Tool", Default = false,
-    Tooltip = "Sadece elinde tool varken calisir.",
-})
+Groupboxes.Combat_Aura:AddToggle("KillAuraWallCheck", { Text = "Wall Check", Default = false })
 
 local function AuraIsEnemy(Player)
     if Player == LocalPlayer then return false end
@@ -250,69 +245,150 @@ local function AuraIsEnemy(Player)
     return true
 end
 
-local function AuraVisible(TargetPart, Origin)
-    if not Toggles.KillAuraWallCheck or not Toggles.KillAuraWallCheck.Value then
-        return true
-    end
-    local Ok, Res = pcall(function()
-        local RayParams = RaycastParams.new()
-        RayParams.FilterType = Enum.RaycastFilterType.Exclude
-        RayParams.FilterDescendantsInstances = { LocalPlayer.Character, Camera }
-        return Services.Workspace:Raycast(Origin, (TargetPart.Position - Origin), RayParams)
-    end)
-    if not Ok or not Res then return true end
-    return Res.Instance:IsDescendantOf(TargetPart.Parent)
-end
-
 local AuraAccum = 0
-
 TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
     if not (Toggles.KillAura and Toggles.KillAura.Value) then return end
-    if not LocalPlayer.Character then return end
-    if Toggles.KillAuraToolOnly and Toggles.KillAuraToolOnly.Value then
-        if not LocalPlayer.Character:FindFirstChildOfClass("Tool") then return end
-    end
+    local Char = LocalPlayer.Character
+    local HRP = Char and Char:FindFirstChild("HumanoidRootPart")
+    if not HRP then return end
     AuraAccum = AuraAccum + Delta
     local Interval = (Options.KillAuraInterval and Options.KillAuraInterval.Value) or 0.5
     if AuraAccum < Interval then return end
     AuraAccum = 0
 
-    local HRP = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if not HRP then return end
     local Range = (Options.KillAuraRange and Options.KillAuraRange.Value) or 30
     local Damage = (Options.KillAuraDamage and Options.KillAuraDamage.Value) or 25
     local OnlyClosest = not (Toggles.KillAuraAllTargets and Toggles.KillAuraAllTargets.Value)
-    local Targets = {}
-    local Best, BestDist = nil, Range
+    local Targets, Best, BestDist = {}, nil, Range
 
     for _, Player in pairs(Services.Players:GetPlayers()) do
         if AuraIsEnemy(Player) then
             local Part = Player.Character:FindFirstChild("HumanoidRootPart")
             if Part then
-                local Dist = (Part.Position - HRP.Position).Magnitude
-                if Dist <= Range and AuraVisible(Part, HRP.Position) then
+                local D = (Part.Position - HRP.Position).Magnitude
+                if D <= Range then
                     if OnlyClosest then
-                        if Dist < BestDist then Best, BestDist = Player, Dist end
+                        if D < BestDist then Best, BestDist = Player, D end
                     else
-                        table.insert(Targets, { Player = Player, Part = Part })
+                        table.insert(Targets, Player)
                     end
                 end
             end
         end
     end
-    if OnlyClosest and Best then
-        table.insert(Targets, { Player = Best, Part = Best.Character:FindFirstChild("HumanoidRootPart") })
-    end
-    if #Targets == 0 then return end
-
-    for _, Entry in ipairs(Targets) do
-        local Hum = Entry.Player.Character and Entry.Player.Character:FindFirstChildOfClass("Humanoid")
+    if OnlyClosest and Best then table.insert(Targets, Best) end
+    for _, Player in ipairs(Targets) do
+        local Hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
         if Hum and Hum.Health > 0 then
             pcall(function() Hum:TakeDamage(Damage) end)
-            if Hum.Health > 0 then
-                Hum.Health = math.max(0, Hum.Health - Damage)
+            if Hum.Health > 0 then Hum.Health = math.max(0, Hum.Health - Damage) end
+        end
+    end
+end))
+
+-- // Farm: remote presetleri //
+Groupboxes.Farm_Remotes = Tabs.Farm:AddLeftGroupbox("Remotes")
+
+local function FindRemote(Name)
+    local Found = Services.ReplicatedStorage:FindFirstChild(Name, true)
+    if Found and (Found:IsA("RemoteEvent") or Found:IsA("RemoteFunction")) then
+        return Found
+    end
+    return nil
+end
+
+local InternalFire = false
+
+local function FireNamed(Name, ...)
+    local R = FindRemote(Name)
+    if not R then
+        Library:Notify("Bulunamadi: " .. Name)
+        return
+    end
+    local Args = { ... }
+    InternalFire = true
+    local Ok, Err = pcall(function()
+        if R:IsA("RemoteEvent") then R:FireServer(table.unpack(Args))
+        else R:InvokeServer(table.unpack(Args)) end
+    end)
+    InternalFire = false
+    if Ok then Library:Notify("Ateslendi: " .. Name)
+    else Library:Notify("Hata: " .. tostring(Err):sub(1, 80)) end
+end
+
+Groupboxes.Farm_Remotes:AddButton({
+    Text = "Dump Remotes (F9'a bas)",
+    DoubleClick = false,
+    Func = function()
+        for _, Obj in pairs(Services.ReplicatedStorage:GetDescendants()) do
+            if Obj:IsA("RemoteEvent") or Obj:IsA("RemoteFunction") then
+                print("[Abysall-Dump] " .. Obj.ClassName .. " | " .. Obj:GetFullName())
             end
         end
+        Library:Notify("Dump konsola yazildi (F9).")
+    end
+})
+Groupboxes.Farm_Remotes:AddButton({ Text = "Pet Equip", Func = function() FireNamed("equipPetEvent") end })
+Groupboxes.Farm_Remotes:AddButton({ Text = "Pet Sell", Func = function() FireNamed("sellPetEvent") end })
+Groupboxes.Farm_Remotes:AddButton({ Text = "Brawl", Func = function() FireNamed("brawlEvent") end })
+Groupboxes.Farm_Remotes:AddButton({ Text = "Purchase", Func = function() FireNamed("purchaseEvent") end })
+Groupboxes.Farm_Remotes:AddButton({ Text = "Machine Interact", Func = function() FireNamed("machineInteractRemote") end })
+Groupboxes.Farm_Remotes:AddButton({ Text = "Open Crystal", Func = function() FireNamed("openCrystalRemote") end })
+Groupboxes.Farm_Remotes:AddButton({ Text = "Check Chest", Func = function() FireNamed("checkChestRemote") end })
+Groupboxes.Farm_Remotes:AddButton({ Text = "Quests", Func = function() FireNamed("questsEvent") end })
+Groupboxes.Farm_Remotes:AddButton({ Text = "Show Pets", Func = function() FireNamed("showPetsEvent") end })
+Groupboxes.Farm_Remotes:AddLabel("Bunlar argsiz denemeler; dogru format icin Spy.", true)
+
+-- // Farm: auto interaction //
+Groupboxes.Farm_Auto = Tabs.Farm:AddRightGroupbox("Auto")
+
+Groupboxes.Farm_Auto:AddToggle("AutoMachine", {
+    Text = "Auto Machine Interact", Default = false,
+    Tooltip = "Periyodikla machineInteractRemote cagirir.",
+})
+Groupboxes.Farm_Auto:AddSlider("AutoMachineDelay", {
+    Text = "Aralik (sn)", Min = 0.5, Max = 30, Default = 3, Rounding = 1, Compact = true,
+})
+Groupboxes.Farm_Auto:AddToggle("AutoQuests", {
+    Text = "Auto Quests", Default = false,
+    Tooltip = "Periyodikla questsEvent cagirir.",
+})
+Groupboxes.Farm_Auto:AddSlider("AutoQuestsDelay", {
+    Text = "Aralik (sn)", Min = 1, Max = 60, Default = 10, Rounding = 0, Compact = true,
+})
+
+local AutoAcc = { Machine = 0, Quests = 0 }
+TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
+    if Toggles.AutoMachine and Toggles.AutoMachine.Value then
+        AutoAcc.Machine = AutoAcc.Machine + Delta
+        local D = (Options.AutoMachineDelay and Options.AutoMachineDelay.Value) or 3
+        if AutoAcc.Machine >= D then
+            AutoAcc.Machine = 0
+            local R = FindRemote("machineInteractRemote")
+            if R then
+                InternalFire = true
+                pcall(function() if R:IsA("RemoteEvent") then R:FireServer() else R:InvokeServer() end end)
+                InternalFire = false
+            end
+        end
+    else
+        AutoAcc.Machine = 0
+    end
+
+    if Toggles.AutoQuests and Toggles.AutoQuests.Value then
+        AutoAcc.Quests = AutoAcc.Quests + Delta
+        local D = (Options.AutoQuestsDelay and Options.AutoQuestsDelay.Value) or 10
+        if AutoAcc.Quests >= D then
+            AutoAcc.Quests = 0
+            local R = FindRemote("questsEvent")
+            if R then
+                InternalFire = true
+                pcall(function() if R:IsA("RemoteEvent") then R:FireServer() else R:InvokeServer() end end)
+                InternalFire = false
+            end
+        end
+    else
+        AutoAcc.Quests = 0
     end
 end))
 
@@ -321,34 +397,34 @@ local RefireLast
 Groupboxes.Combat_Spy = Tabs.Combat:AddRightGroupbox("Ability Spy")
 
 Groupboxes.Combat_Spy:AddToggle("LogAbilityArgs", {
-    Text = "Log Ability (F9)", Default = false,
-    Tooltip = "Ability/komut kullanirken ateslenen remote + argumanlari kaydeder.",
+    Text = "Log Remote (F9)", Default = false,
+    Tooltip = "Oyun remote'lari cagrildiginda ad + argumanlari F9'a basar.",
 })
 Groupboxes.Combat_Spy:AddButton({
-    Text = "Son Ability'yi Atesle",
-    DoubleClick = false,
+    Text = "Son Remote'u Tekrar", DoubleClick = false,
     Func = function() RefireLast() end,
 })
-Groupboxes.Combat_Spy:AddToggle("SpamLastAbility", { Text = "Spam Son Ability", Default = false })
+Groupboxes.Combat_Spy:AddToggle("SpamLastRemote", { Text = "Spam Son Remote", Default = false })
 Groupboxes.Combat_Spy:AddSlider("SpamInterval", {
-    Text = "Spam Araligi (sn)", Min = 0.2, Max = 5, Default = 1, Rounding = 1, Compact = true,
+    Text = "Spam Araligi (sn)", Min = 0.2, Max = 10, Default = 1, Rounding = 1, Compact = true,
+})
+Groupboxes.Combat_Spy:AddInput("FireRemoteName", {
+    Text = "Remote Adi", Default = "", Numeric = false, Finished = false,
+    Placeholder = "Orn: rebirthRemote",
 })
 Groupboxes.Combat_Spy:AddButton({
-    Text = "Freecam Config Oku (F9)",
-    DoubleClick = false,
+    Text = "Isimle Atesle (argsiz)", DoubleClick = false,
     Func = function()
-        local C = Services.ReplicatedStorage:FindFirstChild("FreecamPlus", true)
-        local Cfg = C and C:FindFirstChild("FREECAM_CONFIG", true)
-        if Cfg and Cfg:IsA("RemoteFunction") then
-            local Ok, Res = pcall(function() return Cfg:InvokeServer() end)
-            warn("[Abysall:Forsaken] FREECAM_CONFIG = " .. (Ok and tostring(Res) or tostring(Res)))
-        else
-            Library:Notify("FREECAM_CONFIG bulunamadi.")
+        local Name = Options.FireRemoteName and Options.FireRemoteName.Value or ""
+        if Name == "" then
+            Library:Notify("Once remote adi yaz.")
+            return
         end
-    end,
+        FireNamed(Name)
+    end
 })
 
-local LastRecorded, LastLogAt, InternalFire, HookInstalled = nil, {}, false, false
+local LastRecorded, LastLogAt, HookInstalled = nil, {}, false
 
 local function InstallSpy()
     if HookInstalled then return end
@@ -374,58 +450,33 @@ local function InstallSpy()
                     for I, A in ipairs(Args) do
                         print("  arg" .. I .. " " .. typeof(A) .. " = " .. tostring(A):sub(1, 160))
                     end
-                    Library:Notify("Kaydedildi: " .. Self.Name)
                 end
             end
         end
         return Old(Self, ...)
     end))
 end
-Toggles.LogAbilityArgs:OnChanged(function(Value)
-    if Value then
-        InstallSpy()
-        task.delay(0.5, function()
-            local Saved = LastRecorded
-            local T = Instance.new("RemoteEvent")
-            pcall(function() T:FireServer("abysall_hook_test") end)
-            T:Destroy()
-            task.wait(0.3)
-            if LastRecorded and LastRecorded.Args[1] == "abysall_hook_test" then
-                Library:Notify("Hook calisiyor, simdi ability kullan.")
-            else
-                Library:Notify("Hook CALISMIYOR (executor desteklemiyor).")
-            end
-            LastRecorded = Saved
-        end)
-    end
-end)
+Toggles.LogAbilityArgs:OnChanged(function(Value) if Value then InstallSpy() end end)
 
 RefireLast = function()
     if not LastRecorded or not LastRecorded.Remote then
-        Library:Notify("Once log acikken ability kullan.")
+        Library:Notify("Once log acikken bir islem yap.")
         return
     end
     local R, Args = LastRecorded.Remote, LastRecorded.Args
     InternalFire = true
     local Ok, Err = pcall(function()
-        if LastRecorded.IsInvoke then
-            local Ret = { R:InvokeServer(table.unpack(Args)) }
-            print("[Abysall-Spy] invoke dondu, " .. #Ret .. " deger")
-        else
-            R:FireServer(table.unpack(Args))
-        end
+        if LastRecorded.IsInvoke then R:InvokeServer(table.unpack(Args))
+        else R:FireServer(table.unpack(Args)) end
     end)
     InternalFire = false
-    if Ok then
-        Library:Notify("Ateslendi: " .. tostring(LastRecorded.Short))
-    else
-        Library:Notify("Hata: " .. tostring(Err):sub(1, 80))
-    end
+    if Ok then Library:Notify("Ateslendi: " .. tostring(LastRecorded.Short))
+    else Library:Notify("Hata: " .. tostring(Err):sub(1, 80)) end
 end
 
 local SpamAcc = 0
 TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
-    if Toggles.SpamLastAbility and Toggles.SpamLastAbility.Value and LastRecorded then
+    if Toggles.SpamLastRemote and Toggles.SpamLastRemote.Value and LastRecorded then
         SpamAcc = SpamAcc + Delta
         local Interval = (Options.SpamInterval and Options.SpamInterval.Value) or 1
         if SpamAcc >= Interval then
@@ -437,161 +488,6 @@ TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
     end
 end))
 
--- // Combat: Remotes //
-Groupboxes.Combat_Remotes = Tabs.Combat:AddRightGroupbox("Remotes")
-
-local function FindRemote(Name)
-    local Found = Services.ReplicatedStorage:FindFirstChild(Name, true)
-    if Found and (Found:IsA("RemoteEvent") or Found:IsA("RemoteFunction")) then
-        return Found
-    end
-    return nil
-end
-
-local function FireNamed(Name)
-    local R = FindRemote(Name)
-    if not R then
-        Library:Notify("Bulunamadi: " .. Name)
-        return
-    end
-    InternalFire = true
-    local Ok, Err = pcall(function()
-        if R:IsA("RemoteEvent") then R:FireServer() else R:InvokeServer() end
-    end)
-    InternalFire = false
-    if Ok then Library:Notify("Ateslendi: " .. Name)
-    else Library:Notify("Hata: " .. tostring(Err):sub(1, 80)) end
-end
-
-Groupboxes.Combat_Remotes:AddButton({
-    Text = "Dump Remotes (F9'a bas)",
-    DoubleClick = false,
-    Func = function()
-        for _, Obj in pairs(Services.ReplicatedStorage:GetDescendants()) do
-            if Obj:IsA("RemoteEvent") or Obj:IsA("RemoteFunction") then
-                print("[Abysall-Dump] " .. Obj.ClassName .. " | " .. Obj:GetFullName())
-            end
-        end
-        Library:Notify("Dump konsola yazildi (F9).")
-    end
-})
-Groupboxes.Combat_Remotes:AddInput("FireRemoteName", {
-    Text = "Remote Adi", Default = "", Numeric = false, Finished = false,
-    Placeholder = "Orn: invoke_server_command",
-})
-Groupboxes.Combat_Remotes:AddButton({
-    Text = "Isimle Atesle (argsiz)",
-    DoubleClick = false,
-    Func = function()
-        local Name = Options.FireRemoteName and Options.FireRemoteName.Value or ""
-        if Name == "" then
-            Library:Notify("Once remote adi yaz.")
-            return
-        end
-        FireNamed(Name)
-    end
-})
-Groupboxes.Combat_Remotes:AddDivider()
-Groupboxes.Combat_Remotes:AddButton({
-    Text = "Generator RF (argsiz dene)",
-    DoubleClick = false,
-    Func = function() FireNamed("RF") end,
-})
-Groupboxes.Combat_Remotes:AddButton({
-    Text = "Generator RE (argsiz dene)",
-    DoubleClick = false,
-    Func = function() FireNamed("RE") end,
-})
-Groupboxes.Combat_Remotes:AddLabel("Generator'lar argsiz calismayabilir, Spy kullan.", true)
-
--- // Visuals: Report (resmi rapor API'si, tek seferlik) //
-Groupboxes.Visuals_Report = Tabs.Visuals:AddRightGroupbox("Report")
-
-local ReportReasons = {
-    "Exploiting",
-    "Cheating",
-    "Inappropriate Content",
-    "Bullying / Harassment",
-    "Offensive Username",
-    "Other",
-}
-
-Groupboxes.Visuals_Report:AddLabel("Oyuncu sec, sebebi sec, Report'a bas.", true)
-Groupboxes.Visuals_Report:AddDropdown("ReportTarget", { Text = "Oyuncu", Values = {}, Default = 1 })
-Groupboxes.Visuals_Report:AddDropdown("ReportReason", { Text = "Sebep", Values = ReportReasons, Default = 1 })
-Groupboxes.Visuals_Report:AddInput("ReportComment", {
-    Text = "Aciklama", Default = "", Numeric = false, Finished = false,
-    Placeholder = "Istege bagli",
-})
-
-local function ReportTargetOptions()
-    local Names = {}
-    for _, P in ipairs(Services.Players:GetPlayers()) do
-        if P ~= LocalPlayer then table.insert(Names, P.Name) end
-    end
-    table.sort(Names)
-    if #Names == 0 then table.insert(Names, "(Oyuncu yok)") end
-    return Names
-end
-Groupboxes.Visuals_Report:AddButton({
-    Text = "Oyuncu Listesini Yenile",
-    DoubleClick = false,
-    Func = function()
-        local D = Options.ReportTarget
-        local Current = D and D.Value
-        local New = ReportTargetOptions()
-        pcall(function() D:SetValues(New) end)
-        if Current then
-            pcall(function()
-                for I, V in ipairs(New) do
-                    if V == Current then D:SetValue(V) return end
-                end
-            end)
-        end
-        Library:Notify(#New .. " oyuncu listelendi.")
-    end,
-})
-Groupboxes.Visuals_Report:AddButton({
-    Text = "Report Gonder",
-    DoubleClick = true,
-    Func = function()
-        local Name = Options.ReportTarget and Options.ReportTarget.Value
-        if not Name or Name == "(Oyuncu yok)" then
-            Library:Notify("Once oyuncu sec.")
-            return
-        end
-        local Target
-        for _, P in ipairs(Services.Players:GetPlayers()) do
-            if P.Name == Name then Target = P break end
-        end
-        if not Target then
-            Library:Notify("Oyuncu bulunamadi.")
-            return
-        end
-        local Reason = Options.ReportReason and Options.ReportReason.Value or "Other"
-        local Comment = Options.ReportComment and Options.ReportComment.Value or ""
-
-        local Players = Services.Players
-        local Ok, Err = pcall(function()
-            Players:ReportPlayer(Target, Reason, Comment)
-        end)
-        if not Ok then
-            -- Eski API deneri
-            Ok, Err = pcall(function() LocalPlayer:ReportPlayer(Target, Reason, Comment) end)
-        end
-        if Ok then
-            Library:Notify("Rapor gonderildi: " .. Name .. " (" .. Reason .. ")")
-        else
-            Library:Notify("Report API calismadi: " .. tostring(Err):sub(1, 80))
-        end
-    end,
-})
-Groupboxes.Visuals_Report:AddLabel("Cift tik: onay ister. Otomatik gonderim yok.", true)
-table.spawn(function()
-    task.wait(1)
-    pcall(function() Options.ReportTarget:SetValues(ReportTargetOptions()) end)
-end)
-
 -- // Visuals: Player ESP //
 Groupboxes.Visuals_ESP = Tabs.Visuals:AddLeftGroupbox("Player ESP")
 
@@ -600,9 +496,8 @@ Toggles.PlayerESP:AddColorPicker("PlayerESPColor", {
     Text = "ESP Rengi", Default = Color3.fromRGB(255, 0, 0), Transparency = 0,
 })
 Groupboxes.Visuals_ESP:AddToggle("ESPTeamCheck", { Text = "Team Check", Default = true })
-Groupboxes.Visuals_ESP:AddToggle("ESPShowHealth", { Text = "Show Health", Default = true })
-Groupboxes.Visuals_ESP:AddToggle("ESPShowStamina", {
-    Text = "Show Stamina", Default = true, Tooltip = "Stamina barini da gosterir.",
+Groupboxes.Visuals_ESP:AddToggle("ESPShowStats", {
+    Text = "Show Stats", Default = true, Tooltip = "Can / Cash bilgisini etikete ekler.",
 })
 
 local function ShouldESP(Player)
@@ -616,53 +511,38 @@ local function ShouldESP(Player)
     return true
 end
 
-local HealthConns = {}
-local function TrackHealth(Player, Char)
-    local Old = HealthConns[Char]
-    if Old then pcall(function() Old:Disconnect() end) HealthConns[Char] = nil end
-    local ShowHP = Toggles.ESPShowHealth and Toggles.ESPShowHealth.Value
-    local ShowStam = Toggles.ESPShowStamina and Toggles.ESPShowStamina.Value
-    if not (ShowHP or ShowStam) then
+local StatConns = {}
+local function TrackStats(Player, Char)
+    local Old = StatConns[Player]
+    if Old then pcall(function() Old:Disconnect() end) StatConns[Player] = nil end
+    if not (Toggles.ESPShowStats and Toggles.ESPShowStats.Value) then
         Abysall.ESPLibrary:UpdateObjectText(Char, Player.Name)
         return
     end
-    local Hum = Char:FindFirstChildOfClass("Humanoid")
-    if not Hum then return end
+    local Ls = Player:FindFirstChild("leaderstats")
+    if not Ls then
+        Abysall.ESPLibrary:UpdateObjectText(Char, Player.Name)
+        return
+    end
     local function Refresh()
-        if not Hum.Parent then return end
-        local Parts = {}
-        if ShowHP then table.insert(Parts, tostring(math.floor(Hum.Health + 0.5))) end
-        if ShowStam then
-            local Leaderstats = Player:FindFirstChild("leaderstats")
-            local Stamina = Leaderstats and Leaderstats:FindFirstChild("Stamina")
-            if Stamina then table.insert(Parts, tostring(math.floor(Stamina.Value + 0.5))) end
-        end
-        local Suffix = #Parts > 0 and (" [" .. table.concat(Parts, " | ") .. "]") or ""
-        Abysall.ESPLibrary:UpdateObjectText(Char, Player.Name .. Suffix)
+        Abysall.ESPLibrary:UpdateObjectText(Char, StatLabel(Player.DisplayName or Player.Name))
     end
     Refresh()
-    local Conn = Hum.HealthChanged:Connect(Refresh)
-    HealthConns[Char] = Conn
-    TrackConn(Conn)
-    local Leaderstats = Player:FindFirstChild("leaderstats")
-    local Stamina = Leaderstats and Leaderstats:FindFirstChild("Stamina")
-    if Stamina then
-        local SConn = Stamina:GetPropertyChangedSignal("Value"):Connect(Refresh)
-        HealthConns[Char .. "_stam"] = SConn
-        TrackConn(SConn)
+    local Conns = {}
+    for _, Stat in ipairs(Ls:GetChildren()) do
+        if Stat:IsA("IntValue") or Stat:IsA("NumberValue") or Stat:IsA("StringValue") then
+            table.insert(Conns, Stat:GetPropertyChangedSignal("Value"):Connect(Refresh))
+        end
     end
-    Char.Destroying:Once(function()
-        local C = HealthConns[Char]
-        if C then pcall(function() C:Disconnect() end) HealthConns[Char] = nil end
-        local S = HealthConns[Char .. "_stam"]
-        if S then pcall(function() S:Disconnect() end) HealthConns[Char .. "_stam"] = nil end
-    end)
+    StatConns[Player] = function()
+        for _, C in ipairs(Conns) do pcall(function() C:Disconnect() end) end
+    end
 end
 
 local function AddPlayerESP(Data)
     pcall(function()
         Abysall.ESPLibrary:AddESP(Data)
-        if Data.Player and Data.Object then TrackHealth(Data.Player, Data.Object) end
+        if Data.Player and Data.Object then TrackStats(Data.Player, Data.Object) end
         Data.Object.Destroying:Once(function()
             if Abysall then Abysall.ESPLibrary:RemoveESP(Data.Object) end
         end)
@@ -682,22 +562,13 @@ Toggles.PlayerESP:OnChanged(function(Value)
 end)
 Options.PlayerESPColor:OnChanged(function(Value)
     for _, Player in pairs(Services.Players:GetPlayers()) do
-        if Player.Character then
-            Abysall.ESPLibrary:UpdateObjectColor(Player.Character, Value)
-        end
+        if Player.Character then Abysall.ESPLibrary:UpdateObjectColor(Player.Character, Value) end
     end
 end)
-Toggles.ESPShowHealth:OnChanged(function()
+Toggles.ESPShowStats:OnChanged(function()
     for _, Player in pairs(Services.Players:GetPlayers()) do
         if Player ~= LocalPlayer and Player.Character and Toggles.PlayerESP.Value and ShouldESP(Player) then
-            TrackHealth(Player, Player.Character)
-        end
-    end
-end)
-Toggles.ESPShowStamina:OnChanged(function()
-    for _, Player in pairs(Services.Players:GetPlayers()) do
-        if Player ~= LocalPlayer and Player.Character and Toggles.PlayerESP.Value and ShouldESP(Player) then
-            TrackHealth(Player, Player.Character)
+            TrackStats(Player, Player.Character)
         end
     end
 end)
@@ -733,22 +604,18 @@ Abysall.ESPLibrary:SetShowDistance(true)
 -- // Misc: hareket //
 Groupboxes.Misc_Move = Tabs.Misc:AddLeftGroupbox("Movement")
 Groupboxes.Misc_Move:AddSlider("WalkSpeedVal", {
-    Text = "WalkSpeed", Min = 16, Max = 200, Default = 16, Rounding = 0, Compact = true,
+    Text = "WalkSpeed", Min = 16, Max = 300, Default = 16, Rounding = 0, Compact = true,
 })
 Groupboxes.Misc_Move:AddToggle("WalkSpeedOn", { Text = "Speed", Default = false })
 Groupboxes.Misc_Move:AddToggle("InfiniteJump", { Text = "Infinite Jump", Default = false })
 Groupboxes.Misc_Move:AddDivider()
 Groupboxes.Misc_Move:AddToggle("Fly", { Text = "Fly", Default = false })
-Toggles.Fly:AddKeyPicker("FlyKey", {
-    Text = "Fly", Default = "F", Mode = "Toggle", SyncToggleState = true,
-})
+Toggles.Fly:AddKeyPicker("FlyKey", { Text = "Fly", Default = "F", Mode = "Toggle", SyncToggleState = true })
 Groupboxes.Misc_Move:AddSlider("FlySpeed", {
-    Text = "Fly Speed", Min = 0, Max = 200, Default = 50, Rounding = 0, Compact = true,
+    Text = "Fly Speed", Min = 0, Max = 300, Default = 60, Rounding = 0, Compact = true,
 })
 Groupboxes.Misc_Move:AddToggle("Noclip", { Text = "Noclip", Default = false })
-Toggles.Noclip:AddKeyPicker("NoclipKey", {
-    Text = "Noclip", Default = "N", Mode = "Toggle", SyncToggleState = true,
-})
+Toggles.Noclip:AddKeyPicker("NoclipKey", { Text = "Noclip", Default = "N", Mode = "Toggle", SyncToggleState = true })
 
 TrackConn(Services.RunService.RenderStepped:Connect(function()
     if Toggles.WalkSpeedOn and Toggles.WalkSpeedOn.Value and LocalPlayer.Character then
@@ -756,7 +623,6 @@ TrackConn(Services.RunService.RenderStepped:Connect(function()
         if Hum then Hum.WalkSpeed = Options.WalkSpeedVal.Value end
     end
 end))
-
 TrackConn(Services.UserInputService.JumpRequest:Connect(function()
     if Toggles.InfiniteJump and Toggles.InfiniteJump.Value and LocalPlayer.Character then
         local Hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
@@ -777,9 +643,7 @@ end
 local function FlyDir()
     local Char = LocalPlayer.Character
     local Hum = Char and Char:FindFirstChildOfClass("Humanoid")
-    if not Hum or Hum.MoveDirection == Vector3.zero or not Camera then
-        return Vector3.zero
-    end
+    if not Hum or Hum.MoveDirection == Vector3.zero or not Camera then return Vector3.zero end
     local LookFlat = Vector3.new(Camera.CFrame.LookVector.X, 0, Camera.CFrame.LookVector.Z)
     if LookFlat.Magnitude < 0.01 then LookFlat = Vector3.new(0, 0, -1) end
     local FlatFrame = CFrame.new(Camera.CFrame.Position, Camera.CFrame.Position + LookFlat)
@@ -792,7 +656,7 @@ TrackConn(Services.RunService.RenderStepped:Connect(function()
     local R = FlyRoot()
     if Toggles.Fly and Toggles.Fly.Value and R then
         FlyBody.Parent = R
-        FlyBody.Velocity = FlyDir() * ((Options.FlySpeed and Options.FlySpeed.Value) or 50)
+        FlyBody.Velocity = FlyDir() * ((Options.FlySpeed and Options.FlySpeed.Value) or 60)
     elseif FlyBody.Parent then
         FlyBody.Velocity = Vector3.zero
         FlyBody.Parent = nil
@@ -802,9 +666,7 @@ end))
 TrackConn(Services.RunService.Stepped:Connect(function()
     if Toggles.Noclip and Toggles.Noclip.Value and LocalPlayer.Character then
         for _, P in ipairs(LocalPlayer.Character:GetDescendants()) do
-            if P:IsA("BasePart") and P.CanCollide then
-                P.CanCollide = false
-            end
+            if P:IsA("BasePart") and P.CanCollide then P.CanCollide = false end
         end
     end
 end))
@@ -812,6 +674,36 @@ end))
 Groupboxes.Misc_World = Tabs.Misc:AddRightGroupbox("World")
 Groupboxes.Misc_World:AddToggle("Fullbright", { Text = "Fullbright", Default = false })
 Groupboxes.Misc_World:AddToggle("AntiAFK", { Text = "Anti AFK", Default = false })
+Groupboxes.Misc_World:AddToggle("NoWeather", {
+    Text = "Hava Efektini Kapat", Default = false,
+    Tooltip = "MeteorStrike / LightningBolt gibi efektleri engeller.",
+})
+
+local NoWeatherConn = nil
+Toggles.NoWeather:OnChanged(function(Value)
+    if NoWeatherConn then
+        pcall(function() NoWeatherConn:Disconnect() end)
+        NoWeatherConn = nil
+    end
+    if Value then
+        local function Block()
+            for _, N in ipairs({ "MeteorStrike", "LightningBolt", "WeatherThing", "UpdateWeather" }) do
+                local R = FindRemote(N)
+                if R then
+                    pcall(function() R.Parent = nil end)
+                end
+            end
+        end
+        Block()
+        NoWeatherConn = Services.ReplicatedStorage.DescendantAdded:Connect(function(Obj)
+            if Obj:IsA("RemoteEvent") or Obj:IsA("RemoteFunction") then
+                if Obj.Name == "MeteorStrike" or Obj.Name == "LightningBolt" or Obj.Name == "UpdateWeather" then
+                    pcall(function() Obj.Parent = nil end)
+                end
+            end
+        end)
+    end
+end)
 
 local OldLight = {}
 local function ApplyBright(On)
@@ -854,10 +746,7 @@ Toggles.AntiAFK:OnChanged(function(Value)
         local Ok, VU = pcall(function() return game:GetService("VirtualUser") end)
         if Ok and VU then
             AFKConn = LocalPlayer.Idled:Connect(function()
-                pcall(function()
-                    VU:CaptureController()
-                    VU:ClickButton2(Vector2.new())
-                end)
+                pcall(function() VU:CaptureController() VU:ClickButton2(Vector2.new()) end)
             end)
             TrackConn(AFKConn)
         else
@@ -884,17 +773,15 @@ Library:OnUnload(function()
         if Hum then Hum.WalkSpeed = 16 end
         if Char then
             for _, P in ipairs(Char:GetDescendants()) do
-                if P:IsA("BasePart") and P.Name ~= "HumanoidRootPart" then
-                    P.CanCollide = true
-                end
+                if P:IsA("BasePart") and P.Name ~= "HumanoidRootPart" then P.CanCollide = true end
             end
         end
     end)
     pcall(ApplyBright, false)
     pcall(function()
-        if _G.FS_FOVCircle then _G.FS_FOVCircle:Remove() end
-        _G.FS_FOVCircle = nil
-        _G.FS_Locked = nil
+        if _G.SIM_FOVCircle then _G.SIM_FOVCircle:Remove() end
+        _G.SIM_FOVCircle = nil
+        _G.SIM_Locked = nil
     end)
     if AFKConn then pcall(function() AFKConn:Disconnect() end) AFKConn = nil end
     if type(Abysall.AddonDisablers) == "table" then
@@ -909,5 +796,5 @@ Library:OnUnload(function()
 end)
 
 Abysall.Interface.ApplySettingsTab(Window)
-Abysall.Interface.ApplyAddons(Window, "forsaken")
-Library:Notify("Forsaken destegi yuklendi (" .. math.floor((tick() - LoadStart) * 100) / 100 .. "s).")
+Abysall.Interface.ApplyAddons(Window, "larpinglegends2")
+Library:Notify("Larping Legends 2 destegi yuklendi (" .. math.floor((tick() - LoadStart) * 100) / 100 .. "s).")
