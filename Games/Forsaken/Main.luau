@@ -587,7 +587,7 @@ Groupboxes.Visuals_Report:AddButton({
     end,
 })
 Groupboxes.Visuals_Report:AddLabel("Cift tik: onay ister. Otomatik gonderim yok.", true)
-table.spawn(function()
+task.spawn(function()
     task.wait(1)
     pcall(function() Options.ReportTarget:SetValues(ReportTargetOptions()) end)
 end)
