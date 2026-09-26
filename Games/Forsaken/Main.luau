@@ -555,35 +555,10 @@ Groupboxes.Visuals_Report:AddButton({
     Text = "Report Gonder",
     DoubleClick = true,
     Func = function()
-        local Name = Options.ReportTarget and Options.ReportTarget.Value
-        if not Name or Name == "(Oyuncu yok)" then
-            Library:Notify("Once oyuncu sec.")
-            return
-        end
-        local Target
-        for _, P in ipairs(Services.Players:GetPlayers()) do
-            if P.Name == Name then Target = P break end
-        end
-        if not Target then
-            Library:Notify("Oyuncu bulunamadi.")
-            return
-        end
-        local Reason = Options.ReportReason and Options.ReportReason.Value or "Other"
-        local Comment = Options.ReportComment and Options.ReportComment.Value or ""
-
-        local Players = Services.Players
-        local Ok, Err = pcall(function()
-            Players:ReportPlayer(Target, Reason, Comment)
-        end)
-        if not Ok then
-            -- Eski API deneri
-            Ok, Err = pcall(function() LocalPlayer:ReportPlayer(Target, Reason, Comment) end)
-        end
-        if Ok then
-            Library:Notify("Rapor gonderildi: " .. Name .. " (" .. Reason .. ")")
-        else
-            Library:Notify("Report API calismadi: " .. tostring(Err):sub(1, 80))
-        end
+        -- Roblox script'lerden rapor API'si sunmuyor: hem Players hem Player
+        -- uzerinde ReportPlayer yok ("not a valid member"). Rapor sadece
+        -- resmi menuden gidiyor.
+        Library:Notify("Script ile rapor yok: ESC -> Report menusunden gonder.")
     end,
 })
 Groupboxes.Visuals_Report:AddLabel("Cift tik: onay ister. Otomatik gonderim yok.", true)
