@@ -579,6 +579,21 @@ Groupboxes.Visuals_ESP:AddToggle("ESPShowHealth", { Text = "Show Health", Defaul
 Groupboxes.Visuals_ESP:AddToggle("ESPShowStamina", {
     Text = "Show Stamina", Default = true, Tooltip = "Stamina barini da gosterir.",
 })
+Groupboxes.Visuals_ESP:AddToggle("RoleColors", {
+    Text = "Role Colors", Default = true, Tooltip = "Killer kirmizi, survivor yesil (cana gore).",
+})
+
+-- Killer'lar 1000+ HP, survivor'lar ~100 HP
+local function RoleColor(Char, Fallback)
+    if Toggles.RoleColors and Toggles.RoleColors.Value then
+        local Hum = Char and Char:FindFirstChildOfClass("Humanoid")
+        if Hum and Hum.MaxHealth >= 500 then
+            return Color3.fromRGB(255, 0, 0)
+        end
+        return Color3.fromRGB(0, 255, 0)
+    end
+    return Fallback
+end
 
 local function ShouldESP(Player)
     if Player == LocalPlayer then return false end
@@ -648,7 +663,7 @@ Toggles.PlayerESP:OnChanged(function(Value)
     for _, Player in pairs(Services.Players:GetPlayers()) do
         if Player.Character then
             if Value and ShouldESP(Player) then
-                AddPlayerESP({ Object = Player.Character, Text = Player.Name, Color = Options.PlayerESPColor.Value, Player = Player })
+                AddPlayerESP({ Object = Player.Character, Text = Player.Name, Color = RoleColor(Player.Character, Options.PlayerESPColor.Value), Player = Player })
             else
                 Abysall.ESPLibrary:RemoveESP(Player.Character)
             end
@@ -658,7 +673,14 @@ end)
 Options.PlayerESPColor:OnChanged(function(Value)
     for _, Player in pairs(Services.Players:GetPlayers()) do
         if Player.Character then
-            Abysall.ESPLibrary:UpdateObjectColor(Player.Character, Value)
+            Abysall.ESPLibrary:UpdateObjectColor(Player.Character, RoleColor(Player.Character, Value))
+        end
+    end
+end)
+Toggles.RoleColors:OnChanged(function()
+    for _, Player in pairs(Services.Players:GetPlayers()) do
+        if Player ~= LocalPlayer and Player.Character and Toggles.PlayerESP.Value and ShouldESP(Player) then
+            Abysall.ESPLibrary:UpdateObjectColor(Player.Character, RoleColor(Player.Character, Options.PlayerESPColor.Value))
         end
     end
 end)
@@ -681,7 +703,7 @@ TrackConn(Services.Players.PlayerAdded:Connect(function(Player)
     Player.CharacterAdded:Connect(function(Char)
         task.wait(1)
         if Toggles.PlayerESP.Value and ShouldESP(Player) then
-            AddPlayerESP({ Object = Char, Text = Player.Name, Color = Options.PlayerESPColor.Value, Player = Player })
+            AddPlayerESP({ Object = Char, Text = Player.Name, Color = RoleColor(Char, Options.PlayerESPColor.Value), Player = Player })
         end
     end)
 end))
@@ -690,7 +712,7 @@ for _, Player in pairs(Services.Players:GetPlayers()) do
         Player.CharacterAdded:Connect(function(Char)
             task.wait(1)
             if Toggles.PlayerESP.Value and ShouldESP(Player) then
-                AddPlayerESP({ Object = Char, Text = Player.Name, Color = Options.PlayerESPColor.Value, Player = Player })
+                AddPlayerESP({ Object = Char, Text = Player.Name, Color = RoleColor(Char, Options.PlayerESPColor.Value), Player = Player })
             end
         end)
     end
