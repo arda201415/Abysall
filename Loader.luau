@@ -1,5 +1,7 @@
 if Abysall then
-    return 
+    -- Onceki calistirma yarida kesilmis olabilir; sessizce donmek yerine temizle
+    warn("[Abysall] onceki oturum bulundu, temizleniyor")
+    getgenv().Abysall = nil
 end
 getgenv().Abysall = {
     Legit = true
@@ -89,8 +91,15 @@ if Abysall.Environment.writefile and Abysall.Environment.readfile then
     Abysall.Environment.writefile("Abysall/UserData.json", Services.HttpService:JSONEncode(Decoded))
 end
 
-Abysall.Interface = loadstring(game:HttpGet(BaseUrl .. "Components/Interface.luau"))()
-Abysall.Analytics = loadstring(game:HttpGet(BaseUrl .. "Components/Analytics.luau"))()
+local OkInterface, ErrInterface = pcall(function()
+    Abysall.Interface = loadstring(game:HttpGet(BaseUrl .. "Components/Interface.luau"))()
+    Abysall.Analytics = loadstring(game:HttpGet(BaseUrl .. "Components/Analytics.luau"))()
+end)
+if not OkInterface then
+    warn("[Abysall] arayuz yukleme hatasi: " .. tostring(ErrInterface))
+    getgenv().Abysall = nil
+    return
+end
 
 local CurrentGame = GameList[game.GameId] or PlaceList[game.PlaceId]
 print("[Abysall] place " .. tostring(game.PlaceId) .. " -> " .. tostring(CurrentGame or "Universal"))
