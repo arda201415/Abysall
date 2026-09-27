@@ -1,6 +1,6 @@
 return function(Window)
     local LatestChangelog = {
-        "14/9/2026",
+        "27/9/2026",
         "<font color='rgb(0, 255, 0)'>+ Added Build the Pyramid support (Auto Block, Bench, Gifts, ESP)</font>
     }
 
