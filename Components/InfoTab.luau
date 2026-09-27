@@ -1,16 +1,7 @@
 return function(Window)
     local LatestChangelog = {
         "14/9/2026",
-        "<font color='rgb(0, 255, 0)'>+ Added Larping Legends 2 support (Aimbot, Kill Aura, Auto Farm, ESP)</font>",
-        "<font color='rgb(0, 255, 0)'>+ Added Forsaken support (Aimbot, Ability Spy, ESP)</font>",
-        "<font color='rgb(0, 255, 0)'>+ Added Cheap Doors support (Auto Revive, Entity Alerts, ESP)</font>",
-        "<font color='rgb(0, 255, 0)'>+ Added Primeval Earth support (Zone ESP + Claim Every Zone)</font>",
-        "<font color='rgb(0, 255, 0)'>+ Added Trollge Rebirth support (NoCooldown, Auto Bags, ESP)</font>",
-        "<font color='rgb(0, 255, 0)'>+ Added Addons tab (Abysall/addons klasoru, mspaint-tarzi API)</font>",
-        "<font color='rgb(0, 255, 0)'>+ Added Drone Stampede Countdown + Early Warning (The Archives)</font>",
-		"<font color='rgb(0, 255, 0)'>+ Added Bypass Drone (WalkedInto)</font>",
-		"<font color='rgb(0, 255, 0)'>+ Added Freeze on Ransom</font>",
-		"<font color='rgb(0, 255, 0)'>+ Added Drone at Door Notifier</font>",
+        "<font color='rgb(0, 255, 0)'>+ Added Build the Pyramid support (Auto Block, Bench, Gifts, ESP)</font>
     }
 
     local function CloneReference(Object)

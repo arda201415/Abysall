@@ -80,7 +80,7 @@ Groupboxes.Combat_Aim:AddToggle("AimbotEnabled", {
     Tooltip = "Tus basiliyken kamerayi fareye en yakin dusmana kilitler.",
 })
 Toggles.AimbotEnabled:AddKeyPicker("AimbotKey", {
-    Text = "Aimbot Key", Default = "Q", Mode = "Hold", SyncToggleState = false,
+    Text = "Aimbot Key", Default = "E", Mode = "Hold", SyncToggleState = false,
 })
 Groupboxes.Combat_Aim:AddToggle("AimbotUseRMB", {
     Text = "Sag Click ile de calissin", Default = true,
@@ -206,6 +206,63 @@ TrackConn(Services.RunService.RenderStepped:Connect(function()
         end
     end
 end))
+
+-- // Combat: Killer arkasi //
+local function GoBehindKiller()
+    task.spawn(function()
+        local MyHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not MyHRP then
+            Library:Notify("Karakter yok.")
+            return
+        end
+        local KillerHRP = nil
+        for _, P in ipairs(Services.Players:GetPlayers()) do
+            if P ~= LocalPlayer and P.Character then
+                local Hum = P.Character:FindFirstChildOfClass("Humanoid")
+                local HRP = P.Character:FindFirstChild("HumanoidRootPart")
+                if Hum and HRP and Hum.Health > 0 and Hum.MaxHealth >= 500 then
+                    KillerHRP = HRP
+                    break
+                end
+            end
+        end
+        if not KillerHRP then
+            Library:Notify("Killer bulunamadi.")
+            return
+        end
+        local Saved = MyHRP.CFrame
+        pcall(function()
+            local Behind = KillerHRP.CFrame * CFrame.new(0, 0, 4)
+            MyHRP.CFrame = CFrame.lookAt(Behind.Position, KillerHRP.Position)
+        end)
+        task.wait(1)
+        pcall(function()
+            if MyHRP.Parent then MyHRP.CFrame = Saved end
+        end)
+        Library:Notify("Geri donuldu.")
+    end)
+end
+
+Groupboxes.Combat_Killer = Tabs.Combat:AddLeftGroupbox("Killer")
+
+Groupboxes.Combat_Killer:AddToggle("KillerBack", {
+    Text = "Killer Arkası (Tuş)", Default = false,
+    Tooltip = "Tuşa basınca killer arkasına gider, 1sn sonra döner.",
+})
+Toggles.KillerBack:AddKeyPicker("KillerBackKey", {
+    Text = "Killer Arkası", Default = "Q", Mode = "Toggle", SyncToggleState = true,
+})
+Toggles.KillerBack:OnChanged(function(Value)
+    if not Value then return end
+    GoBehindKiller()
+    pcall(function() Toggles.KillerBack:SetValue(false) end)
+end)
+Groupboxes.Combat_Killer:AddButton({
+    Text = "Killer Arkasına Git (1sn)",
+    DoubleClick = false,
+    Func = function() GoBehindKiller() end,
+})
+Groupboxes.Combat_Killer:AddLabel("Tuşla veya butonla; 1sn sonra döner.", true)
 
 -- // Combat: Kill Aura //
 Groupboxes.Combat_Aura = Tabs.Combat:AddRightGroupbox("Kill Aura")

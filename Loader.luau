@@ -23,6 +23,7 @@ local PlaceList = {
   [86454545238517] = "Forsaken", -- [VC] Forsaken
   [94626476208514] = "Forsaken", -- [Randomizer] Forsaken
   [7331291885] = "LarpingLegends2", -- Larping Legends 2
+  [123720558354386] = "Pyramid", -- Build the Pyramid!
 }
 
 local BaseUrl = "https://raw.githubusercontent.com/arda201415/Abysall/refs/heads/main/"
