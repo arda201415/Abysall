@@ -718,6 +718,77 @@ for _, Player in pairs(Services.Players:GetPlayers()) do
     end
 end
 
+-- // Visuals: Item ESP (Medkit, BloxyCola...) //
+Groupboxes.Visuals_Item = Tabs.Visuals:AddLeftGroupbox("Item ESP")
+
+Groupboxes.Visuals_Item:AddToggle("ItemESP", {
+    Text = "Item ESP", Default = false, Tooltip = "Haritadaki esyalari isaretler.",
+})
+Toggles.ItemESP:AddColorPicker("ItemESPColor", {
+    Text = "Esya Rengi", Default = Color3.fromRGB(0, 255, 255), Transparency = 0,
+})
+
+local ItemNames = { Medkit = true, BloxyCola = true }
+local ItemESPObjects = {}
+
+local function IsPlayerItem(Obj)
+    for _, P in ipairs(Services.Players:GetPlayers()) do
+        if P.Character and Obj:IsDescendantOf(P.Character) then return true end
+        local BP = P:FindFirstChild("Backpack")
+        if BP and Obj:IsDescendantOf(BP) then return true end
+    end
+    return false
+end
+
+local function HookItem(Obj)
+    local Label = nil
+    if Obj:IsA("Tool") and not IsPlayerItem(Obj) then
+        Label = Obj.Name
+    elseif Obj:IsA("Model") and ItemNames[Obj.Name] and not IsPlayerItem(Obj) then
+        Label = Obj.Name
+    end
+    if not Label then return end
+    if Toggles.ItemESP and Toggles.ItemESP.Value then
+        local Target = Obj
+        pcall(function()
+            Abysall.ESPLibrary:AddESP({ Object = Target, Text = Label, Color = Options.ItemESPColor.Value })
+            Target.Destroying:Once(function()
+                if Abysall then Abysall.ESPLibrary:RemoveESP(Target) end
+            end)
+        end)
+        table.insert(ItemESPObjects, Target)
+    end
+end
+
+local function ScanItems()
+    for _, D in ipairs(Services.Workspace:GetDescendants()) do
+        if D:IsA("Tool") or D:IsA("Model") then HookItem(D) end
+    end
+end
+
+local function ClearItems()
+    for _, O in ipairs(ItemESPObjects) do
+        pcall(function() Abysall.ESPLibrary:RemoveESP(O) end)
+    end
+    ItemESPObjects = {}
+end
+
+Toggles.ItemESP:OnChanged(function(Value)
+    if Value then
+        ScanItems()
+    else
+        ClearItems()
+    end
+end)
+Options.ItemESPColor:OnChanged(function(Value)
+    for _, O in ipairs(ItemESPObjects) do
+        Abysall.ESPLibrary:UpdateObjectColor(O, Value)
+    end
+end)
+TrackConn(Services.Workspace.DescendantAdded:Connect(function(Obj)
+    if Obj:IsA("Tool") or Obj:IsA("Model") then HookItem(Obj) end
+end))
+
 Groupboxes.Visuals_Settings = Tabs.Visuals:AddRightGroupbox("ESP Settings")
 Groupboxes.Visuals_Settings:AddToggle("ESPShowDistance", { Text = "Show Distance", Default = true })
 Groupboxes.Visuals_Settings:AddToggle("ESPTracers", { Text = "Tracers", Default = false })
