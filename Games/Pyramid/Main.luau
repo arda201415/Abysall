@@ -6,6 +6,10 @@
 -- RF'ler argsiz denenir; dogru format icin Ability Spy kullanilir.
 
 local LoadStart = tick()
+if not Abysall or not Abysall.Interface then
+    warn("[Abysall] Pyramid direkt calistirildi: once ana Loader (README loadstring) calistir.")
+    return
+end
 Abysall.SavePath = "Pyramid"
 
 local Library = Abysall.Interface.Library
