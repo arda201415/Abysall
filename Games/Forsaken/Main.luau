@@ -950,6 +950,179 @@ Toggles.Noclip:AddKeyPicker("NoclipKey", {
     Text = "Noclip", Default = "N", Mode = "Toggle", SyncToggleState = true,
 })
 
+-- // Misc: Stamina //
+-- Forsalede stamina ReplicatedStorage.Systems.Character.Game.Sprinting modulunden yonetiliyor
+Groupboxes.Misc_Stamina = Tabs.Misc:AddLeftGroupbox("Stamina")
+Groupboxes.Misc_Stamina:AddToggle("InfStamina", {
+    Text = "Infinite Stamina", Default = false,
+    Tooltip = "Sprint staminasini tuketilmez yapar.",
+})
+Groupboxes.Misc_Stamina:AddSlider("StaminaMax", {
+    Text = "Max Stamina", Min = 50, Max = 5000, Default = 500, Rounding = 1, Compact = true,
+})
+Groupboxes.Misc_Stamina:AddSlider("StaminaGain", {
+    Text = "Regen", Min = 0, Max = 500, Default = 100, Rounding = 1, Compact = true,
+})
+Groupboxes.Misc_Stamina:AddToggle("StaminaNoLoss", {
+    Text = "Tuketim Kapat", Default = true, Tooltip = "Sprint staminasi hic dusunmesin.",
+})
+Groupboxes.Misc_Stamina:AddToggle("StaminaSprintSpeed", {
+    Text = "Sprint Hizi", Default = false, Tooltip = "Sprint hizini da yukseltir.",
+})
+Groupboxes.Misc_Stamina:AddSlider("StaminaSprintSpeedVal", {
+    Text = "Sprint Speed", Min = 16, Max = 300, Default = 80, Rounding = 0, Compact = true,
+})
+
+local SprintModule = nil
+local StaminaSaved = nil
+
+local function FindSprintModule()
+    if SprintModule then return SprintModule end
+    local Rep = Services.ReplicatedStorage
+    local Direct = Rep:FindFirstChild("Systems")
+        and Rep.Systems:FindFirstChild("Character")
+        and Rep.Systems.Character:FindFirstChild("Game")
+        and Rep.Systems.Character.Game:FindFirstChild("Sprinting")
+    local Candidates = { Direct }
+    for _, Name in ipairs({ "Sprinting", "Stamina", "Sprint", "SprintingSystem" }) do
+        table.insert(Candidates, Rep:FindFirstChild(Name, true))
+    end
+    for _, Mod in ipairs(Candidates) do
+        if Mod and Mod:IsA("ModuleScript") then
+            local Ok, Result = pcall(require, Mod)
+            if Ok and type(Result) == "table" then
+                SprintModule = Result
+                return SprintModule
+            end
+        end
+    end
+    return nil
+end
+
+local StaminaFields = { "Stamina", "CurrentStamina", "StaminaValue" }
+
+local function ApplyStamina()
+    local Mod = FindSprintModule()
+    if not Mod then return end
+    local Max = Options.StaminaMax and Options.StaminaMax.Value or 500
+    local Gain = Options.StaminaGain and Options.StaminaGain.Value or 100
+    pcall(function() Mod.MaxStamina = Max end)
+    pcall(function() Mod.StaminaGain = Gain end)
+    pcall(function() Mod.StaminaLossDisabled = Toggles.StaminaNoLoss and Toggles.StaminaNoLoss.Value or false end)
+    pcall(function() Mod.MinStamina = -9999 end)
+    if Toggles.StaminaSprintSpeed and Toggles.StaminaSprintSpeed.Value then
+        pcall(function()
+            Mod.SprintSpeed = Options.StaminaSprintSpeedVal and Options.StaminaSprintSpeedVal.Value or 80
+        end)
+    end
+    for _, Field in ipairs(StaminaFields) do
+        pcall(function()
+            if Mod[Field] ~= nil and type(Mod[Field]) == "number" then
+                Mod[Field] = Max
+            end
+        end)
+    end
+end
+
+local function SaveStamina()
+    local Mod = FindSprintModule()
+    if not Mod or StaminaSaved then return end
+    StaminaSaved = {
+        MaxStamina = Mod.MaxStamina,
+        MinStamina = Mod.MinStamina,
+        StaminaGain = Mod.StaminaGain,
+        StaminaLoss = Mod.StaminaLoss,
+        StaminaLossDisabled = Mod.StaminaLossDisabled,
+        SprintSpeed = Mod.SprintSpeed,
+    }
+end
+
+local function RestoreStamina()
+    local Mod = SprintModule
+    if not Mod or not StaminaSaved then return end
+    for Key, Value in pairs(StaminaSaved) do
+        if Value ~= nil then pcall(function() Mod[Key] = Value end) end
+    end
+    StaminaSaved = nil
+end
+
+Toggles.InfStamina:OnChanged(function(Value)
+    if Value then
+        SaveStamina()
+        ApplyStamina()
+    else
+        RestoreStamina()
+    end
+end)
+
+local StaminaAcc = 0
+TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
+    if Toggles.InfStamina and Toggles.InfStamina.Value then
+        StaminaAcc = StaminaAcc + Delta
+        if StaminaAcc >= 0.1 then
+            StaminaAcc = 0
+            ApplyStamina()
+        end
+    else
+        StaminaAcc = 0
+    end
+end))
+
+-- // Misc: Extra //
+Groupboxes.Misc_Extra = Tabs.Misc:AddRightGroupbox("Extra")
+Groupboxes.Misc_Extra:AddToggle("GodMode", { Text = "God Mode", Default = false })
+Groupboxes.Misc_Extra:AddToggle("Hitbox", { Text = "Hitbox Expander", Default = false })
+Groupboxes.Misc_Extra:AddSlider("HitboxSize", {
+    Text = "Hitbox", Min = 1, Max = 10, Default = 3, Rounding = 1, Compact = true,
+})
+Groupboxes.Misc_Extra:AddToggle("JumpPower", { Text = "Jump Power", Default = false })
+Groupboxes.Misc_Extra:AddSlider("JumpPowerVal", {
+    Text = "Jump Power", Min = 20, Max = 300, Default = 100, Rounding = 0, Compact = true,
+})
+Groupboxes.Misc_Extra:AddToggle("RemovePopups", { Text = "Bildirimleri Kapat", Default = false })
+
+local GodAcc = 0
+local HitboxSaved = nil
+TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
+    if not LocalPlayer.Character then return end
+    local Hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+    if not Hum then return end
+    if Toggles.GodMode and Toggles.GodMode.Value then
+        GodAcc = GodAcc + Delta
+        if GodAcc >= 0.1 then
+            GodAcc = 0
+            pcall(function() Hum.Health = Hum.MaxHealth end)
+        end
+    else
+        GodAcc = 0
+    end
+    if Toggles.JumpPower and Toggles.JumpPower.Value then
+        pcall(function()
+            Hum.UseJumpPower = true
+            Hum.JumpPower = Options.JumpPowerVal and Options.JumpPowerVal.Value or 100
+        end)
+    end
+    local Head = LocalPlayer.Character:FindFirstChild("Head")
+    if Toggles.Hitbox and Toggles.Hitbox.Value and Head then
+        if not HitboxSaved then HitboxSaved = Head.Size end
+        pcall(function()
+            local Mult = Options.HitboxSize and Options.HitboxSize.Value or 3
+            Head.Size = HitboxSaved * Mult
+            Head.Transparency = 1
+            Head.CanCollide = false
+        end)
+    elseif HitboxSaved and Head then
+        pcall(function() Head.Size = HitboxSaved end)
+    end
+end))
+
+Toggles.RemovePopups:OnChanged(function(Value)
+    pcall(function()
+        local StarterGui = Services.StarterGui
+        StarterGui:SetCore("SendNotification", not Value)
+    end)
+end)
+
 TrackConn(Services.RunService.RenderStepped:Connect(function()
     if Toggles.WalkSpeedOn and Toggles.WalkSpeedOn.Value and LocalPlayer.Character then
         local Hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
@@ -1091,6 +1264,20 @@ Library:OnUnload(function()
         end
     end)
     pcall(ApplyBright, false)
+    pcall(RestoreStamina)
+    pcall(function()
+        local Char = LocalPlayer.Character
+        local Hum = Char and Char:FindFirstChildOfClass("Humanoid")
+        if Hum then
+            Hum.UseJumpPower = true
+            Hum.JumpPower = 50
+        end
+        if Char then
+            local Head = Char:FindFirstChild("Head")
+            if Head and HitboxSaved then Head.Size = HitboxSaved end
+        end
+    end)
+    pcall(function() Services.StarterGui:SetCore("SendNotification", true) end)
     pcall(function()
         if _G.FS_FOVCircle then _G.FS_FOVCircle:Remove() end
         _G.FS_FOVCircle = nil
