@@ -208,59 +208,135 @@ TrackConn(Services.RunService.RenderStepped:Connect(function()
 end))
 
 -- // Combat: Killer arkasi //
+local BackstabBusy = false
+
+local function FindKillerHRP()
+    for _, P in ipairs(Services.Players:GetPlayers()) do
+        if P ~= LocalPlayer and P.Character then
+            local Hum = P.Character:FindFirstChildOfClass("Humanoid")
+            local HRP = P.Character:FindFirstChild("HumanoidRootPart")
+            if Hum and HRP and Hum.Health > 0 and Hum.MaxHealth >= 500 then
+                return HRP
+            end
+        end
+    end
+    return nil
+end
+
+-- Oyundaki kendi Q aksiyonunu da tetikle (varsa)
+local function FireGameKeyAction()
+    local Fired = false
+    local PlayerGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+    local function Scan(Root, Depth)
+        if not Root or Depth > 6 then return end
+        for _, Child in ipairs(Root:GetChildren()) do
+            if Child:IsA("GuiButton") or Child:IsA("TextButton") or Child:IsA("ImageButton") then
+                local Name = string.lower(Child.Name or "")
+                local Text = ""
+                pcall(function() Text = string.lower(Child.Text or "") end)
+                if Name == "q" or Text == "q" or string.find(Name, "ability", 1, true) or string.find(Name, "skill", 1, true) then
+                    pcall(function() Child:Activate() end)
+                    pcall(function() Child.Activated:Fire() end)
+                    Fired = true
+                end
+            end
+            Scan(Child, Depth + 1)
+        end
+    end
+    if PlayerGui then Scan(PlayerGui, 0) end
+    pcall(function()
+        local VIM = Services.VirtualInputManager
+        VIM:SendKeyEvent(true, Enum.KeyCode.Q, false, game)
+        task.wait(0.05)
+        VIM:SendKeyEvent(false, Enum.KeyCode.Q, false, game)
+        Fired = true
+    end)
+    return Fired
+end
+
+-- Killer'in arkasina kilitlenip 2 sn takip et, sonra eski konuma don
 local function GoBehindKiller()
+    if BackstabBusy then return end
+    BackstabBusy = true
     task.spawn(function()
+        local Duration = 2
+        pcall(function() Duration = Toggles.KillerBackDuration.Value end)
         local MyHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if not MyHRP then
+            BackstabBusy = false
             Library:Notify("Karakter yok.")
             return
         end
-        local KillerHRP = nil
-        for _, P in ipairs(Services.Players:GetPlayers()) do
-            if P ~= LocalPlayer and P.Character then
-                local Hum = P.Character:FindFirstChildOfClass("Humanoid")
-                local HRP = P.Character:FindFirstChild("HumanoidRootPart")
-                if Hum and HRP and Hum.Health > 0 and Hum.MaxHealth >= 500 then
-                    KillerHRP = HRP
-                    break
-                end
-            end
-        end
+        local KillerHRP = FindKillerHRP()
         if not KillerHRP then
+            BackstabBusy = false
             Library:Notify("Killer bulunamadi.")
             return
         end
         local Saved = MyHRP.CFrame
-        pcall(function()
-            local Behind = KillerHRP.CFrame * CFrame.new(0, 0, 4)
-            MyHRP.CFrame = CFrame.lookAt(Behind.Position, KillerHRP.Position)
-        end)
-        task.wait(1)
+        local Offset = 3
+        pcall(function() Offset = Toggles.KillerBackOffset.Value end)
+        local EndTime = tick() + Duration
+        while tick() < EndTime do
+            if not MyHRP.Parent or not KillerHRP.Parent then break end
+            pcall(function()
+                local Behind = KillerHRP.CFrame * CFrame.new(0, 0, Offset)
+                MyHRP.CFrame = CFrame.lookAt(Behind.Position, KillerHRP.Position)
+            end)
+            task.wait()
+        end
         pcall(function()
             if MyHRP.Parent then MyHRP.CFrame = Saved end
         end)
-        Library:Notify("Geri donuldu.")
+        BackstabBusy = false
+    end)
+end
+
+local function DoBackstab()
+    if not Toggles.KillerBackEnabled.Value then
+        Library:Notify("Backstab kapali.")
+        return
+    end
+    task.spawn(function()
+        GoBehindKiller()
+        if Toggles.KillerBackGameKey.Value then
+            FireGameKeyAction()
+        end
     end)
 end
 
 Groupboxes.Combat_Killer = Tabs.Combat:AddLeftGroupbox("Killer")
 
+Groupboxes.Combat_Killer:AddToggle("KillerBackEnabled", {
+    Text = "Backstab", Default = true,
+    Tooltip = "Kapaliyken backstab tusu ve butonu calismaz.",
+})
+Groupboxes.Combat_Killer:AddToggle("KillerBackGameKey", {
+    Text = "Oyun Q Butonu", Default = true,
+    Tooltip = "Basilan tus ayrica oyundaki kendi Q aksiyonunu da tetikler.",
+})
+Groupboxes.Combat_Killer:AddSlider("KillerBackDuration", {
+    Text = "Bekleme (sn)", Min = 0.5, Max = 10, Default = 2, Rounding = 1, Compact = true,
+})
+Groupboxes.Combat_Killer:AddSlider("KillerBackOffset", {
+    Text = "Killer Mesafesi", Min = 1, Max = 12, Default = 3, Rounding = 1, Compact = true,
+})
 Groupboxes.Combat_Killer:AddToggle("KillerBack", {
-    Text = "Killer Arkası (Tuş)", Default = false,
-    Tooltip = "Tuşa basınca killer arkasına gider, 1sn sonra döner.",
+    Text = "Backstab (Tuş)", Default = false,
+    Tooltip = "Tuşa basınca killer arkasına kilitlenir, 2sn bekler, sonra döner.",
 })
 Toggles.KillerBack:AddKeyPicker("KillerBackKey", {
     Text = "Killer Arkası", Default = "Q", Mode = "Toggle", SyncToggleState = true,
 })
 Toggles.KillerBack:OnChanged(function(Value)
     if not Value then return end
-    GoBehindKiller()
+    DoBackstab()
     pcall(function() Toggles.KillerBack:SetValue(false) end)
 end)
 Groupboxes.Combat_Killer:AddButton({
-    Text = "Killer Arkasına Git (1sn)",
+    Text = "Killer Arkasına Git",
     DoubleClick = false,
-    Func = function() GoBehindKiller() end,
+    Func = function() DoBackstab() end,
 })
 Groupboxes.Combat_Killer:AddLabel("Tuşla veya butonla; 1sn sonra döner.", true)
 
