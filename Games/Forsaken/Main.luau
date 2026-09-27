@@ -270,7 +270,6 @@ local function GoBehindKiller()
         local KillerHRP = FindKillerHRP()
         if not KillerHRP then
             BackstabBusy = false
-            Library:Notify("Killer bulunamadi.")
             return
         end
         local Saved = MyHRP.CFrame
