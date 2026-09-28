@@ -68,6 +68,7 @@ local Tabs = {
     Combat = Window:AddTab("Combat", "swords"),
     Visuals = Window:AddTab("Visuals", "eye"),
     Misc = Window:AddTab("Misc", "house"),
+    Farm = Window:AddTab("Auto Farm", "target"),
 }
 
 local Groupboxes = {}
@@ -1239,6 +1240,394 @@ Toggles.AntiAFK:OnChanged(function(Value)
     elseif AFKConn then
         pcall(function() AFKConn:Disconnect() end)
         AFKConn = nil
+    end
+end)
+
+-- // Auto Farm //
+Groupboxes.Farm_Survive = Tabs.Farm:AddLeftGroupbox("Auto Farm (Survivor)")
+Groupboxes.Farm_Survive:AddToggle("FarmFlee", {
+    Text = "Kacis", Default = false,
+    Tooltip = "Katil veya minion tehdit mesafesine yaklasinca haritanin diger ucuna isinlar.",
+})
+Groupboxes.Farm_Survive:AddSlider("FarmDanger", {
+    Text = "Tehdit Mesafesi", Min = 5, Max = 400, Default = 50, Rounding = 0, Compact = true,
+})
+Groupboxes.Farm_Survive:AddToggle("FarmFleeMinions", {
+    Text = "Minionlari da Say", Default = true,
+})
+Groupboxes.Farm_Survive:AddSlider("FarmFleeCooldown", {
+    Text = "Kacis Araligi (sn)", Min = 0.5, Max = 20, Default = 3, Rounding = 1, Compact = true,
+})
+Groupboxes.Farm_Survive:AddToggle("FarmFleeRandom", {
+    Text = "Rastgele Noktaya", Default = false,
+    Tooltip = "Kapaliyken haritanin en uzak noktasina gider.",
+})
+Groupboxes.Farm_Survive:AddButton({
+    Text = "Simdi Kac",
+    DoubleClick = false,
+    Func = function() FleeNow() end,
+})
+
+Groupboxes.Farm_Kill = Tabs.Farm:AddRightGroupbox("Auto Farm (Katil)")
+Groupboxes.Farm_Kill:AddToggle("FarmKill", {
+    Text = "Oyunculari Oldur", Default = false,
+    Tooltip = "En yakin oyuncunun arkasina kilitlenip vurur; olce 2sn bekler, sonra digerine gider.",
+})
+Groupboxes.Farm_Kill:AddToggle("FarmBackstab", {
+    Text = "Arkasina Kilitlen", Default = true,
+})
+Groupboxes.Farm_Kill:AddSlider("FarmBackstabTime", {
+    Text = "Sabitlenme (sn)", Min = 0.2, Max = 5, Default = 2, Rounding = 1, Compact = true,
+})
+Groupboxes.Farm_Kill:AddSlider("FarmOffset", {
+    Text = "Hedef Mesafesi", Min = 1, Max = 12, Default = 3, Rounding = 1, Compact = true,
+})
+Groupboxes.Farm_Kill:AddSlider("FarmHitRange", {
+    Text = "Vurus Mesafesi", Min = 2, Max = 40, Default = 10, Rounding = 1, Compact = true,
+})
+Groupboxes.Farm_Kill:AddToggle("FarmMB1", {
+    Text = "MB1 ile Vur", Default = true,
+})
+Groupboxes.Farm_Kill:AddToggle("FarmAbility", {
+    Text = "Ability Tusu", Default = true,
+})
+Toggles.FarmAbility:AddKeyPicker("FarmAbilityKey", {
+    Text = "Ability", Default = "R", Mode = "Toggle", SyncToggleState = true,
+})
+Groupboxes.Farm_Kill:AddToggle("FarmAbility2", {
+    Text = "2. Ability Tusu", Default = false,
+})
+Toggles.FarmAbility2:AddKeyPicker("FarmAbilityKey2", {
+    Text = "Ability 2", Default = "F", Mode = "Toggle", SyncToggleState = true,
+})
+Groupboxes.Farm_Kill:AddToggle("FarmUseSpy", {
+    Text = "Spy Remote'unu Kullan", Default = true,
+    Tooltip = "Spy ile kaydedilen son ability'yi otomatik atesler.",
+})
+Groupboxes.Farm_Kill:AddSlider("FarmDeathWait", {
+    Text = "Oldukten Sonra (sn)", Min = 0, Max = 10, Default = 2, Rounding = 1, Compact = true,
+})
+
+-- Yardimcilar
+local function ToKeyCode(Key)
+    if Key == nil then return nil end
+    if type(Key) == "EnumItem" then return Key end
+    local Code = nil
+    pcall(function() Code = Enum.KeyCode[string.upper(tostring(Key))] end)
+    return Code
+end
+
+local function GetBoundKey(Picker)
+    if not Picker then return nil end
+    local State = nil
+    pcall(function() State = Picker:GetState() end)
+    if typeof(State) == "string" and State ~= "" and State ~= "None" and State ~= "Unbound" then
+        return ToKeyCode(State)
+    end
+    return nil
+end
+
+local function SimulateKey(KeyCode, PressTime)
+    if not KeyCode then return false end
+    local Name = ""
+    pcall(function() Name = string.lower(KeyCode.Name) end)
+    local Used = false
+    pcall(function()
+        local VIM = Services.VirtualInputManager
+        VIM:SendKeyEvent(true, KeyCode, false, game)
+        Used = true
+    end)
+    task.wait(PressTime or 0.05)
+    pcall(function()
+        local VIM = Services.VirtualInputManager
+        VIM:SendKeyEvent(false, KeyCode, false, game)
+    end)
+    if Used then return true end
+    -- VIM client'ta yok: oyundaki tus butonunu aktiflestir
+    local PlayerGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+    local Fired = false
+    local function Scan(Root, Depth)
+        if not Root or Depth > 6 then return end
+        for _, Child in ipairs(Root:GetChildren()) do
+            if Child:IsA("GuiButton") or Child:IsA("TextButton") or Child:IsA("ImageButton") then
+                local N = string.lower(Child.Name or "")
+                local T = ""
+                pcall(function() T = string.lower(Child.Text or "") end)
+                if N == Name or T == Name then
+                    pcall(function() Child:Activate() end)
+                    pcall(function() Child.Activated:Fire() end)
+                    Fired = true
+                end
+            end
+            Scan(Child, Depth + 1)
+        end
+    end
+    if PlayerGui then Scan(PlayerGui, 0) end
+    return Fired
+end
+
+local function SimulateClick()
+    local Used = false
+    pcall(function()
+        local VIM = Services.VirtualInputManager
+        VIM:SendMouseButtonEvent(DISPLAY_CURSOR, MOUSE_BUTTON1, 0, true, 0, false)
+        Used = true
+    end)
+    task.wait(0.05)
+    pcall(function()
+        local VIM = Services.VirtualInputManager
+        VIM:SendMouseButtonEvent(DISPLAY_CURSOR, MOUSE_BUTTON1, 0, false, 0, false)
+    end)
+    if Used then return true end
+    -- Fallback: elindeki tool'u aktiflestir
+    local Char = LocalPlayer.Character
+    if not Char then return false end
+    local Hit = false
+    for _, Item in ipairs(Char:GetChildren()) do
+        if Item:IsA("Tool") then
+            pcall(function() Item:Activate() end)
+            Hit = true
+        end
+    end
+    return Hit
+end
+
+local function IsSelfKiller()
+    local Char = LocalPlayer.Character
+    local Hum = Char and Char:FindFirstChildOfClass("Humanoid")
+    return Hum ~= nil and Hum.MaxHealth >= 500
+end
+
+-- Oyuncu disi canli NPC'ler (minion, zombie, summon)
+local function GetMinionParts()
+    local Result = {}
+    local PlayerChars = {}
+    for _, P in ipairs(Services.Players:GetPlayers()) do
+        if P.Character then PlayerChars[P.Character] = true end
+    end
+    for _, D in ipairs(Services.Workspace:GetDescendants()) do
+        if D:IsA("Humanoid") and D.Health > 0 then
+            local Model = D.Parent
+            if Model and Model:IsA("Model") and not PlayerChars[Model] then
+                local Part = Model:FindFirstChild("HumanoidRootPart")
+                    or Model:FindFirstChild("Head")
+                    or Model:FindFirstChild("Torso")
+                if Part then table.insert(Result, Part) end
+            end
+        end
+    end
+    return Result
+end
+
+local function NearestThreat()
+    local HRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not HRP then return nil, math.huge end
+    local Best, BestDist = nil, math.huge
+    local Killer = FindKillerHRP()
+    if Killer and Killer.Parent then
+        Best, BestDist = Killer, (Killer.Position - HRP.Position).Magnitude
+    end
+    if Toggles.FarmFleeMinions and Toggles.FarmFleeMinions.Value then
+        for _, Part in ipairs(GetMinionParts()) do
+            if Part.Parent then
+                local Dist = (Part.Position - HRP.Position).Magnitude
+                if Dist < BestDist then Best, BestDist = Part, Dist end
+            end
+        end
+    end
+    return Best, BestDist
+end
+
+-- Harita parcalarini topla (oyuncu parcalari haric)
+local function GetMapParts()
+    local PlayerChars = {}
+    for _, P in ipairs(Services.Players:GetPlayers()) do
+        if P.Character then PlayerChars[P.Character] = true end
+    end
+    local Parts = {}
+    local Count = 0
+    for _, D in ipairs(Services.Workspace:GetDescendants()) do
+        Count = Count + 1
+        if Count > 4000 then break end
+        if D:IsA("BasePart") then
+            local Skip = false
+            for Model in pairs(PlayerChars) do
+                if D:IsDescendantOf(Model) then Skip = true break end
+            end
+            if not Skip then table.insert(Parts, D) end
+        end
+    end
+    return Parts
+end
+
+local function TeleportTo(Part)
+    local HRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not HRP or not Part then return false end
+    local CF = HRP.CFrame
+    return pcall(function()
+        HRP.CFrame = CFrame.new(Part.Position + Vector3.new(0, 3, 0)) * (CF - CF.Position)
+    end)
+end
+
+local FleeRunning = false
+local FleeNow
+function FleeNow()
+    if FleeRunning then return end
+    FleeRunning = true
+    task.spawn(function()
+        pcall(function()
+            local Threat, Dist = NearestThreat()
+            if not Threat or not Threat.Parent then return end
+            local Danger = Options.FarmDanger and Options.FarmDanger.Value or 50
+            if Dist > Danger then return end
+            local Parts = GetMapParts()
+            if #Parts == 0 then return end
+            local Best, BestDist = nil, -1
+            local Random = Toggles.FarmFleeRandom and Toggles.FarmFleeRandom.Value
+            for _, Part in ipairs(Parts) do
+                if Part.Parent then
+                    local D = (Part.Position - Threat.Position).Magnitude
+                    if D > BestDist then Best, BestDist = Part, D end
+                end
+            end
+            if Random then
+                Best = Parts[math.random(1, #Parts)]
+            end
+            if Best then TeleportTo(Best) end
+        end)
+        FleeRunning = false
+    end)
+end
+
+local FleeAcc = 0
+TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
+    if not (Toggles.FarmFlee and Toggles.FarmFlee.Value) then
+        FleeAcc = 0
+        return
+    end
+    if IsSelfKiller() then
+        FleeAcc = 0
+        return
+    end
+    FleeAcc = FleeAcc + Delta
+    local Interval = (Options.FarmFleeCooldown and Options.FarmFleeCooldown.Value) or 3
+    if FleeAcc < Interval then return end
+    FleeAcc = 0
+    local HRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not HRP then return end
+    local Threat, Dist = NearestThreat()
+    if not Threat or not Threat.Parent then return end
+    local Danger = Options.FarmDanger and Options.FarmDanger.Value or 50
+    if Dist > Danger then return end
+    local Parts = GetMapParts()
+    if #Parts == 0 then return end
+    local Best, BestDist = nil, -1
+    for _, Part in ipairs(Parts) do
+        if Part.Parent then
+            local D = (Part.Position - Threat.Position).Magnitude
+            if D > BestDist then Best, BestDist = Part, D end
+        end
+    end
+    if Toggles.FarmFleeRandom and Toggles.FarmFleeRandom.Value then
+        Best = Parts[math.random(1, #Parts)]
+    end
+    if Best then TeleportTo(Best) end
+end))
+
+local function FarmTargetAlive(Target)
+    if not Target or not Target.Parent then return false end
+    local Char = Target.Character
+    if not Char then return false end
+    local Hum = Char:FindFirstChildOfClass("Humanoid")
+    if Hum and Hum.Health <= 0 then return false end
+    return true
+end
+
+local function FindFarmTarget()
+    local HRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not HRP then return nil end
+    local Best, BestDist = nil, math.huge
+    for _, P in ipairs(Services.Players:GetPlayers()) do
+        if P ~= LocalPlayer and FarmTargetAlive(P) and AuraIsEnemy(P) then
+            local Part = P.Character:FindFirstChild("HumanoidRootPart")
+            if Part then
+                local D = (Part.Position - HRP.Position).Magnitude
+                if D < BestDist then Best, BestDist = P, D end
+            end
+        end
+    end
+    return Best
+end
+
+local function LockBehind(Target, Time, Offset)
+    local HRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not HRP then return false end
+    local End = tick() + Time
+    while tick() < End do
+        local Part = Target.Character and Target.Character:FindFirstChild("HumanoidRootPart")
+        if not Part or not HRP.Parent or not Part.Parent then return false end
+        local Hum = Target.Character:FindFirstChildOfClass("Humanoid")
+        if Hum and Hum.Health <= 0 then return false end
+        pcall(function()
+            local Behind = Part.CFrame * CFrame.new(0, 0, Offset)
+            HRP.CFrame = CFrame.lookAt(Behind.Position, Part.Position)
+        end)
+        task.wait()
+    end
+    return true
+end
+
+local function Attack(Target, Bursts)
+    local HitRange = Options.FarmHitRange and Options.FarmHitRange.Value or 10
+    local MyHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    for _ = 1, Bursts do
+        if not FarmTargetAlive(Target) then return end
+        local Part = Target.Character:FindFirstChild("HumanoidRootPart")
+        if MyHRP and Part and (Part.Position - MyHRP.Position).Magnitude > HitRange then
+            task.wait(0.1)
+        else
+            if Toggles.FarmMB1 and Toggles.FarmMB1.Value then SimulateClick() end
+            if Toggles.FarmAbility and Toggles.FarmAbility.Value then
+                SimulateKey(GetBoundKey(Options.FarmAbilityKey), 0.05)
+            end
+            if Toggles.FarmAbility2 and Toggles.FarmAbility2.Value then
+                SimulateKey(GetBoundKey(Options.FarmAbilityKey2), 0.05)
+            end
+            if Toggles.FarmUseSpy and Toggles.FarmUseSpy.Value then RefireLast() end
+            task.wait(0.2)
+        end
+    end
+end
+
+local KillLoopRunning = false
+Toggles.FarmKill:OnChanged(function(Value)
+    if Value then
+        if KillLoopRunning then return end
+        KillLoopRunning = true
+        task.spawn(function()
+            while Toggles.FarmKill and Toggles.FarmKill.Value do
+                local Target = FindFarmTarget()
+                if not Target then
+                    task.wait(0.5)
+                else
+                    if Toggles.FarmBackstab and Toggles.FarmBackstab.Value then
+                        local Time = Options.FarmBackstabTime and Options.FarmBackstabTime.Value or 2
+                        local Offset = Options.FarmOffset and Options.FarmOffset.Value or 3
+                        LockBehind(Target, Time, Offset)
+                    end
+                    Attack(Target, 3)
+                    local WaitFor = Options.FarmDeathWait and Options.FarmDeathWait.Value or 2
+                    local End = tick() + WaitFor
+                    while tick() < End and FarmTargetAlive(Target) do
+                        Attack(Target, 1)
+                    end
+                    task.wait(0.3)
+                end
+            end
+            KillLoopRunning = false
+        end)
+    else
+        KillLoopRunning = false
     end
 end)
 
