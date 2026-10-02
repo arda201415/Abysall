@@ -409,7 +409,8 @@ local CollisionClone
 local CollisionPart
 local CollisionPartClone
 
-local Camera
+-- Workspace:FindFirstChild("Camera") ilk frame'de nil doner; CurrentCamera her zaman hazir
+local Camera = Services.Workspace.CurrentCamera
 local LocalPlayer = Services.Players.LocalPlayer
 
 local RemotesFolder   = Services.ReplicatedStorage:FindFirstChild("RemotesFolder")
@@ -1427,6 +1428,9 @@ Functions.GetCurrentAnchor = function()
 end
 
 Functions.GetMinecart = function()
+	-- Camera henuz atanmadilysa (ilk frame) nil donmesin
+	if Camera == nil then Camera = Services.Workspace.CurrentCamera end
+	if Camera == nil then return false end
 	return Camera:FindFirstChild("MinecartRig") ~= nil
 end
 
@@ -2449,24 +2453,27 @@ end)
 
 local Modules = {}
 
+-- Moduller oyun icinde asenkron yuklenir; toggle erken acilirsa nesne henuz nil olabilir
+local function SetModuleName(Key, Disabled)
+	local Module = Modules[Key]
+	if Module == nil then return end
+	local Names = Module.__AbysallNames
+	if not Names then return end
+	pcall(function() Module.Name = Disabled and Names[2] or Names[1] end)
+end
+
 OnChange("RemoveScreech", function(Value)
-	Modules.Screech.Name = Value and "Screech_Disabled" or "Screech"
-	if Modules.GlitchScreech then
-		Modules.GlitchScreech.Name = Value and "GlitchScreech_Disabled" or "GlitchScreech"
-	end
+	SetModuleName("Screech", Value)
+	SetModuleName("GlitchScreech", Value)
 end)
 OnChange("RemoveHalt", function(Value)
-	Modules.Shade.Name = Value and "Shade_Disabled" or "Shade"
+	SetModuleName("Shade", Value)
 end)
 OnChange("RemoveA90", function(Value)
-	if Modules.A90 then
-		Modules.A90.Name = Value and "A90_Disabled" or "A90"
-	end
+	SetModuleName("A90", Value)
 end)
 OnChange("RemoveDread", function(Value)
-	if Modules.Dread then
-		Modules.Dread.Name = Value and "Dread_Disabled" or "Dread"
-	end
+	SetModuleName("Dread", Value)
 end)
 OnChange("RemoveSurge", function(Value)
 	if Globals.SurgeFrame then
@@ -2642,13 +2649,13 @@ Groupboxes.Visuals_Effects:AddToggle("DisableFiredampEffect",    { Text = "Disab
 Groupboxes.Visuals_Effects:AddToggle("DisableEntityJumpscares",  { Text = "Disable Entity Jumpscares",  Default = false, Tooltip = "Disables jumpscares from entities like Rush and Ambush." })
 
 OnChange("DisableGlitchJumpscare", function(Value)
-	Modules.Glitch.Name = Value and "Glitch_Disabled" or "Glitch"
+	SetModuleName("Glitch", Value)
 end)
 OnChange("DisableTimothyJumpscare", function(Value)
-	Modules.SpiderJumpscare.Name = Value and "SpiderJumpscare_Disabled" or "SpiderJumpscare"
+	SetModuleName("SpiderJumpscare", Value)
 end)
 OnChange("DisableVoidJumpscare", function(Value)
-	if Modules.Void then Modules.Void.Name = Value and "Void_Disabled" or "Void" end
+	SetModuleName("Void", Value)
 end)
 OnChange("DisableHideVignette", function(Value)
 	local Vignette = Globals.MainUI:FindFirstChild("HideVignette") or Globals.MainUI.MainFrame:FindFirstChild("HideVignette")
@@ -3543,12 +3550,15 @@ Groupboxes.Floors_Farming:AddButton({
 			return
 		end
 
-		if LocalPlayer.PlayerGui:FindFirstChild("TopbarUI") then 
-			local GoldCount = LocalPlayer.PlayerGui.TopbarUI.Topbar.StatsTopbarHandler.StatModules.Gold.GoldVal
-			if GoldCount.Value <= 0 then
-				Functions.Notify({Title = "You must have gold to do this."})
-				return
-			end
+		-- Topbar zinciri derin; her katman nil olabilir
+		local GoldCount = nil
+		pcall(function()
+			GoldCount = LocalPlayer.PlayerGui
+				:FindFirstChild("TopbarUI").Topbar.StatsTopbarHandler.StatModules.Gold.GoldVal
+		end)
+		if GoldCount and GoldCount.Value <= 0 then
+			Functions.Notify({Title = "You must have gold to do this."})
+			return
 		end
 
         Globals.KnobFarmStarted = true
@@ -3663,16 +3673,37 @@ else
 	ClientModules = Services.ReplicatedStorage.ClientModules
 end
 
-Modules = {
-	Glitch         = ClientModules.EntityModules.Glitch,
-	Shade          = ClientModules.EntityModules.Shade,
-	Void           = ClientModules.EntityModules:FindFirstChild("Void"),
-	SpiderJumpscare = nil,
-	A90            = nil,
-	Screech        = nil,
-	Dread          = nil,
-	GlitchScreech  = nil,
+-- Modules tablosunu degistirme, sadece eksikleri doldur (yeniden atama __AbysallNames'i siler)
+local EntityModules = nil
+if type(ClientModules) == "table" or typeof(ClientModules) == "Instance" then
+	pcall(function() EntityModules = ClientModules.EntityModules end)
+end
+if EntityModules == nil then
+	pcall(function()
+		EntityModules = Services.ReplicatedStorage:FindFirstChild("EntityModules", true)
+			or Services.ReplicatedStorage:FindFirstChild("ModulesClient", true)
+	end)
+end
+
+local EarlyNames = {
+	["Glitch"] = { "Glitch", "Glitch_Disabled" },
+	["Shade"] = { "Shade", "Shade_Disabled" },
+	["Void"] = { "Void", "Void_Disabled" },
 }
+for Key, Names in pairs(EarlyNames) do
+	if Modules[Key] == nil and EntityModules then
+		local Found = nil
+		pcall(function() Found = EntityModules:FindFirstChild(Names[1]) end)
+		if Found then
+			Modules[Key] = Found
+			pcall(function() Found.__AbysallNames = Names end)
+		end
+	end
+end
+
+SetModuleName("Glitch", ToggleOn("DisableGlitchJumpscare"))
+SetModuleName("Shade", ToggleOn("RemoveHalt"))
+SetModuleName("Void", ToggleOn("DisableVoidJumpscare"))
 
 local CharacterOldConnectionKeys = {
 	"MainHandler", "JumpHandler", "SlideHandler", "LibraryCodeHandler1", "LibraryCodeHandler2",
@@ -3785,15 +3816,32 @@ Functions.HandleCharacter = function(NewCharacter)
 	Globals.AnticheatDisabled = false
 
 	local UIModules = Globals.MainUI.Initiator.Main_Game.RemoteListener.Modules
-	Modules.A90             = UIModules:FindFirstChild("A90")
-	Modules.Screech         = UIModules.Screech
-	Modules.Dread           = UIModules:FindFirstChild("Dread")
-	Modules.SpiderJumpscare = UIModules.SpiderJumpscare
+	local ModuleNames = {
+		["A90"] = { "A90", "A90_Disabled" },
+		["Screech"] = { "Screech", "Screech_Disabled" },
+		["Dread"] = { "Dread", "Dread_Disabled" },
+		["SpiderJumpscare"] = { "SpiderJumpscare", "SpiderJumpscare_Disabled" },
+		["Glitch"] = { "Glitch", "Glitch_Disabled" },
+		["GlitchScreech"] = { "GlitchScreech", "GlitchScreech_Disabled" },
+		["Shade"] = { "Shade", "Shade_Disabled" },
+		["Void"] = { "Void", "Void_Disabled" },
+	}
+	for Key, Names in pairs(ModuleNames) do
+		local Found = UIModules:FindFirstChild(Names[1])
+		if Found then
+			Modules[Key] = Found
+			pcall(function() Found.__AbysallNames = Names end)
+		end
+	end
 
-	if ToggleOn("RemoveScreech")    then Modules.Screech.Name = "Screech_Disabled" end
-	if ToggleOn("RemoveA90") and Modules.A90   then Modules.A90.Name = "A90_Disabled" end
-	if ToggleOn("RemoveDread") and Modules.Dread then Modules.Dread.Name = "Dread_Disabled" end
-	if ToggleOn("DisableTimothyJumpscare") then Modules.SpiderJumpscare.Name = "SpiderJumpscare_Disabled" end
+	SetModuleName("Screech", ToggleOn("RemoveScreech"))
+	SetModuleName("GlitchScreech", ToggleOn("RemoveScreech"))
+	SetModuleName("A90", ToggleOn("RemoveA90"))
+	SetModuleName("Dread", ToggleOn("RemoveDread"))
+	SetModuleName("Shade", ToggleOn("RemoveHalt"))
+	SetModuleName("Glitch", ToggleOn("DisableGlitchJumpscare"))
+	SetModuleName("SpiderJumpscare", ToggleOn("DisableTimothyJumpscare"))
+	SetModuleName("Void", ToggleOn("DisableVoidJumpscare"))
 
 	if ToggleOn("DisableHideVignette") then
 		local Vignette = Globals.MainUI:FindFirstChild("HideVignette") or Globals.MainUI.MainFrame:FindFirstChild("HideVignette")
@@ -5540,6 +5588,9 @@ end)
 Connections.FloorReplicatedHandler = FloorReplicated.DescendantAdded:Connect(function(Object)
 	if Object.Name == "GlitchScreech" then
 		Modules.GlitchScreech = Object
+		pcall(function()
+			Object.__AbysallNames = { "GlitchScreech", "GlitchScreech_Disabled" }
+		end)
 		if ToggleOn("RemoveScreech") then Object.Name = "GlitchScreech_Disabled" end
 	end
 	if Object.Name:find("Jumpscare") and Object:IsA("ModuleScript")
