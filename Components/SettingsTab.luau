@@ -1,10 +1,9 @@
 return function(Window)
 	local function CloneReference(Object)
-		if Abysall and Abysall.Environment.cloneref then
-			return Abysall.Environment.cloneref(Object)
-		else
-			return Object
+		if Abysall and Abysall.Environment and Abysall.Environment.Safe then
+			return Abysall.Environment.Safe.cloneref(Object)
 		end
+		return Object
 	end
 	
 	local Services = setmetatable({}, {
@@ -64,28 +63,35 @@ return function(Window)
 		},
 		Default = (Abysall.UILibrary == "Linoria" and 2 or 1),
 		Callback = function(Value)
-			if Abysall.Environment.writefile and Abysall.Environment.readfile then
-				if not Abysall.Environment.isfile("Abysall/UserData.json") then
-					local Data = {
-						TotalExecutions = 0,
-						UILibrary = "Obsidian"
-					}
-					Abysall.Environment.writefile("Abysall/UserData.json", Services.HttpService:JSONEncode(Data))
-				end
-
-				local UserData = Abysall.Environment.readfile("Abysall/UserData.json")
-				local Decoded = Services.HttpService:JSONDecode(UserData)
-				Decoded.UILibrary = Value
-
-				if not Decoded.UILibrary then
-					Decoded.UILibrary = "Obsidian"
-				end
-
-				Abysall.TotalExecutions = Decoded.TotalExecutions
-				Abysall.UILibrary = Decoded.UILibrary
-
-				Abysall.Environment.writefile("Abysall/UserData.json", Services.HttpService:JSONEncode(Decoded))
+			local Safe = Abysall.Environment and Abysall.Environment.Safe
+			if not Safe then return end
+			Safe.makefolder("Abysall")
+			if not Safe.isfile("Abysall/UserData.json") then
+				local Data = {
+					TotalExecutions = 0,
+					UILibrary = "Obsidian"
+				}
+				Safe.writefile("Abysall/UserData.json", Services.HttpService:JSONEncode(Data))
 			end
+
+			local Decoded = { TotalExecutions = 0, UILibrary = "Obsidian" }
+			local UserData = Safe.readfile("Abysall/UserData.json")
+			if type(UserData) == "string" and #UserData > 0 then
+				local Ok, Result = pcall(function() return Services.HttpService:JSONDecode(UserData) end)
+				if Ok and type(Result) == "table" then
+					Decoded = Result
+				end
+			end
+			Decoded.UILibrary = Value
+
+			if not Decoded.UILibrary then
+				Decoded.UILibrary = "Obsidian"
+			end
+
+			Abysall.TotalExecutions = Decoded.TotalExecutions
+			Abysall.UILibrary = Decoded.UILibrary
+
+			Safe.writefile("Abysall/UserData.json", Services.HttpService:JSONEncode(Decoded))
 		end
 	})
 	

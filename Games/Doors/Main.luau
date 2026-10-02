@@ -427,7 +427,7 @@ end
 
 local function GetHiddenContainer()
 	if Functions.CheckCompatability({"gethui"}) then
-		return Abysall.Environment.gethui()
+		return Abysall.Environment.Safe.gethui()
 	end
 	return Services.CoreGui
 end
@@ -1709,7 +1709,7 @@ Groupboxes.General_Self:AddToggle("DisableIdleKick", {
 })
 OnChange("DisableIdleKick", function(Value)
 	if Functions.CheckCompatability({"getconnections"}) then
-		for _, Conn in Abysall.Environment.getconnections(LocalPlayer.Idled) do
+		for _, Conn in Abysall.Environment.Safe.getconnections(LocalPlayer.Idled) do
 			if Value then Conn:Disable() else Conn:Enable() end
 		end
 	end
@@ -1842,7 +1842,7 @@ Groupboxes.Self_Misc:AddButton({
 	Func = function()
 		Globals.SelfKilled = true
 		if Functions.CheckCompatability({"replicatesignal"}) then
-			Abysall.Environment.replicatesignal(LocalPlayer.Kill)
+			Abysall.Environment.Safe.replicatesignal(LocalPlayer.Kill)
 		else
 			if RemotesFolder:FindFirstChild("Underwater") then
 				RemotesFolder.Underwater:FireServer(true)
@@ -3597,7 +3597,7 @@ Connections.KnobFarm = Services.RunService.Heartbeat:Connect(function()
 		if not Globals.KnobFarmActive then
 			Globals.KnobFarmActive = true
 			if Functions.CheckCompatability({"replicatesignal"}) then
-				Abysall.Environment.replicatesignal(LocalPlayer.Kill)
+				Abysall.Environment.Safe.replicatesignal(LocalPlayer.Kill)
 			else
 				RemotesFolder.Underwater:FireServer(true)
 			end
@@ -3738,7 +3738,7 @@ Functions.HandleCharacter = function(NewCharacter)
 	if ToggleOn("EnableCharacterSlide") then Character:SetAttribute("CanSlide", true) end
 
 	if Functions.CheckCompatability({"require"}) then
-		Main_Game = Abysall.Environment.require(Globals.MainUI.Initiator.Main_Game)
+		Main_Game = Abysall.Environment.Safe.require(Globals.MainUI.Initiator.Main_Game)
 	end
 
 	if Main_Game and ToggleOn("RemoveCameraBobbing") then
@@ -4827,9 +4827,9 @@ Functions.HandleObject = function(Object)
 				while Object:IsDescendantOf(game) do
 					for _, Part in Object:GetChildren() do
 						if Part:IsA("BasePart") then
-							Abysall.Environment.firetouchinterest(RootPart, Part, 0)
+							Abysall.Environment.Safe.firetouchinterest(RootPart, Part, 0)
 							task.wait()
-							Abysall.Environment.firetouchinterest(RootPart, Part, 1)
+							Abysall.Environment.Safe.firetouchinterest(RootPart, Part, 1)
 						end
 					end
 					task.wait()
@@ -4952,7 +4952,7 @@ Functions.HandleObject = function(Object)
 				for _, Part in Object:GetDescendants() do
 					if Part:IsA("BasePart") then
 						task.spawn(function()
-							if Abysall.Environment.isnetworkowner(Part) then
+							if Abysall.Environment.Safe.isnetworkowner(Part) then
 								Part.Position = Vector3.new(-49999, -49999, -49999)
 							end
 						end)
@@ -4964,7 +4964,7 @@ Functions.HandleObject = function(Object)
 					if Part:IsA("BasePart") then
 						Part.CanCollide = false
 						task.spawn(function()
-							while Abysall.Environment.isnetworkowner(Part) do
+							while Abysall.Environment.Safe.isnetworkowner(Part) do
 								Part.Position = Vector3.new(math.random(-29999,29999), math.random(-29999,29999), math.random(-29999,29999))
 								task.wait()
 							end
@@ -5285,8 +5285,8 @@ end)
 local PromptsToFire = {}
 local PromptCooldown = {}
 
-Functions.FirePrompt      = Abysall.Environment.fireproximityprompt
-Functions.ForceFirePrompt = Abysall.Environment.fireproximityprompt
+Functions.FirePrompt      = Abysall.Environment.Safe.fireproximityprompt
+Functions.ForceFirePrompt = Abysall.Environment.Safe.fireproximityprompt
 
 if not Functions.FirePrompt then
 	Functions.FirePrompt = function(Prompt)

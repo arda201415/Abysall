@@ -51,11 +51,10 @@ getgenv().Abysall = {
 }
 
 local function CloneReference(Object)
-    if Abysall and Abysall.Environment.cloneref then
-        return Abysall.Environment.cloneref(Object)
-    else
-        return Object
+    if Abysall and Abysall.Environment and Abysall.Environment.Safe then
+        return Abysall.Environment.Safe.cloneref(Object)
     end
+    return Object
 end
 
 local Services = setmetatable({}, {
@@ -64,19 +63,28 @@ local Services = setmetatable({}, {
     end
 })
 
-if Abysall.Environment.writefile and Abysall.Environment.readfile then
-    if not Abysall.Environment.isfile("Abysall/UserData.json") then
+local Safe = Abysall.Environment.Safe
+
+if Safe then
+    if not Safe.isfile("Abysall/UserData.json") then
+        Safe.makefolder("Abysall")
         local Data = {
             TotalExecutions = 0,
             UILibrary = "Obsidian"
         }
-        Abysall.Environment.writefile("Abysall/UserData.json", Services.HttpService:JSONEncode(Data))
+        Safe.writefile("Abysall/UserData.json", Services.HttpService:JSONEncode(Data))
     end
 
-    local UserData = Abysall.Environment.readfile("Abysall/UserData.json")
-    local Decoded = Services.HttpService:JSONDecode(UserData)
+    local UserData = Safe.readfile("Abysall/UserData.json")
+    local Decoded = { TotalExecutions = 0, UILibrary = "Obsidian" }
+    if type(UserData) == "string" and #UserData > 0 then
+        local Ok, Result = pcall(function() return Services.HttpService:JSONDecode(UserData) end)
+        if Ok and type(Result) == "table" then
+            Decoded = Result
+        end
+    end
     if not Decoded.TotalExecutions then
-        Decoded.TotalExecutions = 0    
+        Decoded.TotalExecutions = 0
     end
 
     Decoded.TotalExecutions = Decoded.TotalExecutions + 1
@@ -88,7 +96,7 @@ if Abysall.Environment.writefile and Abysall.Environment.readfile then
     Abysall.TotalExecutions = Decoded.TotalExecutions
     Abysall.UILibrary = Decoded.UILibrary
 
-    Abysall.Environment.writefile("Abysall/UserData.json", Services.HttpService:JSONEncode(Decoded))
+    Safe.writefile("Abysall/UserData.json", Services.HttpService:JSONEncode(Decoded))
 end
 
 local OkInterface, ErrInterface = pcall(function()

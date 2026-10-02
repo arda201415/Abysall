@@ -34,10 +34,11 @@ return function(Window, CurrentGame)
     local Library = Abysall.Interface.Library
     local Env = Abysall.Environment or {}
 
-    -- Environment sadece testten gecen fonksiyonlari kaydeder (orn. isfolder
-    -- hic test edilmedigi icin hep nil'dir). Eksikleri globalden tamamla.
+    -- Environment.Safe her zaman calisir: gercek FS yoksa bellek ici yedek devreye girer
+    local Safe = Env.Safe or {}
     local G = getgenv()
     local function FS(Name)
+        if type(Safe[Name]) == "function" then return Safe[Name] end
         if type(Env[Name]) == "function" then return Env[Name] end
         if type(G[Name]) == "function" then return G[Name] end
         return nil
