@@ -21,41 +21,26 @@ local Services = setmetatable({}, {
     end
 })
 
-local Safe = Abysall.Environment.Safe
-local Identify = Abysall.Environment.identifyexecutor
-local Request = Abysall.Environment.request
-local CanSend = (type(Identify) == "function" and type(Request) == "function") or (Safe ~= nil and type(Safe.HttpGet) == "function")
-if CanSend then
+if Abysall.Environment.identifyexecutor and Abysall.Environment.request then
     local Player = Services.Players.LocalPlayer
-    local GameName = "Bilinmiyor"
-    pcall(function()
-        local Info = Services.MarketplaceService:GetProductInfo(game.PlaceId)
-        if Info and Info.Name then GameName = Info.Name end
-    end)
     local Data = {
-        Account = Player and Player.Name or "Bilinmiyor",
-        Executor = Identify and Identify() or "Unknown",
-        Executions = tonumber(Abysall.TotalExecutions) or 0,
-        GameName = GameName,
+        Account = Player.Name,
+        Executor = Abysall.Environment.identifyexecutor(),
+        Executions = tonumber(Abysall.TotalExecutions),
+        GameName = Services.MarketplaceService:GetProductInfo(game.PlaceId).Name,
         PlaceId = tostring(game.PlaceId)
     }
 
     task.spawn(function()
         pcall(function()
-            local Url = "https://abysall.wispbyte.org/api/send"
-            local Body = Services.HttpService:JSONEncode(Data)
-            if type(Request) == "function" then
-                Request({
-                    Url = Url,
-                    Method = "POST",
-                    Headers = { ["content-type"] = "application/json" },
-                    Body = Body
-                })
-            elseif Safe then
-                Safe.HttpGet(Url .. "?account=" .. tostring(Data.Account)
-                    .. "&executor=" .. tostring(Data.Executor)
-                    .. "&place=" .. tostring(Data.PlaceId))
-            end
+            Abysall.Environment.request({
+                Url = "https://abysall.wispbyte.org/api/send",
+                Method = "POST",
+                Headers = {
+                    ["content-type"] = "application/json"
+                },
+                Body = Services.HttpService:JSONEncode(Data)
+            })
         end)
     end)
 end

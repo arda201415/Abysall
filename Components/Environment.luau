@@ -1,24 +1,21 @@
---[[
-	Abysall - Executor yetenek katmani (Environment)
-	------------------------------------------------
-	Tasarim:
-	 1. AYNIK (non-blocking): testler arka planda paralel calisir, yukleme beklemez.
-	 2. IZOLE: hicbir test cokmez, hata olursa sadece o yetenek isaretlenir.
-	 3. AYIRICI: varlik (global fonksiyon mu?) ve dogrulanma (test gecti mi?) ayridir.
-	     Bu sayede CheckCompat gibi senkron kontroller aninda calisir.
-	 4. YEDEKLI: kritik ozellikler icin Environment.Safe.* fallback zincirleri sunar,
-	     boylece bir yetenek yoksa da ozellik cokmek yerine yedek yolla calisir.
-]]
-
 local Environment = {}
+local Log = {}
+local Tested = 0
+local Failed = 0
+local Passed = 0
 
-local RootEnv = (type(getfenv) == "function" and getfenv(0)) or _G
+local BrokenFeatures = {
+	["Volcano"] = {"run_on_actor", "oth"},
+	["Opiumware"] = {"gethiddenproperty"},
+	["Solara"] = {"require"},
+	["Xeno"] = {"require"},
+}
+
+local RootEnv = getfenv(0)
 
 local function GetGlobal(Path)
 	local Value = RootEnv
-	local Guard = 0
-	while type(Value) == "table" and Path ~= "" and Guard < 8 do
-		Guard = Guard + 1
+	while Value ~= nil and Path ~= "" do
 		local Name, NextPath = string.match(Path, "^([^.]+)%.?(.*)$")
 		Value = Value[Name]
 		Path = NextPath
@@ -38,920 +35,595 @@ local Services = setmetatable({}, {
 	end,
 })
 
--- // Executor tespiti (cache'li) //
-local ExecutorName
-local function DetectExecutor()
-	if ExecutorName then return ExecutorName end
-	local Ok, Value = pcall(function()
-		return Global.identifyexecutor()
-	end)
-	if Ok and type(Value) == "string" and Value ~= "" then
-		ExecutorName = Value
-		return ExecutorName
-	end
-	-- global imzalarindan tahmin
-	if type(Global.gethui) == "function" and type(Global.getgenv) == "function" then
-		ExecutorName = "Unknown (gethui tabanli)"
-	elseif type(Global.getgenv) == "function" then
-		ExecutorName = "Unknown"
-	else
-		ExecutorName = "Unknown"
-	end
-	return ExecutorName
-end
-
--- // Durum //
 local Results = {}
-local Capabilities = {}
-local Tests = {}
-local Tested, Passed, Failed, Skipped = 0, 0, 0, 0
-local AllFinished = false
--- Safe tablosu Register'dan SONRA kuruluyor; upvalue'in nil kalmamasi icin once tanimla
-local Safe
 
--- Bazi executor'larda testte kullanilan ozellikler bozuktur
-local BrokenFeatures = {
-	["Volcano"] = { "run_on_actor", "oth" },
-	["Opiumware"] = { "gethiddenproperty" },
-	["Solara"] = { "require" },
-	["Xeno"] = { "require" },
-	["Jupiter"] = { "require" },
-	["AWP"] = { "require" },
-}
-
-local function AddResult(Name, Text, DidPass, Kind)
+local function AddResult(Name, Text, DidPass)
 	table.insert(Results, Text)
-	local Entry = Capabilities[Name]
-	if not Entry then
-		Entry = { Passed = false, Reason = Text, Kind = Kind }
-		Capabilities[Name] = Entry
-	end
-	Entry.Reason = Text
-	Entry.Passed = DidPass or false
-	Entry.Kind = Kind or Entry.Kind
-end
-
--- // Test kaydi //
--- Testler hemen kaydedilir; global fonksiyon varsa Environment[Key] ANINDA atanir
--- (CheckCompat senkron calistigi icin) ve dogrulama arka planda yapilir.
-local function Register(DisplayName, Key, Test, Opts)
-	Opts = Opts or {}
-	local GlobalName = Opts.Global or Key or DisplayName
-	local Target = Global[GlobalName]
-	-- Safe yedegi olan testler global olmasa da calisir (yedek yolu dogrulanir)
-	local SafeFn = nil
-	if Opts.SafeKey and Safe and type(Safe[Opts.SafeKey]) == "function" then
-		SafeFn = Safe[Opts.SafeKey]
-	end
-	local Entry = {
-		Display = DisplayName,
-		Key = Key or GlobalName,
-		Global = GlobalName,
-		Test = Test,
-		Skippable = Opts.Skippable == true,
-		HasFallback = SafeFn ~= nil,
-		Callable = type(Target) == "function" or type(Target) == "table" or SafeFn ~= nil,
+	Log[Name] = {
+		Passed = DidPass,
+		Reason = Text,
 	}
-	Entry.Capability = { Passed = false, Pending = Entry.Callable, Reason = "not tested yet" }
-	Capabilities[DisplayName] = Entry.Capability
-
-	-- Varlik testi: gercek global varsa ANINDA yayinla (CheckCompat senkron calisir)
-	if type(Target) == "function" or type(Target) == "table" then
-		Environment[Entry.Key] = Target
-	end
-	table.insert(Tests, Entry)
-	return Entry
 end
 
-local function RunEntry(Entry)
-	local Executor = DetectExecutor()
-	local Broken = BrokenFeatures[Executor]
-	local Skip = Entry.Skippable
-	if Broken and table.find(Broken, Entry.Display) then
-		Skip = true
+Environment.Results = Results
+Environment.PrintResults = function()
+	local Executor = Environment.identifyexecutor and Environment.identifyexecutor() or "Unknown"
+	print("Test Result")
+	for _, Result in ipairs(Results) do
+		print(Result)
+		task.wait()
 	end
-	if not Entry.Callable then
-		AddResult(Entry.Display, "[X] " .. Entry.Display .. " yok (global bulunamadi)", false, "fail")
+	print("Executor - " .. Executor)
+	print("Tests Passed: " .. Passed .. "/" .. Tested)
+	print("Test Score: " .. math.floor((Passed / Tested) * 100 + 0.5) .. "%")
+end
+
+local function RunTest(Name, Test, InternalName)
+	local TimedOut = false
+	Tested = Tested + 1
+
+	local ExecutorName = Global.identifyexecutor and Global.identifyexecutor() or "Unknown"
+	local BrokenList = BrokenFeatures[ExecutorName]
+	if BrokenList and table.find(BrokenList, Name) then
+		AddResult(Name, "❌ " .. Name .. " failed: test has been skipped", false)
 		Failed = Failed + 1
-		Entry.Capability.Pending = false
-		return
-	end
-	if Entry.HasFallback and not Environment[Entry.Key] then
-		AddResult(Entry.Display, "[-] " .. Entry.Display .. ": global yok, yedek yol kullanilacak", nil, "skip")
-		Skipped = Skipped + 1
-		Entry.Capability.Pending = false
-		return
-	end
-	if Skip then
-		AddResult(Entry.Display, "[-] " .. Entry.Display .. " atlandi", nil, "skip")
-		Skipped = Skipped + 1
-		Entry.Capability.Pending = false
 		return
 	end
 
+	local TargetGlobal = Global[Name]
+	if not TargetGlobal then
+		AddResult(Name, "❌ " .. Name .. " failed: function is nil", false)
+		Failed = Failed + 1
+		return
+	end
+
+	local Time = 0
 	local Finished = false
-	local TimedOut = false
+
 	task.spawn(function()
-		local Ok, Err = pcall(function() return Entry.Test(Global, Environment, Services) end)
+		local Success, Result = pcall(Test)
 		if not TimedOut then
-			-- Oyun durumundan kaynakli gecici hatalar "atlandi" sayilir, eksik yetenek sayilmaz
-			local Message = tostring(Err)
-			if Ok then
-				AddResult(Entry.Display, "[+] " .. Entry.Display, true, "pass")
+			if Success then
+				local Key = InternalName or Name
+				Environment[Key] = TargetGlobal
+				AddResult(Name, "✅ " .. Name, true)
 				Passed = Passed + 1
-			elseif string.find(Message, "atlandi", 1, true) then
-				AddResult(Entry.Display, "[-] " .. Entry.Display .. ": " .. Message, nil, "skip")
-				Skipped = Skipped + 1
 			else
-				AddResult(Entry.Display, "[X] " .. Entry.Display .. ": " .. Message, false, "fail")
+				AddResult(Name, "❌ " .. Name .. " failed: " .. tostring(Result), false)
 				Failed = Failed + 1
 			end
 		end
 		Finished = true
 	end)
 
-	-- Kisa bekleme: 5 saniye. Test cokerse yetenek "belirsiz" sayilir, cokmez.
-	local Waited = 0
-	while not Finished and not TimedOut and Waited < 5 do
-		task.wait(0.1)
-		Waited = Waited + 0.1
-	end
-	if not Finished and not TimedOut then
-		TimedOut = true
-		AddResult(Entry.Display, "[-] " .. Entry.Display .. ": zaman asimi", nil, "skip")
-		Skipped = Skipped + 1
-	end
-	Entry.Capability.Pending = false
-end
-
-local function RunAll()
-	Tested = #Tests
-	for _, Entry in ipairs(Tests) do
-		task.spawn(RunEntry, Entry)
-	end
-	local Waited = 0
-	while Waited < 12 do
-		local Pending = false
-		for _, Entry in ipairs(Tests) do
-			if Entry.Capability.Pending then Pending = true break end
+	while not Finished do
+		Time = Time + 1
+		if Time > 100 then
+			AddResult(Name, "❌ " .. Name .. " failed: test timed out", false)
+			Failed = Failed + 1
+			TimedOut = true
+			break
 		end
-		if not Pending then break end
-		task.wait(0.15)
-		Waited = Waited + 0.15
+		task.wait(0.1)
 	end
-	AllFinished = true
-	Environment.Ready = true
-	pcall(function()
-		warn("[Abysall] Yetenek testi bitti: " .. tostring(Passed) .. "/" .. tostring(Tested)
-			.. " gecti, " .. tostring(Failed) .. " kaldi, " .. tostring(Skipped) .. " atlandi")
+end
+
+RunTest("getgenv", function()
+	assert(typeof(Global.getgenv()) == "table", "Did not return a table")
+	Global.getgenv().Example = "Test"
+	assert(Example == "Test", "Failed to set a global variable")
+	Global.getgenv().Example = nil
+end)
+
+RunTest("getrenv", function()
+	assert(Environment.getgenv, "getgenv is required to test")
+	local Env = Global.getrenv()
+	assert(typeof(Env) == "table", "Did not return a table")
+	assert(typeof(Env.print) == "function", "Did not return an environment table")
+	assert(Global.getrenv ~= Global.getgenv, "getrenv is an alias of getgenv")
+	assert(Global.getgenv() ~= Global.getrenv(), "Returned executor environment")
+	local Success = pcall(function()
+		return Env.loadstring([[return 10]])()
 	end)
-end
+	assert(Success == false, "Should error when calling loadstring from roblox environment")
+end)
 
-Environment.Ready = false
-
--- // Genel API //
-Environment.Results = Results
-Environment.Capabilities = Capabilities
-Environment.Tests = Tests
-
-function Environment.Has(Name)
-	local Entry = Capabilities[Name]
-	return Entry ~= nil and Entry.Passed == true
-end
-
--- Global gercekten var mi (test sonucu beklenmeden)
-function Environment.Usable(Name)
-	local Value = Environment[Name]
-	return Value ~= nil
-end
-
-function Environment.Score()
-	if Tested == 0 then return 0 end
-	return math.floor((Passed / Tested) * 1000 + 0.5) / 10
-end
-
-function Environment.Stats()
-	return { Tested = Tested, Passed = Passed, Failed = Failed, Skipped = Skipped, Ready = AllFinished }
-end
-
--- InfoTab icin tek parca ozet
-function Environment.Report()
-	local S = Environment.Stats()
-	local Lines = {}
-	table.insert(Lines, "Executor: " .. DetectExecutor())
-	table.insert(Lines, string.format("Skor: %s%%  (%d/%d gecti, %d kaldi, %d atlandi)",
-		tostring(Environment.Score()), S.Passed, S.Tested, S.Failed, S.Skipped))
-	if S.Failed > 0 then
-		local Names = {}
-		for _, Entry in ipairs(Tests) do
-			if Entry.Capability.Kind == "fail" then
-				table.insert(Names, Entry.Display)
-			end
-		end
-		table.insert(Lines, "Eksik: " .. table.concat(Names, ", "))
-	else
-		table.insert(Lines, "Eksik: yok")
+RunTest("getgc", function()
+	local TestFunction = function()
+		return 10
 	end
-	return table.concat(Lines, "\n")
-end
+	local TestTable = { Value = 10 }
+	local YesTables = Global.getgc(true)
+	local NoTables = Global.getgc(false)
+	assert(table.find(YesTables, TestTable), "Failed to find a table")
+	assert(table.find(YesTables, TestFunction), "Failed to find a function")
+	assert(not table.find(NoTables, TestTable), "Should not return a table when called with false")
+	assert(table.find(NoTables, TestFunction), "Failed to find a function")
+end)
 
-Environment.identifyexecutor = DetectExecutor
+RunTest("identifyexecutor", function()
+	assert(typeof(Global.identifyexecutor()) == "string", "Did not return a string")
+end)
 
--- Test sonucu beklenmeden calistirilabilsin
-function Environment.WaitReady(Timeout)
-	local Waited = 0
-	while not AllFinished and Waited < (Timeout or 10) do
-		task.wait(0.1)
-		Waited = Waited + 0.1
-	end
-	return AllFinished
-end
-
--- // Yedekli (fallback) yardimcilar //
--- Bunlar her zaman guvenli: gercek API varsa o, yoksa yedek yolu.
-local MemoryFS = {}
-local Folders = { ["Abysall"] = true, ["Abysall/addons"] = true }
-
-Safe = {}
-
-Safe.cloneref = function(Object)
-	if type(Environment.cloneref) == "function" then
-		local Ok, Clone = pcall(Environment.cloneref, Object)
-		if Ok and Clone ~= nil then return Clone end
-	end
-	return Object
-end
-
-Safe.gethui = function()
-	if type(Environment.gethui) == "function" then
-		local Ok, Hui = pcall(Environment.gethui)
-		if Ok and type(Hui) == "Instance" then return Hui end
-	end
-	-- Kendi konteynerimizi olustur
-	local Ok, Hui = pcall(function()
-		local Core = game:GetService("CoreGui")
-		local Existing = Core:FindFirstChild("AbysallGui")
-		if Existing then return Existing end
-		local New = Instance.new("ScreenGui")
-		New.Name = "AbysallGui"
-		New.ResetOnSpawn = false
-		New.IgnoreGuiInset = true
-		New.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-		New.Parent = Core
-		return New
-	end)
-	if Ok and Hui then return Hui end
-	return nil
-end
-
-Safe.HttpGet = function(Url)
-	if type(Environment.request) == "function" then
-		local Ok, Res = pcall(function()
-			return Environment.request({ Url = Url, Method = "GET" })
-		end)
-		if Ok and type(Res) == "table" and type(Res.Body) == "string" and #Res.Body > 0 then
-			return Res.Body
-		end
-	end
-	local Ok, Body = pcall(game.HttpGet, game, Url)
-	if Ok and type(Body) == "string" then return Body end
-	return nil
-end
-
--- Dosya sistemi: gercek FS yoksa bellek ici yedek
-local function RealFS(Name)
-	if type(Environment[Name]) == "function" then return Environment[Name] end
-	if type(Global[Name]) == "function" then return Global[Name] end
-	return nil
-end
-
-Safe.isfolder = function(Path)
-	local F = RealFS("isfolder")
-	if F then
-		local Ok, Res = pcall(F, Path)
-		if Ok and type(Res) == "boolean" then return Res end
-	end
-	return Folders[tostring(Path)] == true
-end
-
-Safe.makefolder = function(Path)
-	local F = RealFS("makefolder")
-	if F then
-		local Ok = pcall(F, Path)
-		if Ok then return true end
-	end
-	Folders[tostring(Path)] = true
-	return true
-end
-
-Safe.delfolder = function(Path)
-	local F = RealFS("delfolder")
-	if F then pcall(F, Path) end
-	Folders[tostring(Path)] = nil
-	return true
-end
-
-Safe.isfile = function(Path)
-	local F = RealFS("isfile")
-	if F then
-		local Ok, Res = pcall(F, Path)
-		if Ok and type(Res) == "boolean" then return Res end
-	end
-	return MemoryFS[tostring(Path)] ~= nil
-end
-
-Safe.readfile = function(Path)
-	local F = RealFS("readfile")
-	if F then
-		local Ok, Res = pcall(F, Path)
-		if Ok and type(Res) == "string" then return Res end
-	end
-	return MemoryFS[tostring(Path)]
-end
-
-Safe.writefile = function(Path, Data)
-	local F = RealFS("writefile")
-	if F then
-		local Ok = pcall(F, Path, Data)
-		if Ok then return true end
-	end
-	MemoryFS[tostring(Path)] = tostring(Data)
-	return true
-end
-
-Safe.appendfile = function(Path, Data)
-	local F = RealFS("appendfile")
-	if F then
-		local Ok = pcall(F, Path, Data)
-		if Ok then return true end
-	end
-	MemoryFS[tostring(Path)] = (MemoryFS[tostring(Path)] or "") .. tostring(Data)
-	return true
-end
-
-Safe.delfile = function(Path)
-	local F = RealFS("delfile")
-	if F then pcall(F, Path) end
-	MemoryFS[tostring(Path)] = nil
-	return true
-end
-
-Safe.listfiles = function(Path)
-	local F = RealFS("listfiles")
-	if F then
-		local Ok, Res = pcall(F, Path)
-		if Ok and type(Res) == "table" then return Res end
-	end
-	local Out = {}
-	for Key in pairs(MemoryFS) do
-		local Dir = Key:match("^(.-)[/\\][^/\\]+$")
-		if Dir == tostring(Path) then table.insert(Out, Key) end
-	end
-	return Out
-end
-
-Safe.loadfile = function(Path)
-	local Src = Safe.readfile(Path)
-	if type(Src) ~= "string" then return nil end
-	local Ok, Fn = pcall(loadstring, Src)
-	if Ok then return Fn end
-	return nil
-end
-
-Safe.fireproximityprompt = function(Prompt)
-	if type(Environment.fireproximityprompt) == "function" then
-		local Ok = pcall(Environment.fireproximityprompt, Prompt)
-		if Ok then return true end
-	end
-	return false
-end
-
-Safe.firesignal = function(Signal, ...)
-	if type(Environment.firesignal) == "function" then
-		local Ok = pcall(Environment.firesignal, Signal, ...)
-		if Ok then return true end
-	end
-	return false
-end
-
-Safe.getconnections = function(Owner, Signal)
-	if type(Environment.getconnections) == "function" then
-		local Ok, Res = pcall(Environment.getconnections, Owner, Signal)
-		if Ok and type(Res) == "table" then return Res end
-	end
-	return {}
-end
-
-Safe.getnamecallmethod = function()
-	if type(Environment.getnamecallmethod) == "function" then
-		local Ok, Res = pcall(Environment.getnamecallmethod)
-		if Ok and type(Res) == "string" then return Res end
-	end
-	return nil
-end
-
-Safe.newcclosure = function(Fn)
-	if type(Environment.newcclosure) == "function" then
-		local Ok, Res = pcall(Environment.newcclosure, Fn)
-		if Ok and type(Res) == "function" then return Res end
-	end
-	return Fn
-end
-
-Safe.hookfunction = function(Target, Hook)
-	if type(Environment.hookfunction) == "function" then
-		local Ok, Res = pcall(Environment.hookfunction, Target, Hook)
-		if Ok and type(Res) == "function" then return Res, true end
-	end
-	return Target, false
-end
-
-Safe.isnetworkowner = function(Part)
-	if type(Environment.isnetworkowner) == "function" then
-		local Ok, Res = pcall(Environment.isnetworkowner, Part)
-		if Ok and type(Res) == "boolean" then return Res end
-	end
-	-- Yedek: yerel karaktere aitse network owner biziz
-	local Local = Services.Players.LocalPlayer
-	local Char = Local and Local.Character
-	if Char and Part and Part:IsDescendantOf(Char) then return true end
-	return false
-end
-
-Safe.replicatesignal = function(Signal, ...)
-	if type(Environment.replicatesignal) == "function" then
-		local Ok = pcall(Environment.replicatesignal, Signal, ...)
-		if Ok then return true end
-	end
-	return false
-end
-
-Safe.firetouchinterest = function(A, B, Toggle)
-	if type(Environment.firetouchinterest) == "function" then
-		local Ok = pcall(Environment.firetouchinterest, A, B, Toggle)
-		if Ok then return true end
-	end
-	return false
-end
-
-Safe.require = function(Module)
-	if type(Environment.require) == "function" then
-		local Ok, Res = pcall(Environment.require, Module)
-		if Ok and Res ~= nil then return Res end
-	end
-	return nil
-end
-
-Environment.Safe = Safe
-
--- // Testler //
-local T = {}
-
-T.getgenv = function(G)
-	local Env = G.getgenv()
-	assert(typeof(Env) == "table", "tablo donmedi")
-	Env.__abysall_test = "ok"
-	assert(Env.__abysall_test == "ok", "global yazilamadi")
-	Env.__abysall_test = nil
-end
-
-T.getrenv = function(G)
-	assert(typeof(G.getrenv) == "function", "getrenv yok")
-	local Env = G.getrenv()
-	assert(typeof(Env) == "table", "tablo donmedi")
-	assert(Env ~= G.getgenv(), "getrenv, getgenv ile ayni")
-end
-
-T.getgc = function(G)
-	assert(typeof(G.getgc) == "function", "getgc yok")
-	local All = G.getgc(true)
-	assert(type(All) == "table", "tablo donmedi")
-	local NoTables = G.getgc(false)
-	assert(type(NoTables) == "table", "tablo donmedi")
-	local F = function() return 10 end
-	assert(table.find(All, F) ~= nil, "fonksiyonlar icinde degil")
-end
-
-T.identifyexecutor = function(G)
-	assert(typeof(G.identifyexecutor()) == "string", "string donmedi")
-end
-
-T.request = function(G, Env)
-	assert(typeof(Env.Safe.HttpGet) == "function", "HttpGet yok")
-	local Body = Env.Safe.HttpGet("https://raw.githubusercontent.com/arda201415/Abysall/refs/heads/main/README.md")
-	assert(type(Body) == "string" and #Body > 0, "govde bos")
-end
-
-T.cloneref = function(G, Env)
-	assert(typeof(G.cloneref) == "function", "cloneref yok")
-	local Part = Instance.new("Part")
-	local Clone = G.cloneref(Part)
-	assert(typeof(Clone) == "Instance", "Instance donmedi")
-	assert(Part ~= Clone, "klone ayni")
-	Part:Destroy()
-end
-
-T.gethui = function(G, Env)
-	local Hui = Env.Safe.gethui()
-	assert(type(Hui) == "Instance", "Instance donmedi")
-end
-
-T.getcallbackvalue = function(G)
-	assert(typeof(G.getcallbackvalue) == "function", "getcallbackvalue yok")
-	local B = Instance.new("BindableFunction")
-	B.OnInvoke = function(Value) return Value * 10 end
-	local Cb = G.getcallbackvalue(B, "OnInvoke")
-	assert(typeof(Cb) == "function", "fonksiyon donmedi")
-	assert(Cb(5) == 50, "dogru degeri donmedi")
-	B:Destroy()
-end
-
-T.getinstances = function(G)
-	assert(typeof(G.getinstances) == "function", "getinstances yok")
-	local P = Instance.new("Part")
-	local L = G.getinstances()
-	assert(type(L) == "table", "tablo donmedi")
-	P:Destroy()
-end
-
-T.getnilinstances = function(G)
-	assert(typeof(G.getnilinstances) == "function", "getnilinstances yok")
-	local P = Instance.new("Part")
-	local L = G.getnilinstances()
-	assert(type(L) == "table", "tablo donmedi")
-	P:Destroy()
-end
-
-T.fireproximityprompt = function(G, Env)
-	assert(typeof(G.fireproximityprompt) == "function", "fireproximityprompt yok")
-	local Part = Instance.new("Part", game:GetService("Workspace"))
-	local Prompt = Instance.new("ProximityPrompt", Part)
-	local Fired = false
-	local Conn = Prompt.Triggered:Connect(function() Fired = true end)
-	G.fireproximityprompt(Prompt)
-	for _ = 1, 10 do
-		if Fired then break end
-		task.wait(0.1)
-	end
-	Conn:Disconnect()
-	Part:Destroy()
-	assert(Fired == true, "prompt tetiklenmedi")
-end
-
-T.fireclickdetector = function(G, Env)
-	assert(typeof(G.fireclickdetector) == "function", "fireclickdetector yok")
-	local Part = Instance.new("Part", game:GetService("Workspace"))
-	local Click = Instance.new("ClickDetector", Part)
-	local Fired = false
-	local Conn = Click.MouseClick:Connect(function() Fired = true end)
-	G.fireclickdetector(Click)
-	for _ = 1, 10 do
-		if Fired then break end
-		task.wait(0.1)
-	end
-	Conn:Disconnect()
-	Part:Destroy()
-	assert(Fired == true, "click detector tetiklenmedi")
-end
-
-T.firetouchinterest = function(G)
-	assert(typeof(G.firetouchinterest) == "function", "firetouchinterest yok")
-	local A = Instance.new("Part", game:GetService("Workspace"))
-	local B = Instance.new("Part", game:GetService("Workspace"))
-	A.Position = Vector3.new(0, 1000, 0)
-	B.Position = Vector3.new(0, 1000, 0)
-	local Fired = false
-	local Conn = A.Touched:Connect(function(Child)
-		if Child == B then Fired = true end
-	end)
-	G.firetouchinterest(A, B, 0)
-	task.wait()
-	G.firetouchinterest(A, B, 1)
-	for _ = 1, 10 do
-		if Fired then break end
-		task.wait(0.1)
-	end
-	Conn:Disconnect()
-	A:Destroy()
-	B:Destroy()
-	assert(Fired == true, "touch interest tetiklenmedi")
-end
-
-T.clonefunction = function(G)
-	assert(typeof(G.clonefunction) == "function", "clonefunction yok")
-	local F = function() return 10 end
-	local C = G.clonefunction(F)
-	assert(C ~= F, "klone ayni")
-	assert(C() == 10, "farkli deger dondu")
-end
-
-T.newcclosure = function(G, Env)
-	assert(typeof(G.newcclosure) == "function", "newcclosure yok")
-	local F = function() return 10 end
-	local C = Env.Safe.newcclosure(F)
-	assert(C ~= F, "klone ayni")
-	assert(C() == 10, "farkli deger dondu")
-end
-
-T.hookfunction = function(G, Env)
-	assert(typeof(G.hookfunction) == "function", "hookfunction yok")
-	local F = function() return 10 end
-	local Old = G.hookfunction(F, function() return 100 end)
-	assert(F() == 100, "hook uygulanmadi")
-	if typeof(Old) == "function" then Old() end
-end
-
-T.restorefunction = function(G)
-	assert(typeof(G.restorefunction) == "function", "restorefunction yok")
-	local F = function() return 10 end
-	G.hookfunction(F, function() return 100 end)
-	G.restorefunction(F)
-	assert(F() == 10, "unhook basarisiz")
-end
-
-T.isfunctionhooked = function(G)
-	assert(typeof(G.isfunctionhooked) == "function", "isfunctionhooked yok")
-	local F = function() return 10 end
-	assert(G.isfunctionhooked(F) == false, "temiz fonksiyon hooked gorunuyor")
-end
-
-T.isexecutorclosure = function(G)
-	assert(typeof(G.isexecutorclosure) == "function", "isexecutorclosure yok")
-	assert(type(G.isexecutorclosure) == "function", "calismiyor")
-end
-
-T.getnamecallmethod = function(G)
-	assert(typeof(G.getnamecallmethod) == "function", "getnamecallmethod yok")
-	pcall(function() game:AbysallTestMethod() end)
-	assert(typeof(G.getnamecallmethod()) == "string", "string donmedi")
-end
-
-T.hookmetamethod = function(G, Env)
-	assert(typeof(G.hookmetamethod) == "function", "hookmetamethod yok")
-	assert(typeof(G.newcclosure) == "function", "newcclosure yok")
-	local T1 = setmetatable({}, {
-		__index = G.newcclosure(function() return "normal" end),
+RunTest("request", function()
+	local Response = Global.request({
+		Url = "https://raw.githubusercontent.com/arda201415/Abysall/refs/heads/main/Components/Environment.luau",
+		Method = "GET",
 	})
-	G.hookmetamethod(T1, "__index", G.newcclosure(function() return "hooked" end))
-	assert(T1.AbysallExample == "hooked", "metamethod hook calismadi")
-end
+	assert(Response.StatusCode == 200, "Status code should be 200")
+	assert(typeof(Response.Body) == "string", "Body should be a string")
+end)
 
-T.getrawmetatable = function(G)
-	assert(typeof(G.getrawmetatable) == "function", "getrawmetatable yok")
-	local MT = { __metatable = "Locked" }
-	local Obj = setmetatable({}, MT)
-	assert(G.getrawmetatable(Obj) == MT, "metatable donmedi")
-end
+RunTest("cloneref", function()
+	local TestPart = Instance.new("Part")
+	local Clone = Global.cloneref(TestPart)
+	assert(typeof(Clone) == "Instance", "Should return an Instance")
+	assert(TestPart ~= Clone, "Clone should not be equal to original")
+	TestPart.Name = "Test"
+	assert(Clone.Name == "Test", "Changing the original did not change the clone")
+	TestPart:Destroy()
+end)
 
-T.setrawmetatable = function(G)
-	assert(typeof(G.setrawmetatable) == "function", "setrawmetatable yok")
-	assert(typeof(G.getrawmetatable) == "function", "getrawmetatable yok")
-	local Obj = setmetatable({}, { __metatable = "Locked" })
-	G.setrawmetatable(Obj, { __index = function() return "Edited" end })
-	assert(Obj.AbysallExample == "Edited", "metatable yazilamadi")
-end
+RunTest("gethui", function()
+	local Hui = Global.gethui()
+	assert(typeof(Hui) == "Instance", "Should return an instance")
+	local ValidClasses = { "ScreenGui", "Folder", "BasePlayerGui", "CoreGui" }
+	if not Hui:IsDescendantOf(Services.CoreGui) and Hui.ClassName ~= "CoreGui" or not table.find(ValidClasses, Hui.ClassName) then
+		error("Did not return a valid gui container")
+	end
+end)
 
-T.isreadonly = function(G)
-	assert(typeof(G.isreadonly) == "function", "isreadonly yok")
-	assert(G.isreadonly({}) == false, "yazilabilir tablo readonly sayildi")
-end
-
-T.setreadonly = function(G)
-	assert(typeof(G.setreadonly) == "function", "setreadonly yok")
-	assert(typeof(G.isreadonly) == "function", "isreadonly yok")
-	local Tab = { Value = 10 }
-	table.freeze(Tab)
-	G.setreadonly(Tab, false)
-	assert(G.isreadonly(Tab) == false, "readonly kaldirilamadi")
-end
-
-T.Drawing = function(G)
-	assert(type(G.Drawing) == "table", "Drawing tablosu yok")
-	assert(typeof(G.Drawing.new) == "function", "Drawing.new yok")
-end
-
-T.Drawing_Fonts = function(G)
-	assert(type(G.Drawing) == "table", "Drawing tablosu yok")
-	assert(type(G.Drawing.Fonts) == "table", "Drawing.Fonts tablo degil")
-end
-
-T.writefile = function(G, Env)
-	Env.Safe.writefile("Abysall/env_test", "example")
-	assert(Env.Safe.readfile("Abysall/env_test") == "example", "veri eslesmedi")
-end
-
-T.isfile = function(G, Env)
-	Env.Safe.writefile("Abysall/env_test", "example")
-	assert(Env.Safe.isfile("Abysall/env_test") == true, "dosya yok")
-end
-
-T.readfile = function(G, Env)
-	Env.Safe.writefile("Abysall/env_test", "example")
-	assert(Env.Safe.readfile("Abysall/env_test") == "example", "veri okunamadi")
-end
-
-T.appendfile = function(G, Env)
-	Env.Safe.writefile("Abysall/env_test", "a")
-	Env.Safe.appendfile("Abysall/env_test", "b")
-	assert(Env.Safe.readfile("Abysall/env_test") == "ab", "ekleme basarisiz")
-end
-
-T.delfile = function(G, Env)
-	Env.Safe.writefile("Abysall/env_test", "a")
-	Env.Safe.delfile("Abysall/env_test")
-	assert(Env.Safe.isfile("Abysall/env_test") == false, "silinemedi")
-end
-
-T.makefolder = function(G, Env)
-	Env.Safe.makefolder("Abysall/envfolder")
-	assert(Env.Safe.isfolder("Abysall/envfolder") == true, "klasor olusmadi")
-end
-
-T.delfolder = function(G, Env)
-	Env.Safe.makefolder("Abysall/envfolder")
-	Env.Safe.delfolder("Abysall/envfolder")
-	assert(Env.Safe.isfolder("Abysall/envfolder") == false, "klasor silinemedi")
-end
-
-T.listfiles = function(G, Env)
-	assert(typeof(Env.Safe.listfiles) == "function", "listfiles yok")
-	assert(type(Env.Safe.listfiles("Abysall")) == "table", "tablo donmedi")
-end
-
-T.getcustomasset = function(G, Env)
-	assert(typeof(G.getcustomasset) == "function", "getcustomasset yok")
-	assert(typeof(Env.Safe.writefile) == "function", "writefile yok")
-	local Content = Env.Safe.HttpGet("https://raw.githubusercontent.com/arda201415/Abysall/refs/heads/main/README.md")
-	assert(type(Content) == "string", "uzak dosya okunamadi")
-end
-
-T.gethiddenproperty = function(G)
-	assert(typeof(G.gethiddenproperty) == "function", "gethiddenproperty yok")
-	local Part = Instance.new("Part")
-	local V = G.gethiddenproperty(Part, "NetworkIsSleeping")
-	Part:Destroy()
-	assert(type(V) == "boolean" or V ~= nil, "deger donmedi")
-end
-
-T.sethiddenproperty = function(G)
-	assert(typeof(G.sethiddenproperty) == "function", "sethiddenproperty yok")
-	assert(typeof(G.gethiddenproperty) == "function", "gethiddenproperty yok")
-	local Part = Instance.new("Part")
-	G.sethiddenproperty(Part, "NetworkIsSleeping", true)
-	local V = G.gethiddenproperty(Part, "NetworkIsSleeping")
-	Part:Destroy()
-	assert(V == true, "gizli ozellik yazilamadi")
-end
-
-T.getthreadidentity = function(G)
-	assert(typeof(G.getthreadidentity) == "function", "getthreadidentity yok")
-	local I = G.getthreadidentity()
-	assert(typeof(I) == "number", "sayi donmedi")
-	assert(I > 0 and I < 9, "gecersiz kimlik")
-end
-
-T.setthreadidentity = function(G)
-	assert(typeof(G.setthreadidentity) == "function", "setthreadidentity yok")
-	assert(typeof(G.getthreadidentity) == "function", "getthreadidentity yok")
-	local Old = G.getthreadidentity()
-	local Ok = pcall(function()
-		G.setthreadidentity(2)
-		assert(G.getthreadidentity() == 2, "kimlik degismedi")
+RunTest("getcallbackvalue", function()
+	local TestBindable = Instance.new("BindableFunction")
+	TestBindable.OnInvoke = function(Value)
+		return Value * 10
+	end
+	local Callback = Global.getcallbackvalue(TestBindable, "OnInvoke")
+	local Success, Result = pcall(function()
+		assert(typeof(Callback) == "function", "Did not return a function")
+		assert(Callback(5) == 50, "Did not return the callback value")
 	end)
-	pcall(function() G.setthreadidentity(Old) end)
-	assert(Ok, "kimlik degistirilemedi")
-end
+	TestBindable:Destroy()
+	assert(Success, Result)
+end)
 
-T.isnetworkowner = function(G, Env)
-	assert(typeof(G.isnetworkowner) == "function", "isnetworkowner yok")
-	local Local = game:GetService("Players").LocalPlayer
-	local RootPart = Local.Character and Local.Character:FindFirstChild("HumanoidRootPart")
-	if not RootPart then error("karakter yok, atlandi") end
-	local Ok = pcall(function()
-		assert(G.isnetworkowner(RootPart) == true, "kendi parcamiz owner degil")
+RunTest("getinstances", function()
+	local TestPart1 = Instance.new("Part")
+	local TestPart2 = Instance.new("Part", Services.Workspace)
+	local InstanceList = Global.getinstances()
+	local Found1 = table.find(InstanceList, TestPart1)
+	local Found2 = table.find(InstanceList, TestPart2)
+	TestPart1:Destroy()
+	TestPart2:Destroy()
+	assert(Found2, "Did not return an instance")
+	assert(Found1, "Did not return an instance parented to nil")
+end)
+
+RunTest("getnilinstances", function()
+	local TestPart1 = Instance.new("Part")
+	local TestPart2 = Instance.new("Part", Services.Workspace)
+	local InstanceList = Global.getnilinstances()
+	local FoundNil = table.find(InstanceList, TestPart1)
+	local FoundParented = table.find(InstanceList, TestPart2)
+	TestPart1:Destroy()
+	TestPart2:Destroy()
+	assert(not FoundParented, "Returned an instance not parented to nil")
+	assert(FoundNil, "Did not return an instance parented to nil")
+end)
+
+RunTest("fireproximityprompt", function()
+	local TestPart = Instance.new("Part", Services.Workspace)
+	local TestPrompt = Instance.new("ProximityPrompt", TestPart)
+	local Fired = false
+	local Connection = TestPrompt.Triggered:Connect(function()
+		Fired = true
 	end)
-	assert(Ok, "kendi parcamiz owner gorunmuyor")
-end
-
-T.firesignal = function(G)
-	assert(typeof(G.firesignal) == "function", "firesignal yok")
-	local E = Instance.new("RemoteEvent")
-	local Got
-	local Conn = E.OnClientEvent:Connect(function(A) Got = A end)
-	G.firesignal(E.OnClientEvent, "Abysall")
-	for _ = 1, 10 do
-		if Got then break end
+	Global.fireproximityprompt(TestPrompt)
+	local Tries = 0
+	while not Fired and Tries < 10 do
+		Tries = Tries + 1
 		task.wait(0.1)
 	end
-	Conn:Disconnect()
-	E:Destroy()
-	assert(Got == "Abysall", "sinyal iletilemedi")
-end
+	Connection:Disconnect()
+	TestPart:Destroy()
+	assert(Fired == true, "Failed to fire a proximity prompt")
+end)
 
-T.getconnections = function(G, Env)
-	assert(typeof(G.getconnections) == "function", "getconnections yok")
-	assert(type(G.getconnections(game.ChildAdded)) == "table", "tablo donmedi")
-end
-
-T.require = function(G)
-	assert(typeof(G.require) == "function", "require yok")
-	local Module = game:GetService("Players").LocalPlayer.PlayerScripts:FindFirstChildOfClass("ModuleScript")
-	if not Module then error("test modulu yok, atlandi") end
-	local Res = G.require(Module)
-	assert(typeof(Res) == "table", "tablo donmedi")
-end
-
--- // Testleri kaydet (sira sonucu degistirmez) //
-local Order = {
-	{ "getgenv", nil, false },
-	{ "getrenv", nil, false },
-	{ "getgc", nil, false },
-	{ "identifyexecutor", nil, false },
-	{ "request", nil, false },
-	{ "cloneref", nil, false },
-	{ "gethui", nil, false },
-	{ "getcallbackvalue", nil, false },
-	{ "getinstances", nil, false },
-	{ "getnilinstances", nil, false },
-	{ "fireproximityprompt", nil, false },
-	{ "fireclickdetector", nil, false },
-	{ "firetouchinterest", nil, false },
-	{ "clonefunction", nil, false },
-	{ "newcclosure", nil, false },
-	{ "hookfunction", nil, false },
-	{ "restorefunction", nil, false },
-	{ "isfunctionhooked", nil, false },
-	{ "isexecutorclosure", nil, false },
-	{ "getnamecallmethod", nil, false },
-	{ "hookmetamethod", nil, false },
-	{ "getrawmetatable", nil, false },
-	{ "setrawmetatable", nil, false },
-	{ "isreadonly", nil, false },
-	{ "setreadonly", nil, false },
-	{ "Drawing", "Drawing_New", false },
-	{ "Drawing_Fonts", "Drawing_Fonts", false },
-	{ "writefile", nil, false },
-	{ "isfile", nil, false },
-	{ "readfile", nil, false },
-	{ "appendfile", nil, false },
-	{ "delfile", nil, false },
-	{ "makefolder", nil, false },
-	{ "delfolder", nil, false },
-	{ "listfiles", nil, false },
-	{ "getcustomasset", nil, true },
-	{ "gethiddenproperty", nil, false },
-	{ "sethiddenproperty", nil, false },
-	{ "getthreadidentity", nil, false },
-	{ "setthreadidentity", nil, false },
-	{ "isnetworkowner", nil, false },
-	{ "firesignal", nil, false },
-	{ "getconnections", nil, false },
-	{ "require", nil, true },
-}
-
--- Testler icin guvenli yedek bulunanlar (global yoksa bile dogrulanabilir)
-local SafeBacked = {
-	["request"] = "HttpGet",
-	["gethui"] = "gethui",
-	["cloneref"] = "cloneref",
-	["writefile"] = "writefile",
-	["isfile"] = "isfile",
-	["readfile"] = "readfile",
-	["appendfile"] = "appendfile",
-	["delfile"] = "delfile",
-	["makefolder"] = "makefolder",
-	["delfolder"] = "delfolder",
-	["listfiles"] = "listfiles",
-	["fireproximityprompt"] = "fireproximityprompt",
-	["isnetworkowner"] = "isnetworkowner",
-}
-
-for _, Def in ipairs(Order) do
-	local Name, Key, Skippable = Def[1], Def[2], Def[3]
-	local Fn = T[Name]
-	if type(Fn) == "function" then
-		Register(Name, Key or Name, Fn, { Skippable = Skippable, SafeKey = SafeBacked[Name] })
-	else
-		Register(Name, Key or Name, function() end, { Skippable = true })
+RunTest("fireclickdetector", function()
+	local TestPart = Instance.new("Part", Services.Workspace)
+	local TestClick = Instance.new("ClickDetector", TestPart)
+	local Fired = false
+	local Connection = TestClick.MouseClick:Connect(function()
+		Fired = true
+	end)
+	Global.fireclickdetector(TestClick)
+	local Tries = 0
+	while not Fired and Tries < 10 do
+		Tries = Tries + 1
+		task.wait(0.1)
 	end
-end
+	Connection:Disconnect()
+	TestPart:Destroy()
+	assert(Fired == true, "Failed to fire a click detector")
+end)
 
--- Test edilmeden de kullanilan API'ler gorunur kalsin
-for _, Extra in ipairs({ "isfolder", "getproperty", "gethiddenprop", "setclipboard", "setfflag", "request_async" }) do
-	if type(Global[Extra]) == "function" and Environment[Extra] == nil then
-		Environment[Extra] = Global[Extra]
+RunTest("firetouchinterest", function()
+	local TestPart1 = Instance.new("Part", Services.Workspace)
+	TestPart1.Position = Vector3.new(0, 1000, 0)
+	local TestPart2 = Instance.new("Part", Services.Workspace)
+	TestPart2.Position = Vector3.new(0, 1000, 0)
+	local Fired = false
+	local Connection = TestPart1.Touched:Connect(function(Child)
+		if Child == TestPart2 then
+			Fired = true
+		end
+	end)
+	Global.firetouchinterest(TestPart1, TestPart2, 0)
+	task.wait()
+	Global.firetouchinterest(TestPart1, TestPart2, 1)
+	local Tries = 0
+	while not Fired and Tries < 10 do
+		Tries = Tries + 1
+		task.wait(0.1)
 	end
-end
+	Connection:Disconnect()
+	TestPart1:Destroy()
+	TestPart2:Destroy()
+	assert(Fired == true, "Failed to fire a touch interest")
+end)
 
-Environment.PrintResults = function()
-	print("Test Result")
-	print(Environment.Report())
-	for _, Result in ipairs(Results) do
-		print(Result)
+RunTest("clonefunction", function()
+	local TestFunction = function()
+		return 10
 	end
-end
+	local TestClone = Global.clonefunction(TestFunction)
+	assert(TestFunction ~= TestClone, "Returned the original function")
+	assert(TestFunction() == TestClone(), "Clone did not return the same as the original")
+end)
 
--- Tum testler kaydedildikten sonra baslat ( aksi halde Tested = 0 olur)
-task.spawn(RunAll)
+RunTest("newcclosure", function()
+	local TestFunction = function()
+		return 10
+	end
+	local TestC = Global.newcclosure(TestFunction)
+	assert(TestFunction ~= TestC, "Returned the original function")
+	assert(TestFunction() == TestC(), "Did not return the same value as the original")
+	assert(TestC() == 10, "Did not return the correct value")
+	assert(debug.info(TestC, "s") == "[C]", "Did not return a C function")
+end)
+
+RunTest("hookfunction", function()
+	local TestFunction = function()
+		return 10
+	end
+	local TestC = Global.newcclosure(function()
+		return 25
+	end)
+	local TestHook = function()
+		return 100
+	end
+	local Old = Global.hookfunction(TestFunction, TestHook)
+	local OldC = Global.hookfunction(TestC, TestHook)
+	assert(TestFunction ~= TestHook, "Original and hook are the same function")
+	assert(debug.info(TestC, "s") == "[C]", "Hooked C function is no longer in C")
+	assert(TestFunction() == 100, "Did not change the return value")
+	assert(Old() == 10, "Did not return the original function")
+	assert(OldC() == 25, "Did not return the original C function")
+end)
+
+RunTest("restorefunction", function()
+	assert(Environment.hookfunction, "hookfunction is required to test")
+	local TestFunction = function()
+		return 10
+	end
+	local TestHook = function()
+		return 100
+	end
+	Global.hookfunction(TestFunction, TestHook)
+	Global.restorefunction(TestFunction)
+	assert(TestFunction() == 10, "Failed to unhook a function")
+end)
+
+RunTest("isfunctionhooked", function()
+	assert(Environment.hookfunction, "hookfunction is required to test")
+	assert(Environment.restorefunction, "restorefunction is required to test")
+	local TestFunction = function()
+		return 10
+	end
+	local TestHook = function()
+		return 100
+	end
+	Global.hookfunction(TestFunction, TestHook)
+	assert(Global.isfunctionhooked(TestFunction) == true, "Did not return true for a hooked function")
+	Global.restorefunction(TestFunction)
+	assert(Global.isfunctionhooked(TestFunction) == false, "Did not return false for an unhooked function")
+end)
+
+RunTest("isexecutorclosure", function()
+	assert(Environment.newcclosure, "newcclosure is required to test")
+	local TestFunction = function()
+		return 10
+	end
+	local TestC = Global.newcclosure(TestFunction)
+	assert(Global.isexecutorclosure(TestFunction) == true, "Did not return true for an executor function")
+	assert(Global.isexecutorclosure(Global.newcclosure) == true, "Did not return true for an executor global")
+	assert(Global.isexecutorclosure(warn) == false, "Did not return false for a Roblox global")
+	assert(Global.isexecutorclosure(TestC) == true, "Did not return true for an executor C function")
+end)
+
+RunTest("getnamecallmethod", function()
+	pcall(function()
+		game:ExampleNamecall()
+	end)
+	assert(typeof(Global.getnamecallmethod()) == "string", "Did not return a string")
+	assert(Global.getnamecallmethod() == "ExampleNamecall", "Did not return the correct method")
+end)
+
+RunTest("hookmetamethod", function()
+	assert(Environment.getnamecallmethod, "getnamecallmethod is required to test")
+	assert(Environment.newcclosure, "newcclosure is required to test")
+	local TestTable = setmetatable({}, {
+		__index = Global.newcclosure(function()
+			return "normal"
+		end),
+	})
+	Global.hookmetamethod(TestTable, "__index", Global.newcclosure(function()
+		return "hooked"
+	end))
+	assert(TestTable.Example == "hooked", "Failed to hook a metamethod")
+end)
+
+RunTest("getrawmetatable", function()
+	local TestTable = { __metatable = "Locked!" }
+	local TestObject = setmetatable({}, TestTable)
+	assert(Global.getrawmetatable(TestObject) == TestTable, "Did not return the metatable")
+end)
+
+RunTest("setrawmetatable", function()
+	assert(Environment.getrawmetatable, "getrawmetatable is required to test")
+	local TestTable = { __metatable = "Locked!" }
+	local TestObject = setmetatable({}, TestTable)
+	Global.setrawmetatable(TestObject, {
+		__index = function()
+			return "Edited!"
+		end,
+	})
+	assert(TestObject.Example == "Edited!", "Failed to set the metatable")
+end)
+
+RunTest("isreadonly", function()
+	local TestTable = {}
+	local FrozenTable = table.freeze({})
+	assert(Global.isreadonly(TestTable) == false, "Did not return false for a writeable table")
+	assert(Global.isreadonly(FrozenTable) == true, "Did not return true for a readonly table")
+end)
+
+RunTest("setreadonly", function()
+	assert(Environment.isreadonly, "isreadonly is required to test")
+	local TestTable = { Value = 10 }
+	table.freeze(TestTable)
+	Global.setreadonly(TestTable, false)
+	TestTable.Value = 100
+	assert(Global.isreadonly(TestTable) == false, "Failed to set readonly")
+end)
+
+RunTest("Drawing.new", function()
+	assert(typeof(Global.Drawing.new) == "function", "Drawing.new is not a function")
+	local NewShape = Global.Drawing.new("Circle")
+	NewShape.Visible = false
+	NewShape.Radius = 10
+	NewShape.Thickness = 1
+	NewShape.Filled = false
+	NewShape.NumSides = 10
+	NewShape:Remove()
+end, "Drawing_New")
+
+RunTest("Drawing.Fonts", function()
+	assert(typeof(Global.Drawing.Fonts) == "table", "Drawing.Fonts is not a table")
+end, "Drawing_Fonts")
+
+RunTest("writefile", function()
+	Global.writefile("Abysall_Test_File", "example")
+	assert(Global.isfile("Abysall_Test_File") == true, "Failed to create a file")
+	assert(Global.readfile("Abysall_Test_File") == "example", "File does not contain expected data")
+end)
+
+RunTest("isfile", function()
+	assert(Global.isfile("Abysall_Test_File") == true, "Did not return true for a valid file")
+end)
+
+RunTest("readfile", function()
+	assert(Global.readfile("Abysall_Test_File") == "example", "Did not return the expected data")
+end)
+
+RunTest("appendfile", function()
+	Global.appendfile("Abysall_Test_File", "_appended")
+	assert(Global.readfile("Abysall_Test_File") == "example_appended", "Failed to append content to a file")
+end)
+
+RunTest("loadfile", function()
+	Global.writefile("Abysall_Test_Load", [[return 25]])
+	assert(Global.loadfile("Abysall_Test_Load")() == 25, "Failed to load and execute a file")
+end)
+
+RunTest("delfile", function()
+	Global.delfile("Abysall_Test_File")
+	Global.delfile("Abysall_Test_Load")
+	assert(Global.isfile("Abysall_Test_File") == false, "Failed to delete a file")
+end)
+
+RunTest("makefolder", function()
+	Global.makefolder("Abysall_Test_Folder")
+	assert(Global.isfolder("Abysall_Test_Folder") == true, "Failed to create a folder")
+end)
+
+RunTest("delfolder", function()
+	Global.delfolder("Abysall_Test_Folder")
+	assert(Global.isfolder("Abysall_Test_Folder") == false, "Failed to delete a folder")
+end)
+
+RunTest("listfiles", function()
+	Global.makefolder("Abysall_ListFiles_Test")
+	Global.writefile("Abysall_ListFiles_Test/Test1", "test 1")
+	Global.writefile("Abysall_ListFiles_Test/Test2", "test 2")
+	local FilesList = Global.listfiles("Abysall_ListFiles_Test")
+	local Found1 = false
+	local Found2 = false
+	assert(#FilesList == 2, "Did not return the correct number of files")
+	for _, File in ipairs(FilesList) do
+		local Content = Global.readfile(File)
+		if Content == "test 1" then
+			Found1 = true
+		elseif Content == "test 2" then
+			Found2 = true
+		end
+	end
+	Global.delfolder("Abysall_ListFiles_Test")
+	assert(Found1 == true, "Did not return the first file")
+	assert(Found2 == true, "Did not return the second file")
+end)
+
+RunTest("getcustomasset", function()
+	assert(Environment.writefile, "writefile is required to test")
+	local Content = game:HttpGet("https://raw.githubusercontent.com/arda201415/Abysall/refs/heads/main/Assets/Check.png")
+	Global.writefile("Abysall_Test_Image", Content)
+	local Asset = Global.getcustomasset("Abysall_Test_Image")
+	local TestImage = Instance.new("ImageLabel", Services.CoreGui.RobloxGui)
+	TestImage.Image = Asset
+	local Tries = 0
+	while not TestImage.IsLoaded and Tries < 10 do
+		Tries = Tries + 1
+		task.wait(0.1)
+	end
+	local IsLoaded = TestImage.IsLoaded
+	TestImage:Destroy()
+	Global.delfile("Abysall_Test_Image")
+	assert(string.find(Asset, "rbxasset://"), "Should return an rbxasset id")
+	assert(IsLoaded == true, "Failed to load a PNG image")
+end)
+
+RunTest("gethiddenproperty", function()
+	local TestPart = Instance.new("Part")
+	local Value = Global.gethiddenproperty(TestPart, "NetworkIsSleeping")
+	TestPart:Destroy()
+	assert(Value == false, "Did not return the correct property value")
+end)
+
+RunTest("sethiddenproperty", function()
+	assert(Environment.gethiddenproperty, "gethiddenproperty is required to test")
+	local TestPart = Instance.new("Part")
+	Global.sethiddenproperty(TestPart, "NetworkIsSleeping", true)
+	local Value = Global.gethiddenproperty(TestPart, "NetworkIsSleeping")
+	TestPart:Destroy()
+	assert(Value == true, "Failed to set a hidden property")
+end)
+
+RunTest("getthreadidentity", function()
+	local Identity = Global.getthreadidentity()
+	assert(typeof(Identity) == "number", "Did not return a number")
+	assert(Identity > 0, "Returned an invalid identity")
+	assert(Identity < 9, "Returned an invalid identity")
+end)
+
+RunTest("setthreadidentity", function()
+	assert(Environment.getthreadidentity, "getthreadidentity is needed to test")
+	local Old = Global.getthreadidentity()
+	Global.setthreadidentity(2)
+	assert(Services.CoreGui == nil, "Capabilities do not match set identity")
+	Global.setthreadidentity(Old)
+end)
+
+RunTest("isnetworkowner", function()
+	local Test = Instance.new("Part", Services.Workspace)
+	local RootPart = Services.Players.LocalPlayer.Character.HumanoidRootPart
+	local TestPart
+
+	for _, Part in ipairs(Services.Workspace:GetDescendants()) do
+		if Part:IsA("BasePart") and Part.Anchored then
+			TestPart = Part
+			break
+		end
+	end
+
+	RootPart.Anchored = true
+	local IsOwned = Global.isnetworkowner(RootPart)
+	RootPart.Anchored = false
+
+	local IsClientOwned = Global.isnetworkowner(Test)
+	local IsNotOwned = TestPart and Global.isnetworkowner(TestPart)
+	Test:Destroy()
+
+	assert(TestPart ~= nil, "Skipped, no anchored part to test with")
+	assert(IsClientOwned == true, "Did not return true for a client owned part")
+	assert(IsNotOwned == false, "Did not return false for a non client owned part")
+	assert(IsOwned == true, "Did not return true for a client owned anchored part")
+end)
+
+RunTest("firesignal", function()
+	local TestEvent = Instance.new("RemoteEvent")
+	local Fired = false
+	local Value1, Value2, Value3
+	local Connection = TestEvent.OnClientEvent:Connect(function(Arg1, Arg2, Arg3)
+		Fired = true
+		Value1 = Arg1
+		Value2 = Arg2
+		Value3 = Arg3
+	end)
+	Global.firesignal(TestEvent.OnClientEvent, "Example", 10, true)
+	local Tries = 0
+	while not Fired and Tries < 10 do
+		Tries = Tries + 1
+		task.wait(0.1)
+	end
+	Connection:Disconnect()
+	TestEvent:Destroy()
+	assert(Fired == true, "Failed to fire a signal")
+	assert(Value1 == "Example", "Fired signal with incorrect data")
+	assert(Value2 == 10, "Fired signal with incorrect data")
+	assert(Value3 == true, "Fired signal with incorrect data")
+end)
+
+RunTest("replicatesignal", function()
+	local TestButton = Instance.new("Frame")
+	Global.replicatesignal(TestButton.MouseWheelForward, 69, 420)
+	local Success = pcall(function()
+		Global.replicatesignal(TestButton.MouseWheelForward)
+		Global.replicatesignal(TestButton.MouseWheelForward, 69)
+	end)
+	TestButton:Destroy()
+	assert(Success == false, "Did not throw an error with invalid arguments")
+end)
+
+RunTest("getconnections", function()
+	local Fired = false
+	local Connection = game.ChildAdded:Connect(function(Child)
+		if Child == "Example" then
+			Fired = true
+		end
+	end)
+	for _, Conn in ipairs(getconnections(game.ChildAdded)) do
+		Conn:Fire("Example")
+	end
+	local Tries = 0
+	while not Fired and Tries < 10 do
+		Tries = Tries + 1
+		task.wait(0.1)
+	end
+	Connection:Disconnect()
+	assert(Fired == true, "Failed to fire a connection's signals")
+end)
+
+RunTest("require", function()
+	local TestScript = Global.require(Services.Players.LocalPlayer.PlayerScripts.PlayerModule)
+	assert(typeof(TestScript) == "table", "Did not return a table")
+	assert(typeof(TestScript.GetControls) == "function", "Did not return the expected data")
+	local Original = TestScript.GetControls
+	TestScript.GetControls = function()
+		return "test"
+	end
+	assert(TestScript.GetControls() == "test", "Unable to change module values")
+	TestScript.GetControls = Original
+	TestScript = nil
+end)
 
 return Environment

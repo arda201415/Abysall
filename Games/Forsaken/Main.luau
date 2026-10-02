@@ -988,34 +988,6 @@ Groupboxes.Misc_Stamina:AddSlider("StaminaSprintSpeedVal", {
 
 local SprintModule = nil
 local StaminaSaved = nil
-local StaminaValues = {}
-local StaminaWarned = false
-
-local function FindStaminaValues()
-    if #StaminaValues > 0 then return StaminaValues end
-    local Roots = {
-        Services.ReplicatedStorage,
-        LocalPlayer:FindFirstChildOfClass("PlayerGui"),
-        LocalPlayer,
-    }
-    local Names = { "Stamina", "CurrentStamina", "StaminaValue" }
-    for _, Root in ipairs(Roots) do
-        if Root then
-            for _, D in ipairs(Root:GetDescendants()) do
-                if D:IsA("NumberValue") or D:IsA("IntValue") then
-                    local LName = string.lower(D.Name)
-                    if LName == "stamina" or LName == "currentstamina" or LName == "staminavalue" then
-                        table.insert(StaminaValues, D)
-                    end
-                elseif D:IsA("BasePart") and D.Name == "Stamina" then
-                    -- nadiren part olarak tutulur
-                end
-            end
-        end
-        if #StaminaValues > 0 then break end
-    end
-    return StaminaValues
-end
 
 local function FindSprintModule()
     if SprintModule then return SprintModule end
@@ -1030,30 +1002,12 @@ local function FindSprintModule()
     end
     for _, Mod in ipairs(Candidates) do
         if Mod and Mod:IsA("ModuleScript") then
-            -- Once Environment.Safe.require (fallback'li), sonra global require
-            local Safe = Abysall.Environment and Abysall.Environment.Safe
-            local Res = nil
-            if Safe and type(Safe.require) == "function" then
-                local Ok, Value = pcall(Safe.require, Mod)
-                if Ok then Res = Value end
-            end
-            if type(Res) ~= "table" then
-                local Ok, Value = pcall(require, Mod)
-                if Ok then Res = Value end
-            end
-            if type(Res) == "table" then
-                SprintModule = Res
+            local Ok, Result = pcall(require, Mod)
+            if Ok and type(Result) == "table" then
+                SprintModule = Result
                 return SprintModule
             end
         end
-    end
-    if not StaminaWarned then
-        StaminaWarned = true
-        pcall(function()
-            if #FindStaminaValues() == 0 then
-                Library:Notify("Stamina modul bulunamadi.")
-            end
-        end)
     end
     return nil
 end
@@ -1062,29 +1016,24 @@ local StaminaFields = { "Stamina", "CurrentStamina", "StaminaValue" }
 
 local function ApplyStamina()
     local Mod = FindSprintModule()
+    if not Mod then return end
     local Max = Options.StaminaMax and Options.StaminaMax.Value or 500
     local Gain = Options.StaminaGain and Options.StaminaGain.Value or 100
-    if Mod then
-        pcall(function() Mod.MaxStamina = Max end)
-        pcall(function() Mod.StaminaGain = Gain end)
-        pcall(function() Mod.StaminaLossDisabled = Toggles.StaminaNoLoss and ToggleOn("StaminaNoLoss") or false end)
-        pcall(function() Mod.MinStamina = -9999 end)
-        if Toggles.StaminaSprintSpeed and ToggleOn("StaminaSprintSpeed") then
-            pcall(function()
-                Mod.SprintSpeed = Options.StaminaSprintSpeedVal and Options.StaminaSprintSpeedVal.Value or 80
-            end)
-        end
-        for _, Field in ipairs(StaminaFields) do
-            pcall(function()
-                if Mod[Field] ~= nil and type(Mod[Field]) == "number" then
-                    Mod[Field] = Max
-                end
-            end)
-        end
+    pcall(function() Mod.MaxStamina = Max end)
+    pcall(function() Mod.StaminaGain = Gain end)
+    pcall(function() Mod.StaminaLossDisabled = Toggles.StaminaNoLoss and ToggleOn("StaminaNoLoss") or false end)
+    pcall(function() Mod.MinStamina = -9999 end)
+    if Toggles.StaminaSprintSpeed and ToggleOn("StaminaSprintSpeed") then
+        pcall(function()
+            Mod.SprintSpeed = Options.StaminaSprintSpeedVal and Options.StaminaSprintSpeedVal.Value or 80
+        end)
     end
-    -- Modul yoksa: stamina degerini dogrudan sabitle
-    for _, Value in ipairs(FindStaminaValues()) do
-        pcall(function() Value.Value = Max end)
+    for _, Field in ipairs(StaminaFields) do
+        pcall(function()
+            if Mod[Field] ~= nil and type(Mod[Field]) == "number" then
+                Mod[Field] = Max
+            end
+        end)
     end
 end
 
@@ -1103,20 +1052,11 @@ end
 
 local function RestoreStamina()
     local Mod = SprintModule
-    if Mod and StaminaSaved then
-        for Key, Value in pairs(StaminaSaved) do
-            if Value ~= nil then pcall(function() Mod[Key] = Value end) end
-        end
+    if not Mod or not StaminaSaved then return end
+    for Key, Value in pairs(StaminaSaved) do
+        if Value ~= nil then pcall(function() Mod[Key] = Value end) end
     end
     StaminaSaved = nil
-    pcall(function()
-        local PlayerGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
-        if PlayerGui then
-            for _, Value in ipairs(FindStaminaValues()) do
-                pcall(function() Value.Value = math.min(Value.Value, 100) end)
-            end
-        end
-    end)
 end
 
 OnChange("InfStamina", function(Value)

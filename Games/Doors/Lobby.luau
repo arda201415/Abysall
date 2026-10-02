@@ -81,7 +81,7 @@ end
 
 local function GetHiddenContainer()
 	if Functions.CheckCompatability({"gethui"}) then
-		return Abysall.Environment.Safe.gethui()
+		return Abysall.Environment.gethui()
 	else
 		return Services.CoreGui
 	end
@@ -199,7 +199,7 @@ end
 Functions.Notify = function(Settings)
     local Container
     if Functions.CheckCompatability({"gethui"}) then
-        Container = Abysall.Environment.Safe.gethui()
+        Container = Abysall.Environment.gethui()
     else
         Container = Services.CoreGui
     end

@@ -411,8 +411,7 @@ local CollisionClone
 local CollisionPart
 local CollisionPartClone
 
--- Workspace:FindFirstChild("Camera") ilk frame'de nil doner; CurrentCamera her zaman hazir
-local Camera = Services.Workspace.CurrentCamera
+local Camera
 local LocalPlayer = Services.Players.LocalPlayer
 
 local RemotesFolder   = Services.ReplicatedStorage:FindFirstChild("RemotesFolder")
@@ -430,7 +429,7 @@ end
 
 local function GetHiddenContainer()
 	if Functions.CheckCompatability({"gethui"}) then
-		return Abysall.Environment.Safe.gethui()
+		return Abysall.Environment.gethui()
 	end
 	return Services.CoreGui
 end
@@ -1430,9 +1429,6 @@ Functions.GetCurrentAnchor = function()
 end
 
 Functions.GetMinecart = function()
-	-- Camera henuz atanmadilysa (ilk frame) nil donmesin
-	if Camera == nil then Camera = Services.Workspace.CurrentCamera end
-	if Camera == nil then return false end
 	return Camera:FindFirstChild("MinecartRig") ~= nil
 end
 
@@ -1715,7 +1711,7 @@ Groupboxes.General_Self:AddToggle("DisableIdleKick", {
 })
 OnChange("DisableIdleKick", function(Value)
 	if Functions.CheckCompatability({"getconnections"}) then
-		for _, Conn in Abysall.Environment.Safe.getconnections(LocalPlayer.Idled) do
+		for _, Conn in Abysall.Environment.getconnections(LocalPlayer.Idled) do
 			if Value then Conn:Disable() else Conn:Enable() end
 		end
 	end
@@ -1848,7 +1844,7 @@ Groupboxes.Self_Misc:AddButton({
 	Func = function()
 		Globals.SelfKilled = true
 		if Functions.CheckCompatability({"replicatesignal"}) then
-			Abysall.Environment.Safe.replicatesignal(LocalPlayer.Kill)
+			Abysall.Environment.replicatesignal(LocalPlayer.Kill)
 		else
 			if RemotesFolder:FindFirstChild("Underwater") then
 				RemotesFolder.Underwater:FireServer(true)
@@ -2453,71 +2449,26 @@ OnChange("NoSurgeDamage", function(Value)
 	end
 end)
 
--- NOT: Roblox Instance'a ozel property yazilamaz/okunamaz; isim ciftleri weak-key tabloda tutulur
-local Modules = setmetatable({}, { __mode = "k" })
-local ModuleNames = setmetatable({}, { __mode = "k" })
-
-local ModuleNameMap = {
-	["Glitch"] = { "Glitch", "Glitch_Disabled" },
-	["Shade"] = { "Shade", "Shade_Disabled" },
-	["Void"] = { "Void", "Void_Disabled" },
-	["Screech"] = { "Screech", "Screech_Disabled" },
-	["GlitchScreech"] = { "GlitchScreech", "GlitchScreech_Disabled" },
-	["A90"] = { "A90", "A90_Disabled" },
-	["Dread"] = { "Dread", "Dread_Disabled" },
-	["SpiderJumpscare"] = { "SpiderJumpscare", "SpiderJumpscare_Disabled" },
-}
-
-local function RegisterModule(Key, Instance)
-	if type(Instance) ~= "Instance" then return false end
-	local Names = ModuleNameMap[Key]
-	if not Names then return false end
-	Modules[Key] = Instance
-	ModuleNames[Instance] = Names
-	return true
-end
-
--- Modul adini ac/kapa degistirir.
--- Guvenlik: nil ad yazmaz, "_Disabled" ekini ust ust yigmaz, hata olursa yutar.
-local function RenameModule(Object, Value)
-	if type(Object) ~= "Instance" then return end
-	local Original = nil
-	local Names = ModuleNames[Object]
-	if Names then Original = Names[1] end
-	if type(Original) ~= "string" or Original == "" then
-		pcall(function() Original = Object:GetAttribute("OriginalName") end)
-	end
-	if type(Original) ~= "string" or Original == "" then
-		Original = string.gsub(Object.Name, "_Disabled$", "")
-	end
-	if type(Original) ~= "string" or Original == "" then return end
-
-	local Target = Value and (Original .. "_Disabled") or Original
-	if Object.Name == Target then return end
-	pcall(function() Object.Name = Target end)
-end
-
--- Moduller oyun icinde asenkron yuklenir; toggle erken acilirsa nesne henuz nil olabilir
-local function SetModuleName(Key, Disabled)
-	local Module = Modules[Key]
-	if Module == nil then return end
-	local Names = ModuleNames[Module]
-	if not Names then return end
-	pcall(function() Module.Name = Disabled and Names[2] or Names[1] end)
-end
+local Modules = {}
 
 OnChange("RemoveScreech", function(Value)
-	SetModuleName("Screech", Value)
-	SetModuleName("GlitchScreech", Value)
+	Modules.Screech.Name = Value and "Screech_Disabled" or "Screech"
+	if Modules.GlitchScreech then
+		Modules.GlitchScreech.Name = Value and "GlitchScreech_Disabled" or "GlitchScreech"
+	end
 end)
 OnChange("RemoveHalt", function(Value)
-	SetModuleName("Shade", Value)
+	Modules.Shade.Name = Value and "Shade_Disabled" or "Shade"
 end)
 OnChange("RemoveA90", function(Value)
-	SetModuleName("A90", Value)
+	if Modules.A90 then
+		Modules.A90.Name = Value and "A90_Disabled" or "A90"
+	end
 end)
 OnChange("RemoveDread", function(Value)
-	SetModuleName("Dread", Value)
+	if Modules.Dread then
+		Modules.Dread.Name = Value and "Dread_Disabled" or "Dread"
+	end
 end)
 OnChange("RemoveSurge", function(Value)
 	if Globals.SurgeFrame then
@@ -2634,19 +2585,16 @@ OnChange("RemoveCutscenes", function(Value)
         local RemoteListener = MainGame and MainGame:FindFirstChild("RemoteListener")
         local Cutscenes = RemoteListener and RemoteListener:FindFirstChild("Cutscenes")
         if not Cutscenes then return false end
-        local function Sweep(Container)
-            if type(Container) ~= "Instance" then return end
-            for _, Object in ipairs(Container:GetChildren()) do
-                if Object:IsA("ModuleScript") then
-                    local Original = Object:GetAttribute("OriginalName") or Object.Name
-                    if table.find(CutsceneNames, Object.Name) or table.find(CutsceneNames, Original) then
-                        RenameModule(Object, Value)
-                    end
-                end
+        for _, Object in pairs(Cutscenes:GetChildren()) do
+            if table.find(CutsceneNames, Object.Name) and Object:IsA("ModuleScript") or table.find(CutsceneNames, Object:GetAttribute("OriginalName")) and Object:IsA("ModuleScript") then
+                Object.Name = (Value and Object.Name .. "_Disabled" or Object:GetAttribute("OriginalName"))
             end
         end
-        Sweep(Cutscenes)
-        Sweep(FloorReplicated)
+        for _, Object in pairs(FloorReplicated:GetChildren()) do
+            if table.find(CutsceneNames, Object.Name) and Object:IsA("ModuleScript") or table.find(CutsceneNames, Object:GetAttribute("OriginalName")) and Object:IsA("ModuleScript") then
+                Object.Name = (Value and Object.Name .. "_Disabled" or Object:GetAttribute("OriginalName"))
+            end
+        end
         return true
     end
     if not Apply() and Value then
@@ -2696,13 +2644,13 @@ Groupboxes.Visuals_Effects:AddToggle("DisableFiredampEffect",    { Text = "Disab
 Groupboxes.Visuals_Effects:AddToggle("DisableEntityJumpscares",  { Text = "Disable Entity Jumpscares",  Default = false, Tooltip = "Disables jumpscares from entities like Rush and Ambush." })
 
 OnChange("DisableGlitchJumpscare", function(Value)
-	SetModuleName("Glitch", Value)
+	Modules.Glitch.Name = Value and "Glitch_Disabled" or "Glitch"
 end)
 OnChange("DisableTimothyJumpscare", function(Value)
-	SetModuleName("SpiderJumpscare", Value)
+	Modules.SpiderJumpscare.Name = Value and "SpiderJumpscare_Disabled" or "SpiderJumpscare"
 end)
 OnChange("DisableVoidJumpscare", function(Value)
-	SetModuleName("Void", Value)
+	if Modules.Void then Modules.Void.Name = Value and "Void_Disabled" or "Void" end
 end)
 OnChange("DisableHideVignette", function(Value)
 	local Vignette = Globals.MainUI:FindFirstChild("HideVignette") or Globals.MainUI.MainFrame:FindFirstChild("HideVignette")
@@ -2725,18 +2673,12 @@ OnChange("DisableFiredampEffect", function(Value)
 	LocalPlayer:SetAttribute("CurrentRoom", Old)
 end)
 OnChange("DisableEntityJumpscares", function(Value)
-	local RemoteListener = nil
-	if Globals.MainUI and Globals.MainUI.Initiator then
-		local MainGame = Globals.MainUI.Initiator:FindFirstChild("Main_Game")
-		RemoteListener = MainGame and MainGame:FindFirstChild("RemoteListener")
-	end
-	if RemoteListener == nil then return end
-	local Jumpscares = RemoteListener:FindFirstChild("Jumpscares")
-		or RemoteListener:FindFirstChild("Jumpscares_Disabled")
+	local Jumpscares = Globals.MainUI.Initiator.Main_Game.RemoteListener:FindFirstChild("Jumpscares")
+		or Globals.MainUI.Initiator.Main_Game.RemoteListener:FindFirstChild("Jumpscares_Disabled")
 	if Jumpscares then
-		RenameModule(Jumpscares, Value)
-		for _, Object in ipairs(Objects.JumpscareModules) do
-			RenameModule(Object, Value)
+		Jumpscares.Name = Value and "Jumpscares_Disabled" or "Jumpscares"
+		for _, Object in Objects.JumpscareModules do
+			Object.Name = Value and (Object:GetAttribute("OriginalName") .. "_Disabled") or Object:GetAttribute("OriginalName")
 		end
 	end
 end)
@@ -3603,15 +3545,12 @@ Groupboxes.Floors_Farming:AddButton({
 			return
 		end
 
-		-- Topbar zinciri derin; her katman nil olabilir
-		local GoldCount = nil
-		pcall(function()
-			GoldCount = LocalPlayer.PlayerGui
-				:FindFirstChild("TopbarUI").Topbar.StatsTopbarHandler.StatModules.Gold.GoldVal
-		end)
-		if GoldCount and GoldCount.Value <= 0 then
-			Functions.Notify({Title = "You must have gold to do this."})
-			return
+		if LocalPlayer.PlayerGui:FindFirstChild("TopbarUI") then 
+			local GoldCount = LocalPlayer.PlayerGui.TopbarUI.Topbar.StatsTopbarHandler.StatModules.Gold.GoldVal
+			if GoldCount.Value <= 0 then
+				Functions.Notify({Title = "You must have gold to do this."})
+				return
+			end
 		end
 
         Globals.KnobFarmStarted = true
@@ -3660,7 +3599,7 @@ Connections.KnobFarm = Services.RunService.Heartbeat:Connect(function()
 		if not Globals.KnobFarmActive then
 			Globals.KnobFarmActive = true
 			if Functions.CheckCompatability({"replicatesignal"}) then
-				Abysall.Environment.Safe.replicatesignal(LocalPlayer.Kill)
+				Abysall.Environment.replicatesignal(LocalPlayer.Kill)
 			else
 				RemotesFolder.Underwater:FireServer(true)
 			end
@@ -3726,30 +3665,16 @@ else
 	ClientModules = Services.ReplicatedStorage.ClientModules
 end
 
--- Modules tablosunu degistirme, sadece eksikleri doldur
-local EntityModules = nil
-if ClientModules then
-	pcall(function() EntityModules = ClientModules.EntityModules end)
-end
-if EntityModules == nil then
-	pcall(function()
-		EntityModules = Services.ReplicatedStorage:FindFirstChild("EntityModules", true)
-			or Services.ReplicatedStorage:FindFirstChild("ModulesClient", true)
-	end)
-end
-
-if EntityModules then
-	for _, Key in ipairs({ "Glitch", "Shade", "Void" }) do
-		if Modules[Key] == nil then
-			local Found = nil
-			pcall(function() Found = EntityModules:FindFirstChild(ModuleNameMap[Key][1]) end)
-			if RegisterModule(Key, Found) then
-				SetModuleName(Key, ToggleOn(Key == "Glitch" and "DisableGlitchJumpscare"
-					or (Key == "Shade" and "RemoveHalt" or "DisableVoidJumpscare")))
-			end
-		end
-	end
-end
+Modules = {
+	Glitch         = ClientModules.EntityModules.Glitch,
+	Shade          = ClientModules.EntityModules.Shade,
+	Void           = ClientModules.EntityModules:FindFirstChild("Void"),
+	SpiderJumpscare = nil,
+	A90            = nil,
+	Screech        = nil,
+	Dread          = nil,
+	GlitchScreech  = nil,
+}
 
 local CharacterOldConnectionKeys = {
 	"MainHandler", "JumpHandler", "SlideHandler", "LibraryCodeHandler1", "LibraryCodeHandler2",
@@ -3815,7 +3740,7 @@ Functions.HandleCharacter = function(NewCharacter)
 	if ToggleOn("EnableCharacterSlide") then Character:SetAttribute("CanSlide", true) end
 
 	if Functions.CheckCompatability({"require"}) then
-		Main_Game = Abysall.Environment.Safe.require(Globals.MainUI.Initiator.Main_Game)
+		Main_Game = Abysall.Environment.require(Globals.MainUI.Initiator.Main_Game)
 	end
 
 	if Main_Game and ToggleOn("RemoveCameraBobbing") then
@@ -3862,23 +3787,15 @@ Functions.HandleCharacter = function(NewCharacter)
 	Globals.AnticheatDisabled = false
 
 	local UIModules = Globals.MainUI.Initiator.Main_Game.RemoteListener.Modules
-	if type(UIModules) ~= "Instance" then UIModules = nil end
-	if UIModules then
-		for _, Key in ipairs({ "A90", "Screech", "Dread", "SpiderJumpscare" }) do
-			local Found = nil
-			pcall(function() Found = UIModules:FindFirstChild(ModuleNameMap[Key][1]) end)
-			if Modules[Key] == nil then RegisterModule(Key, Found) end
-		end
-	end
+	Modules.A90             = UIModules:FindFirstChild("A90")
+	Modules.Screech         = UIModules.Screech
+	Modules.Dread           = UIModules:FindFirstChild("Dread")
+	Modules.SpiderJumpscare = UIModules.SpiderJumpscare
 
-	SetModuleName("Screech", ToggleOn("RemoveScreech"))
-	SetModuleName("GlitchScreech", ToggleOn("RemoveScreech"))
-	SetModuleName("A90", ToggleOn("RemoveA90"))
-	SetModuleName("Dread", ToggleOn("RemoveDread"))
-	SetModuleName("Shade", ToggleOn("RemoveHalt"))
-	SetModuleName("Glitch", ToggleOn("DisableGlitchJumpscare"))
-	SetModuleName("SpiderJumpscare", ToggleOn("DisableTimothyJumpscare"))
-	SetModuleName("Void", ToggleOn("DisableVoidJumpscare"))
+	if ToggleOn("RemoveScreech")    then Modules.Screech.Name = "Screech_Disabled" end
+	if ToggleOn("RemoveA90") and Modules.A90   then Modules.A90.Name = "A90_Disabled" end
+	if ToggleOn("RemoveDread") and Modules.Dread then Modules.Dread.Name = "Dread_Disabled" end
+	if ToggleOn("DisableTimothyJumpscare") then Modules.SpiderJumpscare.Name = "SpiderJumpscare_Disabled" end
 
 	if ToggleOn("DisableHideVignette") then
 		local Vignette = Globals.MainUI:FindFirstChild("HideVignette") or Globals.MainUI.MainFrame:FindFirstChild("HideVignette")
@@ -3891,30 +3808,27 @@ Functions.HandleCharacter = function(NewCharacter)
 		PS.Notification.Volume = 0
 		Globals.MainUI.Initiator.Main_Game.Reminder.Caption.Volume = 0
 	end
-	local RemoteListener = nil
-	if Globals.MainUI and Globals.MainUI.Initiator then
-		local MainGame = Globals.MainUI.Initiator:FindFirstChild("Main_Game")
-		RemoteListener = MainGame and MainGame:FindFirstChild("RemoteListener")
+	if ToggleOn("DisableEntityJumpscares") then
+		local JS = Globals.MainUI.Initiator.Main_Game.RemoteListener:FindFirstChild("Jumpscares")
+		if JS then JS.Name = "Jumpscares_Disabled" end
 	end
-	if ToggleOn("DisableEntityJumpscares") and RemoteListener then
-		local JS = RemoteListener:FindFirstChild("Jumpscares") or RemoteListener:FindFirstChild("Jumpscares_Disabled")
-		if JS then RenameModule(JS, true) end
-	end
-    local Cutscenes = RemoteListener and RemoteListener:FindFirstChild("Cutscenes")
-    local function SweepCutscenes(Container)
-        if type(Container) ~= "Instance" then return end
-        for _, Object in ipairs(Container:GetChildren()) do
-            if Object:IsA("ModuleScript") then
-                local Original = Object:GetAttribute("OriginalName") or Object.Name
-                if table.find(CutsceneNames, Original) then
-                    Object:SetAttribute("OriginalName", string.gsub(Object.Name, "_Disabled$", ""))
-                    RenameModule(Object, ToggleOn("RemoveCutscenes"))
-                end
+    local Cutscenes = Globals.MainUI.Initiator.Main_Game.RemoteListener.Cutscenes
+    for _, Object in pairs(Cutscenes:GetChildren()) do
+        if table.find(CutsceneNames, Object.Name) and Object:IsA("ModuleScript") then
+            Object:SetAttribute("OriginalName", Object.Name)
+            if ToggleOn("RemoveCutscenes") then
+                Object.Name = Object.Name .. "_Disabled"
             end
         end
     end
-    SweepCutscenes(Cutscenes)
-    SweepCutscenes(FloorReplicated)
+    for _, Object in pairs(FloorReplicated:GetChildren()) do
+        if table.find(CutsceneNames, Object.Name) and Object:IsA("ModuleScript") then
+            Object:SetAttribute("OriginalName", Object.Name)
+            if ToggleOn("RemoveCutscenes") then
+                Object.Name = Object.Name .. "_Disabled"
+            end
+        end
+    end
 
 	CustomPhysics = PhysicalProperties.new(
 		100,
@@ -4915,9 +4829,9 @@ Functions.HandleObject = function(Object)
 				while Object:IsDescendantOf(game) do
 					for _, Part in Object:GetChildren() do
 						if Part:IsA("BasePart") then
-							Abysall.Environment.Safe.firetouchinterest(RootPart, Part, 0)
+							Abysall.Environment.firetouchinterest(RootPart, Part, 0)
 							task.wait()
-							Abysall.Environment.Safe.firetouchinterest(RootPart, Part, 1)
+							Abysall.Environment.firetouchinterest(RootPart, Part, 1)
 						end
 					end
 					task.wait()
@@ -5040,7 +4954,7 @@ Functions.HandleObject = function(Object)
 				for _, Part in Object:GetDescendants() do
 					if Part:IsA("BasePart") then
 						task.spawn(function()
-							if Abysall.Environment.Safe.isnetworkowner(Part) then
+							if Abysall.Environment.isnetworkowner(Part) then
 								Part.Position = Vector3.new(-49999, -49999, -49999)
 							end
 						end)
@@ -5052,7 +4966,7 @@ Functions.HandleObject = function(Object)
 					if Part:IsA("BasePart") then
 						Part.CanCollide = false
 						task.spawn(function()
-							while Abysall.Environment.Safe.isnetworkowner(Part) do
+							while Abysall.Environment.isnetworkowner(Part) do
 								Part.Position = Vector3.new(math.random(-29999,29999), math.random(-29999,29999), math.random(-29999,29999))
 								task.wait()
 							end
@@ -5373,8 +5287,8 @@ end)
 local PromptsToFire = {}
 local PromptCooldown = {}
 
-Functions.FirePrompt      = Abysall.Environment.Safe.fireproximityprompt
-Functions.ForceFirePrompt = Abysall.Environment.Safe.fireproximityprompt
+Functions.FirePrompt      = Abysall.Environment.fireproximityprompt
+Functions.ForceFirePrompt = Abysall.Environment.fireproximityprompt
 
 if not Functions.FirePrompt then
 	Functions.FirePrompt = function(Prompt)
@@ -5627,14 +5541,14 @@ end)
 
 Connections.FloorReplicatedHandler = FloorReplicated.DescendantAdded:Connect(function(Object)
 	if Object.Name == "GlitchScreech" then
-		RegisterModule("GlitchScreech", Object)
+		Modules.GlitchScreech = Object
 		if ToggleOn("RemoveScreech") then Object.Name = "GlitchScreech_Disabled" end
 	end
 	if Object.Name:find("Jumpscare") and Object:IsA("ModuleScript")
 		and not Object.Name:find("Eyestalk") and not Object.Name:find("Groundskeeper") and not Object.Name:find("Monument")
 	then
 		Object:SetAttribute("OriginalName", Object.Name)
-		RenameModule(Object, ToggleOn("DisableEntityJumpscares"))
+		if ToggleOn("DisableEntityJumpscares") then Object.Name = Object.Name .. "_Disabled" end
 		table.insert(Objects.JumpscareModules, Object)
 	end
 end)
@@ -6245,12 +6159,8 @@ Library:OnUnload(function()
 		Screech = "Screech", Glitch = "Glitch", Shade = "Shade",
 		SpiderJumpscare = "SpiderJumpscare", A90 = "A90", Dread = "Dread", Void = "Void"
 	}
-	for Key, OriginalName in pairs(ModuleRestores) do
-		local Module = Modules[Key]
-		if type(Module) == "Instance" and type(OriginalName) == "string" then
-			ModuleNames[Module] = { OriginalName, OriginalName .. "_Disabled" }
-			RenameModule(Module, false)
-		end
+	for Key, OriginalName in ModuleRestores do
+		if Modules[Key] then Modules[Key].Name = OriginalName end
 	end
 
 	FakeEvents.Screech:Destroy()
