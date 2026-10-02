@@ -861,57 +861,8 @@ Toggles.ItemESP:AddColorPicker("ItemESPColor", {
     Text = "Esya Rengi", Default = Color3.fromRGB(0, 255, 255), Transparency = 0,
 })
 
--- Bilinen esyalar -> toggle adi
-local ItemToggles = {
-    Medkit = "ESPItemMedkit",
-    BloxyCola = "ESPItemBloxyCola",
-    StairwellScrapper = "ESPItemStairwellScrapper",
-    StairwellBlastDoor = "ESPItemStairwellBlastDoor",
-    GweenSodaPack = "ESPItemGweenSodaPack",
-    BottleCrate = "ESPItemBottleCrate",
-    BrokenMonitor = "ESPItemBrokenMonitor",
-}
-local ItemOrder = {
-    { Key = "Medkit", Text = "Medkit" },
-    { Key = "BloxyCola", Text = "Bloxy Cola" },
-    { Key = "StairwellScrapper", Text = "Stairwell Scrapper" },
-    { Key = "GweenSodaPack", Text = "Gween Soda Pack" },
-    { Key = "BottleCrate", Text = "Bottle Crate" },
-    { Key = "BrokenMonitor", Text = "Broken Monitor" },
-}
-
-for _, Entry in ipairs(ItemOrder) do
-    Groupboxes.Visuals_Item:AddToggle(ItemToggles[Entry.Key], {
-        Text = Entry.Text, Default = true, Tooltip = Entry.Text .. " ESP.",
-    })
-end
-Groupboxes.Visuals_Item:AddToggle("ESPOtherTools", {
-    Text = "Diger Esyalar", Default = true, Tooltip = "Listede olmayan tool'lar.",
-})
-Groupboxes.Visuals_Item:AddDivider()
-Groupboxes.Visuals_Item:AddLabel("Renk tum esyalara uygulanir.", true)
-
+local ItemNames = { Medkit = true, BloxyCola = true }
 local ItemESPObjects = {}
-local HookedItems = {}
-
-local function Normalize(Name)
-    return (string.lower(Name or ""):gsub("[%s_%-]", ""))
-end
-
-local NormalizedItems = {}
-for Key in pairs(ItemToggles) do
-    NormalizedItems[Key] = Normalize(Key)
-end
-
-local function ItemKey(Obj)
-    local Name = Normalize(Obj.Name)
-    for Key, Norm in pairs(NormalizedItems) do
-        if Name == Norm or string.find(Name, Norm, 1, true) then
-            return Key
-        end
-    end
-    return nil
-end
 
 local function IsPlayerItem(Obj)
     for _, P in ipairs(Services.Players:GetPlayers()) do
@@ -922,62 +873,37 @@ local function IsPlayerItem(Obj)
     return false
 end
 
-local function ItemAllowed(Obj)
-    local Key = ItemKey(Obj)
-    if Key then
-        local Toggle = Toggles[ItemToggles[Key]]
-        return Toggle and Toggle.Value and true or false
-    end
-    if Obj:IsA("Tool") and Toggles.ESPOtherTools and Toggles.ESPOtherTools.Value then
-        return true
-    end
-    return false
-end
-
 local function HookItem(Obj)
-    if HookedItems[Obj] then return end
-    if not (Obj:IsA("Tool") or Obj:IsA("Model") or Obj:IsA("BasePart")) then return end
-    if IsPlayerItem(Obj) then return end
-    if not ItemAllowed(Obj) then return end
-    if not (Toggles.ItemESP and Toggles.ItemESP.Value) then return end
-    HookedItems[Obj] = true
-    local Label = Obj.Name
-    local Ok = pcall(function()
-        Abysall.ESPLibrary:AddESP({ Object = Obj, Text = Label, Color = Options.ItemESPColor.Value })
-    end)
-    if not Ok then
-        HookedItems[Obj] = nil
-        return
+    local Label = nil
+    if Obj:IsA("Tool") and not IsPlayerItem(Obj) then
+        Label = Obj.Name
+    elseif Obj:IsA("Model") and ItemNames[Obj.Name] and not IsPlayerItem(Obj) then
+        Label = Obj.Name
     end
-    table.insert(ItemESPObjects, Obj)
-    pcall(function()
-        Obj.Destroying:Once(function()
-            HookedItems[Obj] = nil
-            if Abysall and Abysall.ESPLibrary then pcall(function() Abysall.ESPLibrary:RemoveESP(Obj) end) end
+    if not Label then return end
+    if Toggles.ItemESP and Toggles.ItemESP.Value then
+        local Target = Obj
+        pcall(function()
+            Abysall.ESPLibrary:AddESP({ Object = Target, Text = Label, Color = Options.ItemESPColor.Value })
+            Target.Destroying:Once(function()
+                if Abysall then Abysall.ESPLibrary:RemoveESP(Target) end
+            end)
         end)
-    end)
+        table.insert(ItemESPObjects, Target)
+    end
 end
 
 local function ScanItems()
     for _, D in ipairs(Services.Workspace:GetDescendants()) do
-        if D:IsA("Tool") or D:IsA("Model") or D:IsA("BasePart") then HookItem(D) end
+        if D:IsA("Tool") or D:IsA("Model") then HookItem(D) end
     end
 end
 
 local function ClearItems()
     for _, O in ipairs(ItemESPObjects) do
         pcall(function() Abysall.ESPLibrary:RemoveESP(O) end)
-        HookedItems[O] = nil
     end
     ItemESPObjects = {}
-end
-
-local function RefreshItems()
-    if Toggles.ItemESP and Toggles.ItemESP.Value then
-        ScanItems()
-    else
-        ClearItems()
-    end
 end
 
 Toggles.ItemESP:OnChanged(function(Value)
@@ -987,21 +913,13 @@ Toggles.ItemESP:OnChanged(function(Value)
         ClearItems()
     end
 end)
-for _, Entry in ipairs(ItemOrder) do
-    Toggles[ItemToggles[Entry.Key]]:OnChanged(function()
-        pcall(RefreshItems)
-    end)
-end
-Toggles.ESPOtherTools:OnChanged(function()
-    pcall(RefreshItems)
-end)
 Options.ItemESPColor:OnChanged(function(Value)
     for _, O in ipairs(ItemESPObjects) do
         Abysall.ESPLibrary:UpdateObjectColor(O, Value)
     end
 end)
 TrackConn(Services.Workspace.DescendantAdded:Connect(function(Obj)
-    if Obj:IsA("Tool") or Obj:IsA("Model") or Obj:IsA("BasePart") then HookItem(Obj) end
+    if Obj:IsA("Tool") or Obj:IsA("Model") then HookItem(Obj) end
 end))
 
 Groupboxes.Visuals_Settings = Tabs.Visuals:AddRightGroupbox("ESP Settings")
