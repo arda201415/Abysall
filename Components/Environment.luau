@@ -66,6 +66,8 @@ local Capabilities = {}
 local Tests = {}
 local Tested, Passed, Failed, Skipped = 0, 0, 0, 0
 local AllFinished = false
+-- Safe tablosu Register'dan SONRA kuruluyor; upvalue'in nil kalmamasi icin once tanimla
+local Safe
 
 -- Bazi executor'larda testte kullanilan ozellikler bozuktur
 local BrokenFeatures = {
@@ -270,7 +272,7 @@ end
 local MemoryFS = {}
 local Folders = { ["Abysall"] = true, ["Abysall/addons"] = true }
 
-local Safe = {}
+Safe = {}
 
 Safe.cloneref = function(Object)
 	if type(Environment.cloneref) == "function" then
