@@ -2477,6 +2477,26 @@ local function RegisterModule(Key, Instance)
 	return true
 end
 
+-- Modul adini ac/kapa degistirir.
+-- Guvenlik: nil ad yazmaz, "_Disabled" ekini ust ust yigmaz, hata olursa yutar.
+local function RenameModule(Object, Value)
+	if type(Object) ~= "Instance" then return end
+	local Original = nil
+	local Names = ModuleNames[Object]
+	if Names then Original = Names[1] end
+	if type(Original) ~= "string" or Original == "" then
+		pcall(function() Original = Object:GetAttribute("OriginalName") end)
+	end
+	if type(Original) ~= "string" or Original == "" then
+		Original = string.gsub(Object.Name, "_Disabled$", "")
+	end
+	if type(Original) ~= "string" or Original == "" then return end
+
+	local Target = Value and (Original .. "_Disabled") or Original
+	if Object.Name == Target then return end
+	pcall(function() Object.Name = Target end)
+end
+
 -- Moduller oyun icinde asenkron yuklenir; toggle erken acilirsa nesne henuz nil olabilir
 local function SetModuleName(Key, Disabled)
 	local Module = Modules[Key]
@@ -2614,16 +2634,19 @@ OnChange("RemoveCutscenes", function(Value)
         local RemoteListener = MainGame and MainGame:FindFirstChild("RemoteListener")
         local Cutscenes = RemoteListener and RemoteListener:FindFirstChild("Cutscenes")
         if not Cutscenes then return false end
-        for _, Object in pairs(Cutscenes:GetChildren()) do
-            if table.find(CutsceneNames, Object.Name) and Object:IsA("ModuleScript") or table.find(CutsceneNames, Object:GetAttribute("OriginalName")) and Object:IsA("ModuleScript") then
-                Object.Name = (Value and Object.Name .. "_Disabled" or Object:GetAttribute("OriginalName"))
+        local function Sweep(Container)
+            if type(Container) ~= "Instance" then return end
+            for _, Object in ipairs(Container:GetChildren()) do
+                if Object:IsA("ModuleScript") then
+                    local Original = Object:GetAttribute("OriginalName") or Object.Name
+                    if table.find(CutsceneNames, Object.Name) or table.find(CutsceneNames, Original) then
+                        RenameModule(Object, Value)
+                    end
+                end
             end
         end
-        for _, Object in pairs(FloorReplicated:GetChildren()) do
-            if table.find(CutsceneNames, Object.Name) and Object:IsA("ModuleScript") or table.find(CutsceneNames, Object:GetAttribute("OriginalName")) and Object:IsA("ModuleScript") then
-                Object.Name = (Value and Object.Name .. "_Disabled" or Object:GetAttribute("OriginalName"))
-            end
-        end
+        Sweep(Cutscenes)
+        Sweep(FloorReplicated)
         return true
     end
     if not Apply() and Value then
@@ -2702,12 +2725,18 @@ OnChange("DisableFiredampEffect", function(Value)
 	LocalPlayer:SetAttribute("CurrentRoom", Old)
 end)
 OnChange("DisableEntityJumpscares", function(Value)
-	local Jumpscares = Globals.MainUI.Initiator.Main_Game.RemoteListener:FindFirstChild("Jumpscares")
-		or Globals.MainUI.Initiator.Main_Game.RemoteListener:FindFirstChild("Jumpscares_Disabled")
+	local RemoteListener = nil
+	if Globals.MainUI and Globals.MainUI.Initiator then
+		local MainGame = Globals.MainUI.Initiator:FindFirstChild("Main_Game")
+		RemoteListener = MainGame and MainGame:FindFirstChild("RemoteListener")
+	end
+	if RemoteListener == nil then return end
+	local Jumpscares = RemoteListener:FindFirstChild("Jumpscares")
+		or RemoteListener:FindFirstChild("Jumpscares_Disabled")
 	if Jumpscares then
-		Jumpscares.Name = Value and "Jumpscares_Disabled" or "Jumpscares"
-		for _, Object in Objects.JumpscareModules do
-			Object.Name = Value and (Object:GetAttribute("OriginalName") .. "_Disabled") or Object:GetAttribute("OriginalName")
+		RenameModule(Jumpscares, Value)
+		for _, Object in ipairs(Objects.JumpscareModules) do
+			RenameModule(Object, Value)
 		end
 	end
 end)
@@ -3862,27 +3891,30 @@ Functions.HandleCharacter = function(NewCharacter)
 		PS.Notification.Volume = 0
 		Globals.MainUI.Initiator.Main_Game.Reminder.Caption.Volume = 0
 	end
-	if ToggleOn("DisableEntityJumpscares") then
-		local JS = Globals.MainUI.Initiator.Main_Game.RemoteListener:FindFirstChild("Jumpscares")
-		if JS then JS.Name = "Jumpscares_Disabled" end
+	local RemoteListener = nil
+	if Globals.MainUI and Globals.MainUI.Initiator then
+		local MainGame = Globals.MainUI.Initiator:FindFirstChild("Main_Game")
+		RemoteListener = MainGame and MainGame:FindFirstChild("RemoteListener")
 	end
-    local Cutscenes = Globals.MainUI.Initiator.Main_Game.RemoteListener.Cutscenes
-    for _, Object in pairs(Cutscenes:GetChildren()) do
-        if table.find(CutsceneNames, Object.Name) and Object:IsA("ModuleScript") then
-            Object:SetAttribute("OriginalName", Object.Name)
-            if ToggleOn("RemoveCutscenes") then
-                Object.Name = Object.Name .. "_Disabled"
+	if ToggleOn("DisableEntityJumpscares") and RemoteListener then
+		local JS = RemoteListener:FindFirstChild("Jumpscares") or RemoteListener:FindFirstChild("Jumpscares_Disabled")
+		if JS then RenameModule(JS, true) end
+	end
+    local Cutscenes = RemoteListener and RemoteListener:FindFirstChild("Cutscenes")
+    local function SweepCutscenes(Container)
+        if type(Container) ~= "Instance" then return end
+        for _, Object in ipairs(Container:GetChildren()) do
+            if Object:IsA("ModuleScript") then
+                local Original = Object:GetAttribute("OriginalName") or Object.Name
+                if table.find(CutsceneNames, Original) then
+                    Object:SetAttribute("OriginalName", string.gsub(Object.Name, "_Disabled$", ""))
+                    RenameModule(Object, ToggleOn("RemoveCutscenes"))
+                end
             end
         end
     end
-    for _, Object in pairs(FloorReplicated:GetChildren()) do
-        if table.find(CutsceneNames, Object.Name) and Object:IsA("ModuleScript") then
-            Object:SetAttribute("OriginalName", Object.Name)
-            if ToggleOn("RemoveCutscenes") then
-                Object.Name = Object.Name .. "_Disabled"
-            end
-        end
-    end
+    SweepCutscenes(Cutscenes)
+    SweepCutscenes(FloorReplicated)
 
 	CustomPhysics = PhysicalProperties.new(
 		100,
@@ -5602,7 +5634,7 @@ Connections.FloorReplicatedHandler = FloorReplicated.DescendantAdded:Connect(fun
 		and not Object.Name:find("Eyestalk") and not Object.Name:find("Groundskeeper") and not Object.Name:find("Monument")
 	then
 		Object:SetAttribute("OriginalName", Object.Name)
-		if ToggleOn("DisableEntityJumpscares") then Object.Name = Object.Name .. "_Disabled" end
+		RenameModule(Object, ToggleOn("DisableEntityJumpscares"))
 		table.insert(Objects.JumpscareModules, Object)
 	end
 end)
@@ -6213,8 +6245,12 @@ Library:OnUnload(function()
 		Screech = "Screech", Glitch = "Glitch", Shade = "Shade",
 		SpiderJumpscare = "SpiderJumpscare", A90 = "A90", Dread = "Dread", Void = "Void"
 	}
-	for Key, OriginalName in ModuleRestores do
-		if Modules[Key] then Modules[Key].Name = OriginalName end
+	for Key, OriginalName in pairs(ModuleRestores) do
+		local Module = Modules[Key]
+		if type(Module) == "Instance" and type(OriginalName) == "string" then
+			ModuleNames[Module] = { OriginalName, OriginalName .. "_Disabled" }
+			RenameModule(Module, false)
+		end
 	end
 
 	FakeEvents.Screech:Destroy()
