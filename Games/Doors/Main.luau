@@ -5167,12 +5167,15 @@ Functions.QueueObject = function(Object)
 	Globals.QueuedSet[Object] = true
 	Globals.QueueCount = (Globals.QueueCount or 0) + 1
 	table.insert(Globals.ObjectQueue, Object)
+	Globals.QueueAdded = (Globals.QueueAdded or 0) + 1
 end
 
 Globals.QueueDone = true
 Globals.QueueHead = 1
 Globals.QueueCount = 0
 Globals.QueueInFlight = 0
+Globals.QueueAdded = 0
+Globals.QueueFinished = 0
 Globals.HandleErrors = 0
 Globals.Stuck = setmetatable({}, { __mode = "k" })
 -- HandleObject icinde task.wait() var. Eskiden RenderStepped callback'i
@@ -5195,13 +5198,14 @@ Connections.QueueConnection = Services.RunService.RenderStepped:Connect(function
 
 		local Completed = false
 		task.spawn(function()
-			if Globals.QueuedSet then Globals.QueuedSet[Object] = nil end
 			local Ok, Err = pcall(Functions.HandleObject, Object)
 			if not Ok then
 				Globals.HandleErrors += 1
 				Globals.HandleErrorLast = tostring(Err):sub(1, 200)
 			end
 			Globals.QueueInFlight -= 1
+			Globals.QueueFinished += 1
+			if Globals.QueuedSet then Globals.QueuedSet[Object] = nil end
 			Completed = true
 			if Globals.Stuck[Object] then
 				Globals.Stuck[Object] = nil
@@ -6272,13 +6276,31 @@ Functions.Notify({ Title = "Successfully loaded in " .. math.floor((tick() - Loa
 		local LastReported = 0
 		while task.wait(3) do
 			local Pending = Globals.QueueCount or 0
+			local InFlight = Globals.QueueInFlight or 0
+			local Added = Globals.QueueAdded or 0
+			local Finished = Globals.QueueFinished or 0
 			local Errs = Globals.HandleErrors or 0
 			local Stuck = Globals.StuckCount or 0
 			if (Pending > 40 or Errs > LastReported or Stuck > 0) and tick() - LastReported > 5 then
 				LastReported = tick()
-				warn("[Abysall] kuyruk bekleyen=" .. Pending .. " takilan=" .. Stuck
+				local Samples = {}
+				local Last = Globals.QueueHead + Pending - 1
+				for I = Globals.QueueHead, math.min(Globals.QueueHead + 9, Last) do
+					local Entry = Globals.ObjectQueue[I]
+					if Entry ~= nil then
+						local Ok, Label = pcall(function()
+							return Entry.ClassName .. ":" .. Entry.Name
+						end)
+						if Ok and #Samples < 5 then
+							table.insert(Samples, Label)
+						end
+					end
+				end
+				warn("[Abysall] kuyruk bekleyen=" .. Pending .. " isleniyor=" .. InFlight
+					.. " eklenen=" .. Added .. " biten=" .. Finished .. " takilan=" .. Stuck
 					.. " islenen_hata=" .. Errs .. " takilan_son=" .. tostring(Globals.StuckLast)
-					.. " son_hata=" .. tostring(Globals.HandleErrorLast))
+					.. " son_hata=" .. tostring(Globals.HandleErrorLast)
+					.. " ornek=" .. table.concat(Samples, ","))
 			end
 		end
 	end)
