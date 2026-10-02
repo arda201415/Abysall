@@ -12,6 +12,18 @@ local SaveManager = Abysall.Interface.SaveManager
 local ThemeManager = Abysall.Interface.ThemeManager
 
 local Toggles = Library.Toggles
+local Toggles = Library.Toggles
+-- Toggle okumalarini nil-guvenli yapar; anahtar yoksa false doner (kutuphane sifirlanirsa cokmeyi onler)
+local function ToggleOn(Name)
+	local T = Toggles and Toggles[Name]
+	if T == nil then return false end
+	return T.Value == true
+end
+local function OnChange(Name, Fn)
+	local T = Toggles and Toggles[Name]
+	if T == nil then return end
+	T:OnChanged(Fn)
+end
 local Options = Library.Options
 
 local function CloneReference(Object)
@@ -106,7 +118,7 @@ local function AimIsEnemy(Player)
     if Player == LocalPlayer then return false end
     if not Player.Character then return false end
     if Player:GetAttribute("Alive") == false then return false end
-    if Toggles.AimbotTeamCheck and Toggles.AimbotTeamCheck.Value then
+    if Toggles.AimbotTeamCheck and ToggleOn("AimbotTeamCheck") then
         if LocalPlayer.Team ~= nil and Player.Team ~= nil and Player.Team == LocalPlayer.Team then
             return false
         end
@@ -117,7 +129,7 @@ local function AimIsEnemy(Player)
 end
 
 local function AimIsVisible(TargetPart)
-    if not Toggles.AimbotWallCheck or not Toggles.AimbotWallCheck.Value then
+    if not Toggles.AimbotWallCheck or not ToggleOn("AimbotWallCheck") then
         return true
     end
     local Ok, Res = pcall(function()
@@ -168,7 +180,7 @@ TrackConn(Services.RunService.RenderStepped:Connect(function()
             _G.FS_FOVCircle = C
         end
         if _G.FS_FOVCircle then
-            local Show = Toggles.AimbotEnabled and Toggles.AimbotEnabled.Value and Toggles.AimFOVCircle and Toggles.AimFOVCircle.Value
+            local Show = Toggles.AimbotEnabled and ToggleOn("AimbotEnabled") and Toggles.AimFOVCircle and ToggleOn("AimFOVCircle")
             _G.FS_FOVCircle.Visible = Show or false
             if Show then
                 _G.FS_FOVCircle.Position = AimGetMouse()
@@ -177,13 +189,13 @@ TrackConn(Services.RunService.RenderStepped:Connect(function()
         end
     end)
 
-    if Toggles.AimbotEnabled and Toggles.AimbotEnabled.Value then
+    if Toggles.AimbotEnabled and ToggleOn("AimbotEnabled") then
         local HoldingKey = Options.AimbotKey and Options.AimbotKey:GetState()
-        local HoldingRMB = Toggles.AimbotUseRMB and Toggles.AimbotUseRMB.Value and Services.UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2)
+        local HoldingRMB = Toggles.AimbotUseRMB and ToggleOn("AimbotUseRMB") and Services.UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2)
         if HoldingKey or HoldingRMB then
             local Target = AimGetTarget()
             local FOV = (Options.AimbotFOV and Options.AimbotFOV.Value) or 200
-            if Toggles.AimSticky and Toggles.AimSticky.Value and _G.FS_Locked and _G.FS_Locked.Parent then
+            if Toggles.AimSticky and ToggleOn("AimSticky") and _G.FS_Locked and _G.FS_Locked.Parent then
                 local LP = _G.FS_Locked
                 local Pos, On = Camera:WorldToViewportPoint(LP.Position)
                 if On and (Vector2.new(Pos.X, Pos.Y) - AimGetMouse()).Magnitude <= (FOV + 50) then
@@ -261,7 +273,7 @@ local function GoBehindKiller()
     BackstabBusy = true
     task.spawn(function()
         local Duration = 2
-        pcall(function() Duration = Toggles.KillerBackDuration.Value end)
+        pcall(function() Duration = ToggleOn("KillerBackDuration") end)
         local MyHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if not MyHRP then
             BackstabBusy = false
@@ -275,7 +287,7 @@ local function GoBehindKiller()
         end
         local Saved = MyHRP.CFrame
         local Offset = 3
-        pcall(function() Offset = Toggles.KillerBackOffset.Value end)
+        pcall(function() Offset = ToggleOn("KillerBackOffset") end)
         local EndTime = tick() + Duration
         while tick() < EndTime do
             if not MyHRP.Parent or not KillerHRP.Parent then break end
@@ -293,13 +305,13 @@ local function GoBehindKiller()
 end
 
 local function DoBackstab()
-    if not Toggles.KillerBackEnabled.Value then
+    if not ToggleOn("KillerBackEnabled") then
         Library:Notify("Backstab kapali.")
         return
     end
     task.spawn(function()
         GoBehindKiller()
-        if Toggles.KillerBackGameKey.Value then
+        if ToggleOn("KillerBackGameKey") then
             FireGameKeyAction()
         end
     end)
@@ -328,7 +340,7 @@ Groupboxes.Combat_Killer:AddToggle("KillerBack", {
 Toggles.KillerBack:AddKeyPicker("KillerBackKey", {
     Text = "Killer Arkası", Default = "Q", Mode = "Toggle", SyncToggleState = true,
 })
-Toggles.KillerBack:OnChanged(function(Value)
+OnChange("KillerBack", function(Value)
     if not Value then return end
     DoBackstab()
     pcall(function() Toggles.KillerBack:SetValue(false) end)
@@ -373,7 +385,7 @@ local function AuraIsEnemy(Player)
     if Player == LocalPlayer then return false end
     if not Player.Character then return false end
     if Player:GetAttribute("Alive") == false then return false end
-    if Toggles.KillAuraTeamCheck and Toggles.KillAuraTeamCheck.Value then
+    if Toggles.KillAuraTeamCheck and ToggleOn("KillAuraTeamCheck") then
         if LocalPlayer.Team ~= nil and Player.Team ~= nil and Player.Team == LocalPlayer.Team then
             return false
         end
@@ -384,7 +396,7 @@ local function AuraIsEnemy(Player)
 end
 
 local function AuraVisible(TargetPart, Origin)
-    if not Toggles.KillAuraWallCheck or not Toggles.KillAuraWallCheck.Value then
+    if not Toggles.KillAuraWallCheck or not ToggleOn("KillAuraWallCheck") then
         return true
     end
     local Ok, Res = pcall(function()
@@ -400,9 +412,9 @@ end
 local AuraAccum = 0
 
 TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
-    if not (Toggles.KillAura and Toggles.KillAura.Value) then return end
+    if not (Toggles.KillAura and ToggleOn("KillAura")) then return end
     if not LocalPlayer.Character then return end
-    if Toggles.KillAuraToolOnly and Toggles.KillAuraToolOnly.Value then
+    if Toggles.KillAuraToolOnly and ToggleOn("KillAuraToolOnly") then
         if not LocalPlayer.Character:FindFirstChildOfClass("Tool") then return end
     end
     AuraAccum = AuraAccum + Delta
@@ -414,7 +426,7 @@ TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
     if not HRP then return end
     local Range = (Options.KillAuraRange and Options.KillAuraRange.Value) or 30
     local Damage = (Options.KillAuraDamage and Options.KillAuraDamage.Value) or 25
-    local OnlyClosest = not (Toggles.KillAuraAllTargets and Toggles.KillAuraAllTargets.Value)
+    local OnlyClosest = not (Toggles.KillAuraAllTargets and ToggleOn("KillAuraAllTargets"))
     local Targets = {}
     local Best, BestDist = nil, Range
 
@@ -496,7 +508,7 @@ local function InstallSpy()
         local IsFire = Method == "FireServer" and typeof(Self) == "Instance" and Self:IsA("RemoteEvent")
         local IsInvoke = Method == "InvokeServer" and typeof(Self) == "Instance" and Self:IsA("RemoteFunction")
         if IsFire or IsInvoke then
-            if not InternalFire and Toggles.LogAbilityArgs and Toggles.LogAbilityArgs.Value then
+            if not InternalFire and Toggles.LogAbilityArgs and ToggleOn("LogAbilityArgs") then
                 local Nm = Method .. " | " .. Self:GetFullName()
                 local Now = tick()
                 if not LastLogAt[Nm] or Now - LastLogAt[Nm] > 2 then
@@ -514,7 +526,7 @@ local function InstallSpy()
         return Old(Self, ...)
     end))
 end
-Toggles.LogAbilityArgs:OnChanged(function(Value)
+OnChange("LogAbilityArgs", function(Value)
     if Value then
         InstallSpy()
         task.delay(0.5, function()
@@ -558,7 +570,7 @@ end
 
 local SpamAcc = 0
 TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
-    if Toggles.SpamLastAbility and Toggles.SpamLastAbility.Value and LastRecorded then
+    if Toggles.SpamLastAbility and ToggleOn("SpamLastAbility") and LastRecorded then
         SpamAcc = SpamAcc + Delta
         local Interval = (Options.SpamInterval and Options.SpamInterval.Value) or 1
         if SpamAcc >= Interval then
@@ -718,7 +730,7 @@ Groupboxes.Visuals_ESP:AddToggle("RoleColors", {
 
 -- Killer'lar 1000+ HP, survivor'lar ~100 HP
 local function RoleColor(Char, Fallback)
-    if Toggles.RoleColors and Toggles.RoleColors.Value then
+    if Toggles.RoleColors and ToggleOn("RoleColors") then
         local Hum = Char and Char:FindFirstChildOfClass("Humanoid")
         if Hum and Hum.MaxHealth >= 500 then
             return Color3.fromRGB(255, 0, 0)
@@ -731,7 +743,7 @@ end
 local function ShouldESP(Player)
     if Player == LocalPlayer then return false end
     if not Player.Character then return false end
-    if Toggles.ESPTeamCheck and Toggles.ESPTeamCheck.Value then
+    if Toggles.ESPTeamCheck and ToggleOn("ESPTeamCheck") then
         if LocalPlayer.Team ~= nil and Player.Team ~= nil and Player.Team == LocalPlayer.Team then
             return false
         end
@@ -743,8 +755,8 @@ local HealthConns = {}
 local function TrackHealth(Player, Char)
     local Old = HealthConns[Char]
     if Old then pcall(function() Old:Disconnect() end) HealthConns[Char] = nil end
-    local ShowHP = Toggles.ESPShowHealth and Toggles.ESPShowHealth.Value
-    local ShowStam = Toggles.ESPShowStamina and Toggles.ESPShowStamina.Value
+    local ShowHP = Toggles.ESPShowHealth and ToggleOn("ESPShowHealth")
+    local ShowStam = Toggles.ESPShowStamina and ToggleOn("ESPShowStamina")
     if not (ShowHP or ShowStam) then
         Abysall.ESPLibrary:UpdateObjectText(Char, Player.Name)
         return
@@ -792,7 +804,7 @@ local function AddPlayerESP(Data)
     end)
 end
 
-Toggles.PlayerESP:OnChanged(function(Value)
+OnChange("PlayerESP", function(Value)
     for _, Player in pairs(Services.Players:GetPlayers()) do
         if Player.Character then
             if Value and ShouldESP(Player) then
@@ -810,23 +822,23 @@ Options.PlayerESPColor:OnChanged(function(Value)
         end
     end
 end)
-Toggles.RoleColors:OnChanged(function()
+OnChange("RoleColors", function()
     for _, Player in pairs(Services.Players:GetPlayers()) do
-        if Player ~= LocalPlayer and Player.Character and Toggles.PlayerESP.Value and ShouldESP(Player) then
+        if Player ~= LocalPlayer and Player.Character and ToggleOn("PlayerESP") and ShouldESP(Player) then
             Abysall.ESPLibrary:UpdateObjectColor(Player.Character, RoleColor(Player.Character, Options.PlayerESPColor.Value))
         end
     end
 end)
-Toggles.ESPShowHealth:OnChanged(function()
+OnChange("ESPShowHealth", function()
     for _, Player in pairs(Services.Players:GetPlayers()) do
-        if Player ~= LocalPlayer and Player.Character and Toggles.PlayerESP.Value and ShouldESP(Player) then
+        if Player ~= LocalPlayer and Player.Character and ToggleOn("PlayerESP") and ShouldESP(Player) then
             TrackHealth(Player, Player.Character)
         end
     end
 end)
-Toggles.ESPShowStamina:OnChanged(function()
+OnChange("ESPShowStamina", function()
     for _, Player in pairs(Services.Players:GetPlayers()) do
-        if Player ~= LocalPlayer and Player.Character and Toggles.PlayerESP.Value and ShouldESP(Player) then
+        if Player ~= LocalPlayer and Player.Character and ToggleOn("PlayerESP") and ShouldESP(Player) then
             TrackHealth(Player, Player.Character)
         end
     end
@@ -835,7 +847,7 @@ end)
 TrackConn(Services.Players.PlayerAdded:Connect(function(Player)
     Player.CharacterAdded:Connect(function(Char)
         task.wait(1)
-        if Toggles.PlayerESP.Value and ShouldESP(Player) then
+        if ToggleOn("PlayerESP") and ShouldESP(Player) then
             AddPlayerESP({ Object = Char, Text = Player.Name, Color = RoleColor(Char, Options.PlayerESPColor.Value), Player = Player })
         end
     end)
@@ -844,7 +856,7 @@ for _, Player in pairs(Services.Players:GetPlayers()) do
     if Player ~= LocalPlayer then
         Player.CharacterAdded:Connect(function(Char)
             task.wait(1)
-            if Toggles.PlayerESP.Value and ShouldESP(Player) then
+            if ToggleOn("PlayerESP") and ShouldESP(Player) then
                 AddPlayerESP({ Object = Char, Text = Player.Name, Color = RoleColor(Char, Options.PlayerESPColor.Value), Player = Player })
             end
         end)
@@ -881,7 +893,7 @@ local function HookItem(Obj)
         Label = Obj.Name
     end
     if not Label then return end
-    if Toggles.ItemESP and Toggles.ItemESP.Value then
+    if Toggles.ItemESP and ToggleOn("ItemESP") then
         local Target = Obj
         pcall(function()
             Abysall.ESPLibrary:AddESP({ Object = Target, Text = Label, Color = Options.ItemESPColor.Value })
@@ -906,7 +918,7 @@ local function ClearItems()
     ItemESPObjects = {}
 end
 
-Toggles.ItemESP:OnChanged(function(Value)
+OnChange("ItemESP", function(Value)
     if Value then
         ScanItems()
     else
@@ -926,9 +938,9 @@ Groupboxes.Visuals_Settings = Tabs.Visuals:AddRightGroupbox("ESP Settings")
 Groupboxes.Visuals_Settings:AddToggle("ESPShowDistance", { Text = "Show Distance", Default = true })
 Groupboxes.Visuals_Settings:AddToggle("ESPTracers", { Text = "Tracers", Default = false })
 Groupboxes.Visuals_Settings:AddToggle("ESPArrows", { Text = "Arrows", Default = false })
-Toggles.ESPShowDistance:OnChanged(function(V) Abysall.ESPLibrary:SetShowDistance(V) end)
-Toggles.ESPTracers:OnChanged(function(V) Abysall.ESPLibrary:SetTracers(V) end)
-Toggles.ESPArrows:OnChanged(function(V) Abysall.ESPLibrary:SetArrows(V) end)
+OnChange("ESPShowDistance", function(V) Abysall.ESPLibrary:SetShowDistance(V) end)
+OnChange("ESPTracers", function(V) Abysall.ESPLibrary:SetTracers(V) end)
+OnChange("ESPArrows", function(V) Abysall.ESPLibrary:SetArrows(V) end)
 Abysall.ESPLibrary:SetShowDistance(true)
 
 -- // Misc: hareket //
@@ -1009,9 +1021,9 @@ local function ApplyStamina()
     local Gain = Options.StaminaGain and Options.StaminaGain.Value or 100
     pcall(function() Mod.MaxStamina = Max end)
     pcall(function() Mod.StaminaGain = Gain end)
-    pcall(function() Mod.StaminaLossDisabled = Toggles.StaminaNoLoss and Toggles.StaminaNoLoss.Value or false end)
+    pcall(function() Mod.StaminaLossDisabled = Toggles.StaminaNoLoss and ToggleOn("StaminaNoLoss") or false end)
     pcall(function() Mod.MinStamina = -9999 end)
-    if Toggles.StaminaSprintSpeed and Toggles.StaminaSprintSpeed.Value then
+    if Toggles.StaminaSprintSpeed and ToggleOn("StaminaSprintSpeed") then
         pcall(function()
             Mod.SprintSpeed = Options.StaminaSprintSpeedVal and Options.StaminaSprintSpeedVal.Value or 80
         end)
@@ -1047,7 +1059,7 @@ local function RestoreStamina()
     StaminaSaved = nil
 end
 
-Toggles.InfStamina:OnChanged(function(Value)
+OnChange("InfStamina", function(Value)
     if Value then
         SaveStamina()
         ApplyStamina()
@@ -1058,7 +1070,7 @@ end)
 
 local StaminaAcc = 0
 TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
-    if Toggles.InfStamina and Toggles.InfStamina.Value then
+    if Toggles.InfStamina and ToggleOn("InfStamina") then
         StaminaAcc = StaminaAcc + Delta
         if StaminaAcc >= 0.1 then
             StaminaAcc = 0
@@ -1088,7 +1100,7 @@ TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
     if not LocalPlayer.Character then return end
     local Hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
     if not Hum then return end
-    if Toggles.GodMode and Toggles.GodMode.Value then
+    if Toggles.GodMode and ToggleOn("GodMode") then
         GodAcc = GodAcc + Delta
         if GodAcc >= 0.1 then
             GodAcc = 0
@@ -1097,14 +1109,14 @@ TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
     else
         GodAcc = 0
     end
-    if Toggles.JumpPower and Toggles.JumpPower.Value then
+    if Toggles.JumpPower and ToggleOn("JumpPower") then
         pcall(function()
             Hum.UseJumpPower = true
             Hum.JumpPower = Options.JumpPowerVal and Options.JumpPowerVal.Value or 100
         end)
     end
     local Head = LocalPlayer.Character:FindFirstChild("Head")
-    if Toggles.Hitbox and Toggles.Hitbox.Value and Head then
+    if Toggles.Hitbox and ToggleOn("Hitbox") and Head then
         if not HitboxSaved then HitboxSaved = Head.Size end
         pcall(function()
             local Mult = Options.HitboxSize and Options.HitboxSize.Value or 3
@@ -1117,7 +1129,7 @@ TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
     end
 end))
 
-Toggles.RemovePopups:OnChanged(function(Value)
+OnChange("RemovePopups", function(Value)
     pcall(function()
         local StarterGui = Services.StarterGui
         StarterGui:SetCore("SendNotification", not Value)
@@ -1125,14 +1137,14 @@ Toggles.RemovePopups:OnChanged(function(Value)
 end)
 
 TrackConn(Services.RunService.RenderStepped:Connect(function()
-    if Toggles.WalkSpeedOn and Toggles.WalkSpeedOn.Value and LocalPlayer.Character then
+    if Toggles.WalkSpeedOn and ToggleOn("WalkSpeedOn") and LocalPlayer.Character then
         local Hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
         if Hum then Hum.WalkSpeed = Options.WalkSpeedVal.Value end
     end
 end))
 
 TrackConn(Services.UserInputService.JumpRequest:Connect(function()
-    if Toggles.InfiniteJump and Toggles.InfiniteJump.Value and LocalPlayer.Character then
+    if Toggles.InfiniteJump and ToggleOn("InfiniteJump") and LocalPlayer.Character then
         local Hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
         if Hum then Hum:ChangeState(Enum.HumanoidStateType.Jumping) end
     end
@@ -1164,7 +1176,7 @@ end
 
 TrackConn(Services.RunService.RenderStepped:Connect(function()
     local R = FlyRoot()
-    if Toggles.Fly and Toggles.Fly.Value and R then
+    if Toggles.Fly and ToggleOn("Fly") and R then
         FlyBody.Parent = R
         FlyBody.Velocity = FlyDir() * ((Options.FlySpeed and Options.FlySpeed.Value) or 50)
     elseif FlyBody.Parent then
@@ -1174,7 +1186,7 @@ TrackConn(Services.RunService.RenderStepped:Connect(function()
 end))
 
 TrackConn(Services.RunService.Stepped:Connect(function()
-    if Toggles.Noclip and Toggles.Noclip.Value and LocalPlayer.Character then
+    if Toggles.Noclip and ToggleOn("Noclip") and LocalPlayer.Character then
         for _, P in ipairs(LocalPlayer.Character:GetDescendants()) do
             if P:IsA("BasePart") and P.CanCollide then
                 P.CanCollide = false
@@ -1207,11 +1219,11 @@ local function ApplyBright(On)
         L.Ambient = OldLight.A
     end
 end
-Toggles.Fullbright:OnChanged(function(V) pcall(ApplyBright, V) end)
+OnChange("Fullbright", function(V) pcall(ApplyBright, V) end)
 
 local BrightAcc = 0
 TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
-    if Toggles.Fullbright and Toggles.Fullbright.Value then
+    if Toggles.Fullbright and ToggleOn("Fullbright") then
         BrightAcc = BrightAcc + Delta
         if BrightAcc >= 2 then
             BrightAcc = 0
@@ -1223,7 +1235,7 @@ TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
 end))
 
 local AFKConn = nil
-Toggles.AntiAFK:OnChanged(function(Value)
+OnChange("AntiAFK", function(Value)
     if Value then
         local Ok, VU = pcall(function() return game:GetService("VirtualUser") end)
         if Ok and VU then
@@ -1427,7 +1439,7 @@ local function NearestThreat()
     if Killer and Killer.Parent then
         Best, BestDist = Killer, (Killer.Position - HRP.Position).Magnitude
     end
-    if Toggles.FarmFleeMinions and Toggles.FarmFleeMinions.Value then
+    if Toggles.FarmFleeMinions and ToggleOn("FarmFleeMinions") then
         for _, Part in ipairs(GetMinionParts()) do
             if Part.Parent then
                 local Dist = (Part.Position - HRP.Position).Magnitude
@@ -1483,7 +1495,7 @@ function FleeNow()
             local Parts = GetMapParts()
             if #Parts == 0 then return end
             local Best, BestDist = nil, -1
-            local Random = Toggles.FarmFleeRandom and Toggles.FarmFleeRandom.Value
+            local Random = Toggles.FarmFleeRandom and ToggleOn("FarmFleeRandom")
             for _, Part in ipairs(Parts) do
                 if Part.Parent then
                     local D = (Part.Position - Threat.Position).Magnitude
@@ -1501,7 +1513,7 @@ end
 
 local FleeAcc = 0
 TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
-    if not (Toggles.FarmFlee and Toggles.FarmFlee.Value) then
+    if not (Toggles.FarmFlee and ToggleOn("FarmFlee")) then
         FleeAcc = 0
         return
     end
@@ -1528,7 +1540,7 @@ TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
             if D > BestDist then Best, BestDist = Part, D end
         end
     end
-    if Toggles.FarmFleeRandom and Toggles.FarmFleeRandom.Value then
+    if Toggles.FarmFleeRandom and ToggleOn("FarmFleeRandom") then
         Best = Parts[math.random(1, #Parts)]
     end
     if Best then TeleportTo(Best) end
@@ -1586,31 +1598,31 @@ local function Attack(Target, Bursts)
         if MyHRP and Part and (Part.Position - MyHRP.Position).Magnitude > HitRange then
             task.wait(0.1)
         else
-            if Toggles.FarmMB1 and Toggles.FarmMB1.Value then SimulateClick() end
-            if Toggles.FarmAbility and Toggles.FarmAbility.Value then
+            if Toggles.FarmMB1 and ToggleOn("FarmMB1") then SimulateClick() end
+            if Toggles.FarmAbility and ToggleOn("FarmAbility") then
                 SimulateKey(GetBoundKey(Options.FarmAbilityKey), 0.05)
             end
-            if Toggles.FarmAbility2 and Toggles.FarmAbility2.Value then
+            if Toggles.FarmAbility2 and ToggleOn("FarmAbility2") then
                 SimulateKey(GetBoundKey(Options.FarmAbilityKey2), 0.05)
             end
-            if Toggles.FarmUseSpy and Toggles.FarmUseSpy.Value then RefireLast() end
+            if Toggles.FarmUseSpy and ToggleOn("FarmUseSpy") then RefireLast() end
             task.wait(0.2)
         end
     end
 end
 
 local KillLoopRunning = false
-Toggles.FarmKill:OnChanged(function(Value)
+OnChange("FarmKill", function(Value)
     if Value then
         if KillLoopRunning then return end
         KillLoopRunning = true
         task.spawn(function()
-            while Toggles.FarmKill and Toggles.FarmKill.Value do
+            while Toggles.FarmKill and ToggleOn("FarmKill") do
                 local Target = FindFarmTarget()
                 if not Target then
                     task.wait(0.5)
                 else
-                    if Toggles.FarmBackstab and Toggles.FarmBackstab.Value then
+                    if Toggles.FarmBackstab and ToggleOn("FarmBackstab") then
                         local Time = Options.FarmBackstabTime and Options.FarmBackstabTime.Value or 2
                         local Offset = Options.FarmOffset and Options.FarmOffset.Value or 3
                         LockBehind(Target, Time, Offset)

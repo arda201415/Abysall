@@ -11,6 +11,18 @@ local SaveManager = Abysall.Interface.SaveManager
 local ThemeManager = Abysall.Interface.ThemeManager
 
 local Toggles = Library.Toggles
+local Toggles = Library.Toggles
+-- Toggle okumalarini nil-guvenli yapar; anahtar yoksa false doner (kutuphane sifirlanirsa cokmeyi onler)
+local function ToggleOn(Name)
+	local T = Toggles and Toggles[Name]
+	if T == nil then return false end
+	return T.Value == true
+end
+local function OnChange(Name, Fn)
+	local T = Toggles and Toggles[Name]
+	if T == nil then return end
+	T:OnChanged(Fn)
+end
 local Options = Library.Options
 
 local function CloneReference(Object)
@@ -112,7 +124,7 @@ Groupboxes.Zones_Scan:AddButton({
     Func = function()
         local Found = FindZones()
         Library:Notify(#Found .. " zone bulundu.")
-        if Toggles.ZoneESP and Toggles.ZoneESP.Value then
+        if Toggles.ZoneESP and ToggleOn("ZoneESP") then
             RefreshZoneESP()
         end
     end
@@ -123,7 +135,7 @@ RefreshZoneESP = function()
     for _, Z in ipairs(Zones) do
         pcall(function() Abysall.ESPLibrary:RemoveESP(Z) end)
     end
-    if Toggles.ZoneESP and Toggles.ZoneESP.Value then
+    if Toggles.ZoneESP and ToggleOn("ZoneESP") then
         local Color = Options.ZoneESPColor and Options.ZoneESPColor.Value or Color3.fromRGB(0, 255, 0)
         for _, Z in ipairs(Zones) do
             pcall(function()
@@ -140,9 +152,9 @@ Groupboxes.Zones_ESP:AddToggle("ZoneESP", {
 Toggles.ZoneESP:AddColorPicker("ZoneESPColor", {
     Text = "ESP Rengi", Default = Color3.fromRGB(0, 255, 0), Transparency = 0,
 })
-Toggles.ZoneESP:OnChanged(function() RefreshZoneESP() end)
+OnChange("ZoneESP", function() RefreshZoneESP() end)
 Options.ZoneESPColor:OnChanged(function()
-    if Toggles.ZoneESP.Value then RefreshZoneESP() end
+    if ToggleOn("ZoneESP") then RefreshZoneESP() end
 end)
 
 -- // Claim Every Zone //
@@ -256,7 +268,7 @@ local function InstallSpy()
         local IsFire = Method == "FireServer" and typeof(Self) == "Instance" and Self:IsA("RemoteEvent")
         local IsInvoke = Method == "InvokeServer" and typeof(Self) == "Instance" and Self:IsA("RemoteFunction")
         if IsFire or IsInvoke then
-            if not InternalFire and Toggles.LogAbilityArgs and Toggles.LogAbilityArgs.Value then
+            if not InternalFire and Toggles.LogAbilityArgs and ToggleOn("LogAbilityArgs") then
                 local Nm = Method .. " | " .. Self:GetFullName()
                 local Now = tick()
                 if not LastLogAt[Nm] or Now - LastLogAt[Nm] > 2 then
@@ -274,7 +286,7 @@ local function InstallSpy()
         return Old(Self, ...)
     end))
 end
-Toggles.LogAbilityArgs:OnChanged(function(Value)
+OnChange("LogAbilityArgs", function(Value)
     if Value then
         InstallSpy()
         task.delay(0.5, function()
@@ -318,7 +330,7 @@ end
 
 local SpamAcc = 0
 TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
-    if Toggles.SpamLastAbility and Toggles.SpamLastAbility.Value and LastRecorded then
+    if Toggles.SpamLastAbility and ToggleOn("SpamLastAbility") and LastRecorded then
         SpamAcc = SpamAcc + Delta
         local Interval = (Options.SpamInterval and Options.SpamInterval.Value) or 1
         if SpamAcc >= Interval then
@@ -453,7 +465,7 @@ end
 
 TrackConn(Services.RunService.RenderStepped:Connect(function()
     local R = FlyRoot()
-    if Toggles.Fly and Toggles.Fly.Value and R then
+    if Toggles.Fly and ToggleOn("Fly") and R then
         FlyBody.Parent = R
         FlyBody.Velocity = FlyDir() * ((Options.FlySpeed and Options.FlySpeed.Value) or 50)
     elseif FlyBody.Parent then
@@ -463,7 +475,7 @@ TrackConn(Services.RunService.RenderStepped:Connect(function()
 end))
 
 TrackConn(Services.RunService.Stepped:Connect(function()
-    if Toggles.Noclip and Toggles.Noclip.Value and LocalPlayer.Character then
+    if Toggles.Noclip and ToggleOn("Noclip") and LocalPlayer.Character then
         for _, P in ipairs(LocalPlayer.Character:GetDescendants()) do
             if P:IsA("BasePart") and P.CanCollide then
                 P.CanCollide = false
@@ -473,14 +485,14 @@ TrackConn(Services.RunService.Stepped:Connect(function()
 end))
 
 TrackConn(Services.RunService.RenderStepped:Connect(function()
-    if Toggles.WalkSpeedOn and Toggles.WalkSpeedOn.Value and LocalPlayer.Character then
+    if Toggles.WalkSpeedOn and ToggleOn("WalkSpeedOn") and LocalPlayer.Character then
         local Hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
         if Hum then Hum.WalkSpeed = Options.WalkSpeedVal.Value end
     end
 end))
 
 TrackConn(Services.UserInputService.JumpRequest:Connect(function()
-    if Toggles.InfiniteJump and Toggles.InfiniteJump.Value and LocalPlayer.Character then
+    if Toggles.InfiniteJump and ToggleOn("InfiniteJump") and LocalPlayer.Character then
         local Hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
         if Hum then Hum:ChangeState(Enum.HumanoidStateType.Jumping) end
     end
@@ -505,7 +517,7 @@ Groupboxes.Visuals_ESP:AddToggle("ESPShowHealth", {
 local function ShouldESP(Player)
     if Player == LocalPlayer then return false end
     if not Player.Character then return false end
-    if Toggles.ESPTeamCheck and Toggles.ESPTeamCheck.Value then
+    if Toggles.ESPTeamCheck and ToggleOn("ESPTeamCheck") then
         if LocalPlayer.Team ~= nil and Player.Team ~= nil and Player.Team == LocalPlayer.Team then
             return false
         end
@@ -517,7 +529,7 @@ local HealthConns = {}
 local function TrackHealth(Player, Char)
     local Old = HealthConns[Char]
     if Old then pcall(function() Old:Disconnect() end) HealthConns[Char] = nil end
-    if not (Toggles.ESPShowHealth and Toggles.ESPShowHealth.Value) then
+    if not (Toggles.ESPShowHealth and ToggleOn("ESPShowHealth")) then
         Abysall.ESPLibrary:UpdateObjectText(Char, Player.Name)
         return
     end
@@ -548,7 +560,7 @@ local function AddPlayerESP(Data)
     end)
 end
 
-Toggles.PlayerESP:OnChanged(function(Value)
+OnChange("PlayerESP", function(Value)
     for _, Player in pairs(Services.Players:GetPlayers()) do
         if Player.Character then
             if Value and ShouldESP(Player) then
@@ -566,9 +578,9 @@ Options.PlayerESPColor:OnChanged(function(Value)
         end
     end
 end)
-Toggles.ESPShowHealth:OnChanged(function()
+OnChange("ESPShowHealth", function()
     for _, Player in pairs(Services.Players:GetPlayers()) do
-        if Player ~= LocalPlayer and Player.Character and Toggles.PlayerESP.Value and ShouldESP(Player) then
+        if Player ~= LocalPlayer and Player.Character and ToggleOn("PlayerESP") and ShouldESP(Player) then
             TrackHealth(Player, Player.Character)
         end
     end
@@ -577,7 +589,7 @@ end)
 TrackConn(Services.Players.PlayerAdded:Connect(function(Player)
     Player.CharacterAdded:Connect(function(Char)
         task.wait(1)
-        if Toggles.PlayerESP.Value and ShouldESP(Player) then
+        if ToggleOn("PlayerESP") and ShouldESP(Player) then
             AddPlayerESP({ Object = Char, Text = Player.Name, Color = Options.PlayerESPColor.Value, Player = Player })
         end
     end)
@@ -586,7 +598,7 @@ for _, Player in pairs(Services.Players:GetPlayers()) do
     if Player ~= LocalPlayer then
         Player.CharacterAdded:Connect(function(Char)
             task.wait(1)
-            if Toggles.PlayerESP.Value and ShouldESP(Player) then
+            if ToggleOn("PlayerESP") and ShouldESP(Player) then
                 AddPlayerESP({ Object = Char, Text = Player.Name, Color = Options.PlayerESPColor.Value, Player = Player })
             end
         end)
@@ -597,9 +609,9 @@ Groupboxes.Visuals_Settings = Tabs.Visuals:AddRightGroupbox("ESP Settings")
 Groupboxes.Visuals_Settings:AddToggle("ESPShowDistance", { Text = "Show Distance", Default = true })
 Groupboxes.Visuals_Settings:AddToggle("ESPTracers", { Text = "Tracers", Default = false })
 Groupboxes.Visuals_Settings:AddToggle("ESPArrows", { Text = "Arrows", Default = false })
-Toggles.ESPShowDistance:OnChanged(function(V) Abysall.ESPLibrary:SetShowDistance(V) end)
-Toggles.ESPTracers:OnChanged(function(V) Abysall.ESPLibrary:SetTracers(V) end)
-Toggles.ESPArrows:OnChanged(function(V) Abysall.ESPLibrary:SetArrows(V) end)
+OnChange("ESPShowDistance", function(V) Abysall.ESPLibrary:SetShowDistance(V) end)
+OnChange("ESPTracers", function(V) Abysall.ESPLibrary:SetTracers(V) end)
+OnChange("ESPArrows", function(V) Abysall.ESPLibrary:SetArrows(V) end)
 Abysall.ESPLibrary:SetShowDistance(true)
 
 Library:OnUnload(function()

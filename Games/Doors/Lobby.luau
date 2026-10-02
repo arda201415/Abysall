@@ -6,6 +6,18 @@ local SaveManager = Abysall.Interface.SaveManager
 local ThemeManager = Abysall.Interface.ThemeManager
 
 local Toggles = Library.Toggles
+local Toggles = Library.Toggles
+-- Toggle okumalarini nil-guvenli yapar; anahtar yoksa false doner (kutuphane sifirlanirsa cokmeyi onler)
+local function ToggleOn(Name)
+	local T = Toggles and Toggles[Name]
+	if T == nil then return false end
+	return T.Value == true
+end
+local function OnChange(Name, Fn)
+	local T = Toggles and Toggles[Name]
+	if T == nil then return end
+	T:OnChanged(Fn)
+end
 local Options = Library.Options
 
 local function CloneReference(Object)
@@ -207,7 +219,7 @@ end
 
 Functions.CheckElevators = function()
     local TargetFound = false
-	if not Toggles.AutoJoinElevator.Value then
+	if not ToggleOn("AutoJoinElevator") then
 		return
 	end
 	local TargetCharacter
@@ -328,7 +340,7 @@ Connections.MainConnection = Services.RunService.Heartbeat:Connect(function()
 		Globals.LastElevatorCheck = tick()
 	end
 
-    if Toggles.CycleAchievements.Value and tick() - Globals.LastBadgeChange > Options.CycleAchievementsDelay.Value then
+    if ToggleOn("CycleAchievements") and tick() - Globals.LastBadgeChange > Options.CycleAchievementsDelay.Value then
         local Badge = Globals.UnlockedBadges[math.random(1, #Globals.UnlockedBadges)]
         if Badge == PreviousBadge then
             while task.wait() do

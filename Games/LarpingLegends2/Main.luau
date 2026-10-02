@@ -11,6 +11,18 @@ local SaveManager = Abysall.Interface.SaveManager
 local ThemeManager = Abysall.Interface.ThemeManager
 
 local Toggles = Library.Toggles
+local Toggles = Library.Toggles
+-- Toggle okumalarini nil-guvenli yapar; anahtar yoksa false doner (kutuphane sifirlanirsa cokmeyi onler)
+local function ToggleOn(Name)
+	local T = Toggles and Toggles[Name]
+	if T == nil then return false end
+	return T.Value == true
+end
+local function OnChange(Name, Fn)
+	local T = Toggles and Toggles[Name]
+	if T == nil then return end
+	T:OnChanged(Fn)
+end
 local Options = Library.Options
 
 local function CloneReference(Object)
@@ -118,7 +130,7 @@ local function AimIsEnemy(Player)
     if Player == LocalPlayer then return false end
     if not Player.Character then return false end
     if Player:GetAttribute("Alive") == false then return false end
-    if Toggles.AimbotTeamCheck and Toggles.AimbotTeamCheck.Value then
+    if Toggles.AimbotTeamCheck and ToggleOn("AimbotTeamCheck") then
         if LocalPlayer.Team ~= nil and Player.Team ~= nil and Player.Team == LocalPlayer.Team then
             return false
         end
@@ -129,7 +141,7 @@ local function AimIsEnemy(Player)
 end
 
 local function AimIsVisible(Part)
-    if not Toggles.AimbotWallCheck or not Toggles.AimbotWallCheck.Value then return true end
+    if not Toggles.AimbotWallCheck or not ToggleOn("AimbotWallCheck") then return true end
     local Ok, Res = pcall(function()
         local RayParams = RaycastParams.new()
         RayParams.FilterType = Enum.RaycastFilterType.Exclude
@@ -175,7 +187,7 @@ TrackConn(Services.RunService.RenderStepped:Connect(function()
             _G.SIM_FOVCircle = C
         end
         if _G.SIM_FOVCircle then
-            local Show = Toggles.AimbotEnabled and Toggles.AimbotEnabled.Value and Toggles.AimFOVCircle and Toggles.AimFOVCircle.Value
+            local Show = Toggles.AimbotEnabled and ToggleOn("AimbotEnabled") and Toggles.AimFOVCircle and ToggleOn("AimFOVCircle")
             _G.SIM_FOVCircle.Visible = Show or false
             if Show then
                 _G.SIM_FOVCircle.Position = AimGetMouse()
@@ -184,13 +196,13 @@ TrackConn(Services.RunService.RenderStepped:Connect(function()
         end
     end)
 
-    if Toggles.AimbotEnabled and Toggles.AimbotEnabled.Value then
+    if Toggles.AimbotEnabled and ToggleOn("AimbotEnabled") then
         local HoldingKey = Options.AimbotKey and Options.AimbotKey:GetState()
-        local HoldingRMB = Toggles.AimbotUseRMB and Toggles.AimbotUseRMB.Value and Services.UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2)
+        local HoldingRMB = Toggles.AimbotUseRMB and ToggleOn("AimbotUseRMB") and Services.UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2)
         if HoldingKey or HoldingRMB then
             local Target = AimGetTarget()
             local FOV = (Options.AimbotFOV and Options.AimbotFOV.Value) or 200
-            if Toggles.AimSticky and Toggles.AimSticky.Value and _G.SIM_Locked and _G.SIM_Locked.Parent then
+            if Toggles.AimSticky and ToggleOn("AimSticky") and _G.SIM_Locked and _G.SIM_Locked.Parent then
                 local LP = _G.SIM_Locked
                 local Pos, On = Camera:WorldToViewportPoint(LP.Position)
                 if On and (Vector2.new(Pos.X, Pos.Y) - AimGetMouse()).Magnitude <= (FOV + 50) then
@@ -235,7 +247,7 @@ local function AuraIsEnemy(Player)
     if Player == LocalPlayer then return false end
     if not Player.Character then return false end
     if Player:GetAttribute("Alive") == false then return false end
-    if Toggles.KillAuraTeamCheck and Toggles.KillAuraTeamCheck.Value then
+    if Toggles.KillAuraTeamCheck and ToggleOn("KillAuraTeamCheck") then
         if LocalPlayer.Team ~= nil and Player.Team ~= nil and Player.Team == LocalPlayer.Team then
             return false
         end
@@ -247,7 +259,7 @@ end
 
 local AuraAccum = 0
 TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
-    if not (Toggles.KillAura and Toggles.KillAura.Value) then return end
+    if not (Toggles.KillAura and ToggleOn("KillAura")) then return end
     local Char = LocalPlayer.Character
     local HRP = Char and Char:FindFirstChild("HumanoidRootPart")
     if not HRP then return end
@@ -258,7 +270,7 @@ TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
 
     local Range = (Options.KillAuraRange and Options.KillAuraRange.Value) or 30
     local Damage = (Options.KillAuraDamage and Options.KillAuraDamage.Value) or 25
-    local OnlyClosest = not (Toggles.KillAuraAllTargets and Toggles.KillAuraAllTargets.Value)
+    local OnlyClosest = not (Toggles.KillAuraAllTargets and ToggleOn("KillAuraAllTargets"))
     local Targets, Best, BestDist = {}, nil, Range
 
     for _, Player in pairs(Services.Players:GetPlayers()) do
@@ -359,7 +371,7 @@ Groupboxes.Farm_Auto:AddSlider("AutoQuestsDelay", {
 
 local AutoAcc = { Machine = 0, Quests = 0 }
 TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
-    if Toggles.AutoMachine and Toggles.AutoMachine.Value then
+    if Toggles.AutoMachine and ToggleOn("AutoMachine") then
         AutoAcc.Machine = AutoAcc.Machine + Delta
         local D = (Options.AutoMachineDelay and Options.AutoMachineDelay.Value) or 3
         if AutoAcc.Machine >= D then
@@ -375,7 +387,7 @@ TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
         AutoAcc.Machine = 0
     end
 
-    if Toggles.AutoQuests and Toggles.AutoQuests.Value then
+    if Toggles.AutoQuests and ToggleOn("AutoQuests") then
         AutoAcc.Quests = AutoAcc.Quests + Delta
         local D = (Options.AutoQuestsDelay and Options.AutoQuestsDelay.Value) or 10
         if AutoAcc.Quests >= D then
@@ -439,7 +451,7 @@ local function InstallSpy()
         local IsFire = Method == "FireServer" and typeof(Self) == "Instance" and Self:IsA("RemoteEvent")
         local IsInvoke = Method == "InvokeServer" and typeof(Self) == "Instance" and Self:IsA("RemoteFunction")
         if IsFire or IsInvoke then
-            if not InternalFire and Toggles.LogAbilityArgs and Toggles.LogAbilityArgs.Value then
+            if not InternalFire and Toggles.LogAbilityArgs and ToggleOn("LogAbilityArgs") then
                 local Nm = Method .. " | " .. Self:GetFullName()
                 local Now = tick()
                 if not LastLogAt[Nm] or Now - LastLogAt[Nm] > 2 then
@@ -456,7 +468,7 @@ local function InstallSpy()
         return Old(Self, ...)
     end))
 end
-Toggles.LogAbilityArgs:OnChanged(function(Value) if Value then InstallSpy() end end)
+OnChange("LogAbilityArgs", function(Value) if Value then InstallSpy() end end)
 
 RefireLast = function()
     if not LastRecorded or not LastRecorded.Remote then
@@ -476,7 +488,7 @@ end
 
 local SpamAcc = 0
 TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
-    if Toggles.SpamLastRemote and Toggles.SpamLastRemote.Value and LastRecorded then
+    if Toggles.SpamLastRemote and ToggleOn("SpamLastRemote") and LastRecorded then
         SpamAcc = SpamAcc + Delta
         local Interval = (Options.SpamInterval and Options.SpamInterval.Value) or 1
         if SpamAcc >= Interval then
@@ -503,7 +515,7 @@ Groupboxes.Visuals_ESP:AddToggle("ESPShowStats", {
 local function ShouldESP(Player)
     if Player == LocalPlayer then return false end
     if not Player.Character then return false end
-    if Toggles.ESPTeamCheck and Toggles.ESPTeamCheck.Value then
+    if Toggles.ESPTeamCheck and ToggleOn("ESPTeamCheck") then
         if LocalPlayer.Team ~= nil and Player.Team ~= nil and Player.Team == LocalPlayer.Team then
             return false
         end
@@ -515,7 +527,7 @@ local StatConns = {}
 local function TrackStats(Player, Char)
     local Old = StatConns[Player]
     if Old then pcall(function() Old:Disconnect() end) StatConns[Player] = nil end
-    if not (Toggles.ESPShowStats and Toggles.ESPShowStats.Value) then
+    if not (Toggles.ESPShowStats and ToggleOn("ESPShowStats")) then
         Abysall.ESPLibrary:UpdateObjectText(Char, Player.Name)
         return
     end
@@ -549,7 +561,7 @@ local function AddPlayerESP(Data)
     end)
 end
 
-Toggles.PlayerESP:OnChanged(function(Value)
+OnChange("PlayerESP", function(Value)
     for _, Player in pairs(Services.Players:GetPlayers()) do
         if Player.Character then
             if Value and ShouldESP(Player) then
@@ -565,9 +577,9 @@ Options.PlayerESPColor:OnChanged(function(Value)
         if Player.Character then Abysall.ESPLibrary:UpdateObjectColor(Player.Character, Value) end
     end
 end)
-Toggles.ESPShowStats:OnChanged(function()
+OnChange("ESPShowStats", function()
     for _, Player in pairs(Services.Players:GetPlayers()) do
-        if Player ~= LocalPlayer and Player.Character and Toggles.PlayerESP.Value and ShouldESP(Player) then
+        if Player ~= LocalPlayer and Player.Character and ToggleOn("PlayerESP") and ShouldESP(Player) then
             TrackStats(Player, Player.Character)
         end
     end
@@ -576,7 +588,7 @@ end)
 TrackConn(Services.Players.PlayerAdded:Connect(function(Player)
     Player.CharacterAdded:Connect(function(Char)
         task.wait(1)
-        if Toggles.PlayerESP.Value and ShouldESP(Player) then
+        if ToggleOn("PlayerESP") and ShouldESP(Player) then
             AddPlayerESP({ Object = Char, Text = Player.Name, Color = Options.PlayerESPColor.Value, Player = Player })
         end
     end)
@@ -585,7 +597,7 @@ for _, Player in pairs(Services.Players:GetPlayers()) do
     if Player ~= LocalPlayer then
         Player.CharacterAdded:Connect(function(Char)
             task.wait(1)
-            if Toggles.PlayerESP.Value and ShouldESP(Player) then
+            if ToggleOn("PlayerESP") and ShouldESP(Player) then
                 AddPlayerESP({ Object = Char, Text = Player.Name, Color = Options.PlayerESPColor.Value, Player = Player })
             end
         end)
@@ -596,9 +608,9 @@ Groupboxes.Visuals_Settings = Tabs.Visuals:AddRightGroupbox("ESP Settings")
 Groupboxes.Visuals_Settings:AddToggle("ESPShowDistance", { Text = "Show Distance", Default = true })
 Groupboxes.Visuals_Settings:AddToggle("ESPTracers", { Text = "Tracers", Default = false })
 Groupboxes.Visuals_Settings:AddToggle("ESPArrows", { Text = "Arrows", Default = false })
-Toggles.ESPShowDistance:OnChanged(function(V) Abysall.ESPLibrary:SetShowDistance(V) end)
-Toggles.ESPTracers:OnChanged(function(V) Abysall.ESPLibrary:SetTracers(V) end)
-Toggles.ESPArrows:OnChanged(function(V) Abysall.ESPLibrary:SetArrows(V) end)
+OnChange("ESPShowDistance", function(V) Abysall.ESPLibrary:SetShowDistance(V) end)
+OnChange("ESPTracers", function(V) Abysall.ESPLibrary:SetTracers(V) end)
+OnChange("ESPArrows", function(V) Abysall.ESPLibrary:SetArrows(V) end)
 Abysall.ESPLibrary:SetShowDistance(true)
 
 -- // Misc: hareket //
@@ -618,13 +630,13 @@ Groupboxes.Misc_Move:AddToggle("Noclip", { Text = "Noclip", Default = false })
 Toggles.Noclip:AddKeyPicker("NoclipKey", { Text = "Noclip", Default = "N", Mode = "Toggle", SyncToggleState = true })
 
 TrackConn(Services.RunService.RenderStepped:Connect(function()
-    if Toggles.WalkSpeedOn and Toggles.WalkSpeedOn.Value and LocalPlayer.Character then
+    if Toggles.WalkSpeedOn and ToggleOn("WalkSpeedOn") and LocalPlayer.Character then
         local Hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
         if Hum then Hum.WalkSpeed = Options.WalkSpeedVal.Value end
     end
 end))
 TrackConn(Services.UserInputService.JumpRequest:Connect(function()
-    if Toggles.InfiniteJump and Toggles.InfiniteJump.Value and LocalPlayer.Character then
+    if Toggles.InfiniteJump and ToggleOn("InfiniteJump") and LocalPlayer.Character then
         local Hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
         if Hum then Hum:ChangeState(Enum.HumanoidStateType.Jumping) end
     end
@@ -654,7 +666,7 @@ end
 
 TrackConn(Services.RunService.RenderStepped:Connect(function()
     local R = FlyRoot()
-    if Toggles.Fly and Toggles.Fly.Value and R then
+    if Toggles.Fly and ToggleOn("Fly") and R then
         FlyBody.Parent = R
         FlyBody.Velocity = FlyDir() * ((Options.FlySpeed and Options.FlySpeed.Value) or 60)
     elseif FlyBody.Parent then
@@ -664,7 +676,7 @@ TrackConn(Services.RunService.RenderStepped:Connect(function()
 end))
 
 TrackConn(Services.RunService.Stepped:Connect(function()
-    if Toggles.Noclip and Toggles.Noclip.Value and LocalPlayer.Character then
+    if Toggles.Noclip and ToggleOn("Noclip") and LocalPlayer.Character then
         for _, P in ipairs(LocalPlayer.Character:GetDescendants()) do
             if P:IsA("BasePart") and P.CanCollide then P.CanCollide = false end
         end
@@ -680,7 +692,7 @@ Groupboxes.Misc_World:AddToggle("NoWeather", {
 })
 
 local NoWeatherConn = nil
-Toggles.NoWeather:OnChanged(function(Value)
+OnChange("NoWeather", function(Value)
     if NoWeatherConn then
         pcall(function() NoWeatherConn:Disconnect() end)
         NoWeatherConn = nil
@@ -725,11 +737,11 @@ local function ApplyBright(On)
         L.Ambient = OldLight.A
     end
 end
-Toggles.Fullbright:OnChanged(function(V) pcall(ApplyBright, V) end)
+OnChange("Fullbright", function(V) pcall(ApplyBright, V) end)
 
 local BrightAcc = 0
 TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
-    if Toggles.Fullbright and Toggles.Fullbright.Value then
+    if Toggles.Fullbright and ToggleOn("Fullbright") then
         BrightAcc = BrightAcc + Delta
         if BrightAcc >= 2 then
             BrightAcc = 0
@@ -741,7 +753,7 @@ TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
 end))
 
 local AFKConn = nil
-Toggles.AntiAFK:OnChanged(function(Value)
+OnChange("AntiAFK", function(Value)
     if Value then
         local Ok, VU = pcall(function() return game:GetService("VirtualUser") end)
         if Ok and VU then

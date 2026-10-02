@@ -17,6 +17,18 @@ local SaveManager = Abysall.Interface.SaveManager
 local ThemeManager = Abysall.Interface.ThemeManager
 
 local Toggles = Library.Toggles
+local Toggles = Library.Toggles
+-- Toggle okumalarini nil-guvenli yapar; anahtar yoksa false doner (kutuphane sifirlanirsa cokmeyi onler)
+local function ToggleOn(Name)
+	local T = Toggles and Toggles[Name]
+	if T == nil then return false end
+	return T.Value == true
+end
+local function OnChange(Name, Fn)
+	local T = Toggles and Toggles[Name]
+	if T == nil then return end
+	T:OnChanged(Fn)
+end
 local Options = Library.Options
 
 local function CloneReference(Object)
@@ -142,8 +154,8 @@ Groupboxes.Farm_Block:AddLabel("Argsiz denemeler; olmazsa Spy ile format bul.", 
 
 local BlockAcc = 0
 TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
-    local DoPick = Toggles.AutoPickup and Toggles.AutoPickup.Value
-    local DoPlace = Toggles.AutoPlace and Toggles.AutoPlace.Value
+    local DoPick = Toggles.AutoPickup and ToggleOn("AutoPickup")
+    local DoPlace = Toggles.AutoPlace and ToggleOn("AutoPlace")
     if not (DoPick or DoPlace) then
         BlockAcc = 0
         return
@@ -200,7 +212,7 @@ Groupboxes.Farm_Train:AddButton({
 
 local BenchAcc = 0
 TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
-    if Toggles.AutoBench and Toggles.AutoBench.Value then
+    if Toggles.AutoBench and ToggleOn("AutoBench") then
         BenchAcc = BenchAcc + Delta
         local Interval = (Options.BenchInterval and Options.BenchInterval.Value) or 5
         if BenchAcc >= Interval then
@@ -270,7 +282,7 @@ local function InstallSpy()
         local IsFire = Method == "FireServer" and typeof(Self) == "Instance" and Self:IsA("RemoteEvent")
         local IsInvoke = Method == "InvokeServer" and typeof(Self) == "Instance" and Self:IsA("RemoteFunction")
         if IsFire or IsInvoke then
-            if not InternalFire and Toggles.LogAbilityArgs and Toggles.LogAbilityArgs.Value then
+            if not InternalFire and Toggles.LogAbilityArgs and ToggleOn("LogAbilityArgs") then
                 local Nm = Method .. " | " .. Self:GetFullName()
                 local Now = tick()
                 if not LastLogAt[Nm] or Now - LastLogAt[Nm] > 2 then
@@ -287,7 +299,7 @@ local function InstallSpy()
         return Old(Self, ...)
     end))
 end
-Toggles.LogAbilityArgs:OnChanged(function(Value) if Value then InstallSpy() end end)
+OnChange("LogAbilityArgs", function(Value) if Value then InstallSpy() end end)
 
 RefireLast = function()
     if not LastRecorded or not LastRecorded.Remote then
@@ -307,7 +319,7 @@ end
 
 local SpamAcc = 0
 TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
-    if Toggles.SpamLastRemote and Toggles.SpamLastRemote.Value and LastRecorded then
+    if Toggles.SpamLastRemote and ToggleOn("SpamLastRemote") and LastRecorded then
         SpamAcc = SpamAcc + Delta
         local Interval = (Options.SpamInterval and Options.SpamInterval.Value) or 1
         if SpamAcc >= Interval then
@@ -331,7 +343,7 @@ Groupboxes.Visuals_ESP:AddToggle("ESPTeamCheck", { Text = "Team Check", Default 
 local function ShouldESP(Player)
     if Player == LocalPlayer then return false end
     if not Player.Character then return false end
-    if Toggles.ESPTeamCheck and Toggles.ESPTeamCheck.Value then
+    if Toggles.ESPTeamCheck and ToggleOn("ESPTeamCheck") then
         if LocalPlayer.Team ~= nil and Player.Team ~= nil and Player.Team == LocalPlayer.Team then
             return false
         end
@@ -348,7 +360,7 @@ local function AddPlayerESP(Data)
     end)
 end
 
-Toggles.PlayerESP:OnChanged(function(Value)
+OnChange("PlayerESP", function(Value)
     for _, Player in pairs(Services.Players:GetPlayers()) do
         if Player.Character then
             if Value and ShouldESP(Player) then
@@ -368,7 +380,7 @@ end)
 TrackConn(Services.Players.PlayerAdded:Connect(function(Player)
     Player.CharacterAdded:Connect(function(Char)
         task.wait(1)
-        if Toggles.PlayerESP.Value and ShouldESP(Player) then
+        if ToggleOn("PlayerESP") and ShouldESP(Player) then
             AddPlayerESP({ Object = Char, Text = Player.Name, Color = Options.PlayerESPColor.Value })
         end
     end)
@@ -377,7 +389,7 @@ for _, Player in pairs(Services.Players:GetPlayers()) do
     if Player ~= LocalPlayer then
         Player.CharacterAdded:Connect(function(Char)
             task.wait(1)
-            if Toggles.PlayerESP.Value and ShouldESP(Player) then
+            if ToggleOn("PlayerESP") and ShouldESP(Player) then
                 AddPlayerESP({ Object = Char, Text = Player.Name, Color = Options.PlayerESPColor.Value })
             end
         end)
@@ -388,9 +400,9 @@ Groupboxes.Visuals_Settings = Tabs.Visuals:AddRightGroupbox("ESP Settings")
 Groupboxes.Visuals_Settings:AddToggle("ESPShowDistance", { Text = "Show Distance", Default = true })
 Groupboxes.Visuals_Settings:AddToggle("ESPTracers", { Text = "Tracers", Default = false })
 Groupboxes.Visuals_Settings:AddToggle("ESPArrows", { Text = "Arrows", Default = false })
-Toggles.ESPShowDistance:OnChanged(function(V) Abysall.ESPLibrary:SetShowDistance(V) end)
-Toggles.ESPTracers:OnChanged(function(V) Abysall.ESPLibrary:SetTracers(V) end)
-Toggles.ESPArrows:OnChanged(function(V) Abysall.ESPLibrary:SetArrows(V) end)
+OnChange("ESPShowDistance", function(V) Abysall.ESPLibrary:SetShowDistance(V) end)
+OnChange("ESPTracers", function(V) Abysall.ESPLibrary:SetTracers(V) end)
+OnChange("ESPArrows", function(V) Abysall.ESPLibrary:SetArrows(V) end)
 Abysall.ESPLibrary:SetShowDistance(true)
 
 -- // Misc: hareket //
@@ -410,13 +422,13 @@ Groupboxes.Misc_Move:AddToggle("Noclip", { Text = "Noclip", Default = false })
 Toggles.Noclip:AddKeyPicker("NoclipKey", { Text = "Noclip", Default = "N", Mode = "Toggle", SyncToggleState = true })
 
 TrackConn(Services.RunService.RenderStepped:Connect(function()
-    if Toggles.WalkSpeedOn and Toggles.WalkSpeedOn.Value and LocalPlayer.Character then
+    if Toggles.WalkSpeedOn and ToggleOn("WalkSpeedOn") and LocalPlayer.Character then
         local Hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
         if Hum then Hum.WalkSpeed = Options.WalkSpeedVal.Value end
     end
 end))
 TrackConn(Services.UserInputService.JumpRequest:Connect(function()
-    if Toggles.InfiniteJump and Toggles.InfiniteJump.Value and LocalPlayer.Character then
+    if Toggles.InfiniteJump and ToggleOn("InfiniteJump") and LocalPlayer.Character then
         local Hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
         if Hum then Hum:ChangeState(Enum.HumanoidStateType.Jumping) end
     end
@@ -446,7 +458,7 @@ end
 
 TrackConn(Services.RunService.RenderStepped:Connect(function()
     local R = FlyRoot()
-    if Toggles.Fly and Toggles.Fly.Value and R then
+    if Toggles.Fly and ToggleOn("Fly") and R then
         FlyBody.Parent = R
         FlyBody.Velocity = FlyDir() * ((Options.FlySpeed and Options.FlySpeed.Value) or 50)
     elseif FlyBody.Parent then
@@ -456,7 +468,7 @@ TrackConn(Services.RunService.RenderStepped:Connect(function()
 end))
 
 TrackConn(Services.RunService.Stepped:Connect(function()
-    if Toggles.Noclip and Toggles.Noclip.Value and LocalPlayer.Character then
+    if Toggles.Noclip and ToggleOn("Noclip") and LocalPlayer.Character then
         for _, P in ipairs(LocalPlayer.Character:GetDescendants()) do
             if P:IsA("BasePart") and P.CanCollide then P.CanCollide = false end
         end
@@ -487,11 +499,11 @@ local function ApplyBright(On)
         L.Ambient = OldLight.A
     end
 end
-Toggles.Fullbright:OnChanged(function(V) pcall(ApplyBright, V) end)
+OnChange("Fullbright", function(V) pcall(ApplyBright, V) end)
 
 local BrightAcc = 0
 TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
-    if Toggles.Fullbright and Toggles.Fullbright.Value then
+    if Toggles.Fullbright and ToggleOn("Fullbright") then
         BrightAcc = BrightAcc + Delta
         if BrightAcc >= 2 then
             BrightAcc = 0
@@ -503,7 +515,7 @@ TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
 end))
 
 local AFKConn = nil
-Toggles.AntiAFK:OnChanged(function(Value)
+OnChange("AntiAFK", function(Value)
     if Value then
         local Ok, VU = pcall(function() return game:GetService("VirtualUser") end)
         if Ok and VU then

@@ -10,6 +10,18 @@ local SaveManager = Abysall.Interface.SaveManager
 local ThemeManager = Abysall.Interface.ThemeManager
 
 local Toggles = Library.Toggles
+local Toggles = Library.Toggles
+-- Toggle okumalarini nil-guvenli yapar; anahtar yoksa false doner (kutuphane sifirlanirsa cokmeyi onler)
+local function ToggleOn(Name)
+	local T = Toggles and Toggles[Name]
+	if T == nil then return false end
+	return T.Value == true
+end
+local function OnChange(Name, Fn)
+	local T = Toggles and Toggles[Name]
+	if T == nil then return end
+	T:OnChanged(Fn)
+end
 local Options = Library.Options
 
 local function CloneReference(Object)
@@ -140,7 +152,7 @@ local function HookDeath(Char)
     local Hum = Char:WaitForChild("Humanoid", 10)
     if not Hum then return end
     Hum.Died:Connect(function()
-        if Toggles.AutoRevive and Toggles.AutoRevive.Value then
+        if Toggles.AutoRevive and ToggleOn("AutoRevive") then
             task.wait(2)
             local R = FindRemote("ReviveEvent")
             if R and R:IsA("RemoteEvent") then
@@ -347,14 +359,14 @@ local EntityHooked = falselocal function HookEntities()
                 end
             end
         end
-        if Toggles.EntityAlerts and Toggles.EntityAlerts.Value then
+        if Toggles.EntityAlerts and ToggleOn("EntityAlerts") then
             if EntName == "A-60" or EntName == "A-120" then
                 Library:Notify(EntName .. " geliyor! Saklan!")
             else
                 Library:Notify(EntName or "Entity!")
             end
         end
-        if Toggles.EntityESP and Toggles.EntityESP.Value then
+        if Toggles.EntityESP and ToggleOn("EntityESP") then
             local Color = Options.EntityESPColor and Options.EntityESPColor.Value or Color3.fromRGB(255, 165, 0)
             for _, A in ipairs(Args) do
                 if typeof(A) == "Instance" and (A:IsA("Model") or A:IsA("BasePart")) and A.Parent == Services.Workspace then
@@ -371,7 +383,7 @@ local EntityHooked = falselocal function HookEntities()
     end))
     Library:Notify("Entity dinleyici baglandi.")
 end
-Toggles.EntityAlerts:OnChanged(function(Value)
+OnChange("EntityAlerts", function(Value)
     if Value then HookEntities() end
 end)
 
@@ -403,7 +415,7 @@ Toggles.EntityESP:AddColorPicker("EntityESPColor", {
 local function ShouldESP(Player)
     if Player == LocalPlayer then return false end
     if not Player.Character then return false end
-    if Toggles.ESPTeamCheck and Toggles.ESPTeamCheck.Value then
+    if Toggles.ESPTeamCheck and ToggleOn("ESPTeamCheck") then
         if LocalPlayer.Team ~= nil and Player.Team ~= nil and Player.Team == LocalPlayer.Team then
             return false
         end
@@ -415,7 +427,7 @@ local HealthConns = {}
 local function TrackHealth(Player, Char)
     local Old = HealthConns[Char]
     if Old then pcall(function() Old:Disconnect() end) HealthConns[Char] = nil end
-    if not (Toggles.ESPShowHealth and Toggles.ESPShowHealth.Value) then
+    if not (Toggles.ESPShowHealth and ToggleOn("ESPShowHealth")) then
         Abysall.ESPLibrary:UpdateObjectText(Char, Player.Name)
         return
     end
@@ -446,7 +458,7 @@ local function AddPlayerESP(Data)
     end)
 end
 
-Toggles.PlayerESP:OnChanged(function(Value)
+OnChange("PlayerESP", function(Value)
     for _, Player in pairs(Services.Players:GetPlayers()) do
         if Player.Character then
             if Value and ShouldESP(Player) then
@@ -464,9 +476,9 @@ Options.PlayerESPColor:OnChanged(function(Value)
         end
     end
 end)
-Toggles.ESPShowHealth:OnChanged(function()
+OnChange("ESPShowHealth", function()
     for _, Player in pairs(Services.Players:GetPlayers()) do
-        if Player ~= LocalPlayer and Player.Character and Toggles.PlayerESP.Value and ShouldESP(Player) then
+        if Player ~= LocalPlayer and Player.Character and ToggleOn("PlayerESP") and ShouldESP(Player) then
             TrackHealth(Player, Player.Character)
         end
     end
@@ -475,7 +487,7 @@ end)
 TrackConn(Services.Players.PlayerAdded:Connect(function(Player)
     Player.CharacterAdded:Connect(function(Char)
         task.wait(1)
-        if Toggles.PlayerESP.Value and ShouldESP(Player) then
+        if ToggleOn("PlayerESP") and ShouldESP(Player) then
             AddPlayerESP({ Object = Char, Text = Player.Name, Color = Options.PlayerESPColor.Value, Player = Player })
         end
     end)
@@ -484,7 +496,7 @@ for _, Player in pairs(Services.Players:GetPlayers()) do
     if Player ~= LocalPlayer then
         Player.CharacterAdded:Connect(function(Char)
             task.wait(1)
-            if Toggles.PlayerESP.Value and ShouldESP(Player) then
+            if ToggleOn("PlayerESP") and ShouldESP(Player) then
                 AddPlayerESP({ Object = Char, Text = Player.Name, Color = Options.PlayerESPColor.Value, Player = Player })
             end
         end)
@@ -495,9 +507,9 @@ Groupboxes.Visuals_Settings = Tabs.Visuals:AddRightGroupbox("ESP Settings")
 Groupboxes.Visuals_Settings:AddToggle("ESPShowDistance", { Text = "Show Distance", Default = true })
 Groupboxes.Visuals_Settings:AddToggle("ESPTracers", { Text = "Tracers", Default = false })
 Groupboxes.Visuals_Settings:AddToggle("ESPArrows", { Text = "Arrows", Default = false })
-Toggles.ESPShowDistance:OnChanged(function(V) Abysall.ESPLibrary:SetShowDistance(V) end)
-Toggles.ESPTracers:OnChanged(function(V) Abysall.ESPLibrary:SetTracers(V) end)
-Toggles.ESPArrows:OnChanged(function(V) Abysall.ESPLibrary:SetArrows(V) end)
+OnChange("ESPShowDistance", function(V) Abysall.ESPLibrary:SetShowDistance(V) end)
+OnChange("ESPTracers", function(V) Abysall.ESPLibrary:SetTracers(V) end)
+OnChange("ESPArrows", function(V) Abysall.ESPLibrary:SetArrows(V) end)
 Abysall.ESPLibrary:SetShowDistance(true)
 
 -- // Misc: hareket //
@@ -527,14 +539,14 @@ Toggles.Noclip:AddKeyPicker("NoclipKey", {
 })
 
 TrackConn(Services.RunService.RenderStepped:Connect(function()
-    if Toggles.WalkSpeedOn and Toggles.WalkSpeedOn.Value and LocalPlayer.Character then
+    if Toggles.WalkSpeedOn and ToggleOn("WalkSpeedOn") and LocalPlayer.Character then
         local Hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
         if Hum then Hum.WalkSpeed = Options.WalkSpeedVal.Value end
     end
 end))
 
 TrackConn(Services.UserInputService.JumpRequest:Connect(function()
-    if Toggles.InfiniteJump and Toggles.InfiniteJump.Value and LocalPlayer.Character then
+    if Toggles.InfiniteJump and ToggleOn("InfiniteJump") and LocalPlayer.Character then
         local Hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
         if Hum then Hum:ChangeState(Enum.HumanoidStateType.Jumping) end
     end
@@ -566,7 +578,7 @@ end
 
 TrackConn(Services.RunService.RenderStepped:Connect(function()
     local R = FlyRoot()
-    if Toggles.Fly and Toggles.Fly.Value and R then
+    if Toggles.Fly and ToggleOn("Fly") and R then
         FlyBody.Parent = R
         FlyBody.Velocity = FlyDir() * ((Options.FlySpeed and Options.FlySpeed.Value) or 50)
     elseif FlyBody.Parent then
@@ -576,7 +588,7 @@ TrackConn(Services.RunService.RenderStepped:Connect(function()
 end))
 
 TrackConn(Services.RunService.Stepped:Connect(function()
-    if Toggles.Noclip and Toggles.Noclip.Value and LocalPlayer.Character then
+    if Toggles.Noclip and ToggleOn("Noclip") and LocalPlayer.Character then
         for _, P in ipairs(LocalPlayer.Character:GetDescendants()) do
             if P:IsA("BasePart") and P.CanCollide then
                 P.CanCollide = false
