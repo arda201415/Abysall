@@ -5137,6 +5137,9 @@ Connections.PromptAnimationFixer1 = Services.ProximityPromptService.PromptButton
 end)
 
 Globals.ObjectQueue = {}
+-- FIFO kuyrukta # kullanilmaz: bas ilerledikce olusan deliklerde # tanimsizdir.
+Globals.QueueHead = 1
+Globals.QueueTail = 1
 local AllowedInstances = {
 	Lava=true, GoldPile=true, KeyObtain=true, Drakobloxxer=true, FuseObtain=true,
 	MinesGenerator=true, JeffTheKiller=true, Snare=true, FakeDoor=true, DoorFake=true, SideroomSpace=true,
@@ -5166,23 +5169,22 @@ Functions.QueueObject = function(Object)
 	if Globals.QueuedSet[Object] then return end
 	Globals.QueuedSet[Object] = true
 	Globals.QueueCount = (Globals.QueueCount or 0) + 1
-	table.insert(Globals.ObjectQueue, Object)
+	Globals.ObjectQueue[Globals.QueueTail] = Object
+	Globals.QueueTail = Globals.QueueTail + 1
 	Globals.QueueAdded = (Globals.QueueAdded or 0) + 1
 end
 
 Globals.QueueDone = true
 Globals.QueueHead = 1
+Globals.QueueTail = 1
 Globals.QueueCount = 0
 Globals.QueueInFlight = 0
 Globals.QueueAdded = 0
 Globals.QueueFinished = 0
 Globals.HandleErrors = 0
 Globals.Stuck = setmetatable({}, { __mode = "k" })
--- HandleObject icinde task.wait() var. Eskiden RenderStepped callback'i
--- icinde dogrudan cagriliyordu: bir obje beklerken kuyruga yeni obje
--- table.insert ile giriyor, #tanimi deliklerde belirsiz oldugu icin
--- objeler EZILIYOR/ KAYBOLUYORDU -> HandleObject hic calismiyor,
--- Objects.* tablolari bos kaliyor, bypass + ESP + promptlar etkisizdi.
+-- HandleObject ayri thread'lerde calisir. Kuyrukta acik Head/Tail kullanilir;
+-- bas ilerledikce olusan deliklerde table.insert/# guvenilmez olurdu.
 Connections.QueueConnection = Services.RunService.RenderStepped:Connect(function()
 	-- Slot kapısı yok: HandleObject kendi thread'inde, sonsuza kadar
 	-- takılan bir obje pompayi durdurmamalı. Takilanlar watchdog ile loglanir.
@@ -5223,14 +5225,15 @@ Connections.QueueConnection = Services.RunService.RenderStepped:Connect(function
 			Globals.StuckLast = Object.Name .. " (" .. Object.ClassName .. ")"
 		end)
 	end
-	--Bosluk birikmesin: sayimla sıkıştır (# delikli tabloda belirsiz)
+	--Bosluk birikmesin: acik aralikla sıkıştır (# delikli tabloda belirsiz)
 	if Globals.QueueHead > 2000 then
 		local Compacted = {}
-		for I = Globals.QueueHead, Globals.QueueHead + Globals.QueueCount - 1 do
+		for I = Globals.QueueHead, Globals.QueueTail - 1 do
 			Compacted[#Compacted + 1] = Globals.ObjectQueue[I]
 		end
 		Globals.ObjectQueue = Compacted
 		Globals.QueueHead = 1
+		Globals.QueueTail = Globals.QueueCount + 1
 	end
 end)
 
