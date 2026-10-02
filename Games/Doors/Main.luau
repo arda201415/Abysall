@@ -2816,7 +2816,7 @@ Groupboxes.Visuals_ESP_Toggles:AddDropdown("EntityESPOptions",     {
 	AllowNull = true
 })
 Groupboxes.Visuals_ESP_Toggles:AddToggle("EntityESPToggle",     { Text = "Entities",      Default = false, Tooltip = "Highlights all entities that spawn." })
-Groupboxes.Visuals_ESP_Toggles:AddToggle("MirrorShadowESPToggle", { Text = "Mirror Shadow", Default = false, Tooltip = "Highlights your 'MirrorShadow_<name>' model." })
+Groupboxes.Visuals_ESP_Toggles:AddToggle("MirrorShadowESPToggle", { Text = "Mirror Shadow", Default = false, Tooltip = "Highlights your MirrorShadow model." })
 Groupboxes.Visuals_ESP_Toggles:AddToggle("HonchoBoxESPToggle", { Text = "Honcho Boxes",  Default = false, Tooltip = "Highlights 'ArchivesStorageBox' crates whose ID matches an 'ArchivesPackageDeposit' (Honcho mail room)." })
 
 Toggles.DoorESPToggle:AddColorPicker("DoorESPColor",           { Text = "Doors",        Default = Color3.fromRGB(0, 200, 255),  Transparency = 0 })
