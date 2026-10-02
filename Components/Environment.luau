@@ -96,21 +96,26 @@ local function Register(DisplayName, Key, Test, Opts)
 	Opts = Opts or {}
 	local GlobalName = Opts.Global or Key or DisplayName
 	local Target = Global[GlobalName]
+	-- Safe yedegi olan testler global olmasa da calisir (yedek yolu dogrulanir)
+	local SafeFn = nil
+	if Opts.SafeKey and Safe and type(Safe[Opts.SafeKey]) == "function" then
+		SafeFn = Safe[Opts.SafeKey]
+	end
 	local Entry = {
 		Display = DisplayName,
 		Key = Key or GlobalName,
 		Global = GlobalName,
 		Test = Test,
 		Skippable = Opts.Skippable == true,
-		Callable = type(Target) == "function" or type(Target) == "table",
+		HasFallback = SafeFn ~= nil,
+		Callable = type(Target) == "function" or type(Target) == "table" or SafeFn ~= nil,
 	}
 	Entry.Capability = { Passed = false, Pending = Entry.Callable, Reason = "not tested yet" }
 	Capabilities[DisplayName] = Entry.Capability
 
-	-- Varlik testi: global bir fonksiyon/tablo ise aninda yayinla
-	if Entry.Callable then
+	-- Varlik testi: gercek global varsa ANINDA yayinla (CheckCompat senkron calisir)
+	if type(Target) == "function" or type(Target) == "table" then
 		Environment[Entry.Key] = Target
-		Entry.Capability.Pending = true
 	end
 	table.insert(Tests, Entry)
 	return Entry
@@ -126,6 +131,12 @@ local function RunEntry(Entry)
 	if not Entry.Callable then
 		AddResult(Entry.Display, "[X] " .. Entry.Display .. " yok (global bulunamadi)", false, "fail")
 		Failed = Failed + 1
+		Entry.Capability.Pending = false
+		return
+	end
+	if Entry.HasFallback and not Environment[Entry.Key] then
+		AddResult(Entry.Display, "[-] " .. Entry.Display .. ": global yok, yedek yol kullanilacak", nil, "skip")
+		Skipped = Skipped + 1
 		Entry.Capability.Pending = false
 		return
 	end
@@ -852,55 +863,72 @@ end
 local Order = {
 	{ "getgenv", nil, false },
 	{ "getrenv", nil, false },
-	{ "getgc", nil, true },
+	{ "getgc", nil, false },
 	{ "identifyexecutor", nil, false },
-	{ "request", nil, true },
-	{ "cloneref", nil, true },
+	{ "request", nil, false },
+	{ "cloneref", nil, false },
 	{ "gethui", nil, false },
-	{ "getcallbackvalue", nil, true },
-	{ "getinstances", nil, true },
-	{ "getnilinstances", nil, true },
-	{ "fireproximityprompt", nil, true },
-	{ "fireclickdetector", nil, true },
-	{ "firetouchinterest", nil, true },
-	{ "clonefunction", nil, true },
+	{ "getcallbackvalue", nil, false },
+	{ "getinstances", nil, false },
+	{ "getnilinstances", nil, false },
+	{ "fireproximityprompt", nil, false },
+	{ "fireclickdetector", nil, false },
+	{ "firetouchinterest", nil, false },
+	{ "clonefunction", nil, false },
 	{ "newcclosure", nil, false },
 	{ "hookfunction", nil, false },
-	{ "restorefunction", nil, true },
-	{ "isfunctionhooked", nil, true },
-	{ "isexecutorclosure", nil, true },
+	{ "restorefunction", nil, false },
+	{ "isfunctionhooked", nil, false },
+	{ "isexecutorclosure", nil, false },
 	{ "getnamecallmethod", nil, false },
 	{ "hookmetamethod", nil, false },
-	{ "getrawmetatable", nil, true },
-	{ "setrawmetatable", nil, true },
-	{ "isreadonly", nil, true },
-	{ "setreadonly", nil, true },
+	{ "getrawmetatable", nil, false },
+	{ "setrawmetatable", nil, false },
+	{ "isreadonly", nil, false },
+	{ "setreadonly", nil, false },
 	{ "Drawing", "Drawing_New", false },
 	{ "Drawing_Fonts", "Drawing_Fonts", false },
 	{ "writefile", nil, false },
 	{ "isfile", nil, false },
 	{ "readfile", nil, false },
 	{ "appendfile", nil, false },
-	{ "delfile", nil, true },
+	{ "delfile", nil, false },
 	{ "makefolder", nil, false },
 	{ "delfolder", nil, false },
 	{ "listfiles", nil, false },
 	{ "getcustomasset", nil, true },
-	{ "gethiddenproperty", nil, true },
-	{ "sethiddenproperty", nil, true },
+	{ "gethiddenproperty", nil, false },
+	{ "sethiddenproperty", nil, false },
 	{ "getthreadidentity", nil, false },
-	{ "setthreadidentity", nil, true },
-	{ "isnetworkowner", nil, true },
-	{ "firesignal", nil, true },
+	{ "setthreadidentity", nil, false },
+	{ "isnetworkowner", nil, false },
+	{ "firesignal", nil, false },
 	{ "getconnections", nil, false },
 	{ "require", nil, true },
+}
+
+-- Testler icin guvenli yedek bulunanlar (global yoksa bile dogrulanabilir)
+local SafeBacked = {
+	["request"] = "HttpGet",
+	["gethui"] = "gethui",
+	["cloneref"] = "cloneref",
+	["writefile"] = "writefile",
+	["isfile"] = "isfile",
+	["readfile"] = "readfile",
+	["appendfile"] = "appendfile",
+	["delfile"] = "delfile",
+	["makefolder"] = "makefolder",
+	["delfolder"] = "delfolder",
+	["listfiles"] = "listfiles",
+	["fireproximityprompt"] = "fireproximityprompt",
+	["isnetworkowner"] = "isnetworkowner",
 }
 
 for _, Def in ipairs(Order) do
 	local Name, Key, Skippable = Def[1], Def[2], Def[3]
 	local Fn = T[Name]
 	if type(Fn) == "function" then
-		Register(Name, Key or Name, Fn, { Skippable = Skippable })
+		Register(Name, Key or Name, Fn, { Skippable = Skippable, SafeKey = SafeBacked[Name] })
 	else
 		Register(Name, Key or Name, function() end, { Skippable = true })
 	end

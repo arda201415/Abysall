@@ -383,6 +383,8 @@ local ItemNames = {
 	["BottleCrate"]        = "Bottle Crate",
 	["BrokenMonitor"]      = "Broken Monitor",
 	["JerryCan"]           = "Jerry Can",
+	["ObjectScanner"]      = "Object Scanner",
+	["PeachCobbler"]       = "Peach Cobbler",
 }
 
 local CutsceneNames = {
@@ -2451,13 +2453,35 @@ OnChange("NoSurgeDamage", function(Value)
 	end
 end)
 
-local Modules = {}
+-- NOT: Roblox Instance'a ozel property yazilamaz/okunamaz; isim ciftleri weak-key tabloda tutulur
+local Modules = setmetatable({}, { __mode = "k" })
+local ModuleNames = setmetatable({}, { __mode = "k" })
+
+local ModuleNameMap = {
+	["Glitch"] = { "Glitch", "Glitch_Disabled" },
+	["Shade"] = { "Shade", "Shade_Disabled" },
+	["Void"] = { "Void", "Void_Disabled" },
+	["Screech"] = { "Screech", "Screech_Disabled" },
+	["GlitchScreech"] = { "GlitchScreech", "GlitchScreech_Disabled" },
+	["A90"] = { "A90", "A90_Disabled" },
+	["Dread"] = { "Dread", "Dread_Disabled" },
+	["SpiderJumpscare"] = { "SpiderJumpscare", "SpiderJumpscare_Disabled" },
+}
+
+local function RegisterModule(Key, Instance)
+	if type(Instance) ~= "Instance" then return false end
+	local Names = ModuleNameMap[Key]
+	if not Names then return false end
+	Modules[Key] = Instance
+	ModuleNames[Instance] = Names
+	return true
+end
 
 -- Moduller oyun icinde asenkron yuklenir; toggle erken acilirsa nesne henuz nil olabilir
 local function SetModuleName(Key, Disabled)
 	local Module = Modules[Key]
 	if Module == nil then return end
-	local Names = Module.__AbysallNames
+	local Names = ModuleNames[Module]
 	if not Names then return end
 	pcall(function() Module.Name = Disabled and Names[2] or Names[1] end)
 end
@@ -3673,9 +3697,9 @@ else
 	ClientModules = Services.ReplicatedStorage.ClientModules
 end
 
--- Modules tablosunu degistirme, sadece eksikleri doldur (yeniden atama __AbysallNames'i siler)
+-- Modules tablosunu degistirme, sadece eksikleri doldur
 local EntityModules = nil
-if type(ClientModules) == "table" or typeof(ClientModules) == "Instance" then
+if ClientModules then
 	pcall(function() EntityModules = ClientModules.EntityModules end)
 end
 if EntityModules == nil then
@@ -3685,25 +3709,18 @@ if EntityModules == nil then
 	end)
 end
 
-local EarlyNames = {
-	["Glitch"] = { "Glitch", "Glitch_Disabled" },
-	["Shade"] = { "Shade", "Shade_Disabled" },
-	["Void"] = { "Void", "Void_Disabled" },
-}
-for Key, Names in pairs(EarlyNames) do
-	if Modules[Key] == nil and EntityModules then
-		local Found = nil
-		pcall(function() Found = EntityModules:FindFirstChild(Names[1]) end)
-		if Found then
-			Modules[Key] = Found
-			pcall(function() Found.__AbysallNames = Names end)
+if EntityModules then
+	for _, Key in ipairs({ "Glitch", "Shade", "Void" }) do
+		if Modules[Key] == nil then
+			local Found = nil
+			pcall(function() Found = EntityModules:FindFirstChild(ModuleNameMap[Key][1]) end)
+			if RegisterModule(Key, Found) then
+				SetModuleName(Key, ToggleOn(Key == "Glitch" and "DisableGlitchJumpscare"
+					or (Key == "Shade" and "RemoveHalt" or "DisableVoidJumpscare")))
+			end
 		end
 	end
 end
-
-SetModuleName("Glitch", ToggleOn("DisableGlitchJumpscare"))
-SetModuleName("Shade", ToggleOn("RemoveHalt"))
-SetModuleName("Void", ToggleOn("DisableVoidJumpscare"))
 
 local CharacterOldConnectionKeys = {
 	"MainHandler", "JumpHandler", "SlideHandler", "LibraryCodeHandler1", "LibraryCodeHandler2",
@@ -3816,21 +3833,12 @@ Functions.HandleCharacter = function(NewCharacter)
 	Globals.AnticheatDisabled = false
 
 	local UIModules = Globals.MainUI.Initiator.Main_Game.RemoteListener.Modules
-	local ModuleNames = {
-		["A90"] = { "A90", "A90_Disabled" },
-		["Screech"] = { "Screech", "Screech_Disabled" },
-		["Dread"] = { "Dread", "Dread_Disabled" },
-		["SpiderJumpscare"] = { "SpiderJumpscare", "SpiderJumpscare_Disabled" },
-		["Glitch"] = { "Glitch", "Glitch_Disabled" },
-		["GlitchScreech"] = { "GlitchScreech", "GlitchScreech_Disabled" },
-		["Shade"] = { "Shade", "Shade_Disabled" },
-		["Void"] = { "Void", "Void_Disabled" },
-	}
-	for Key, Names in pairs(ModuleNames) do
-		local Found = UIModules:FindFirstChild(Names[1])
-		if Found then
-			Modules[Key] = Found
-			pcall(function() Found.__AbysallNames = Names end)
+	if type(UIModules) ~= "Instance" then UIModules = nil end
+	if UIModules then
+		for _, Key in ipairs({ "A90", "Screech", "Dread", "SpiderJumpscare" }) do
+			local Found = nil
+			pcall(function() Found = UIModules:FindFirstChild(ModuleNameMap[Key][1]) end)
+			if Modules[Key] == nil then RegisterModule(Key, Found) end
 		end
 	end
 
@@ -4816,7 +4824,7 @@ Functions.HandleObject = function(Object)
 	elseif Name == "MouseHole" then
 		if ToggleOn("ChestESPToggle") then Functions.AddESP({ Object = Object, Text = "Mouse", Color = Options.ChestESPColor.Value }, true) end
 		table.insert(Objects.Chests, Object)
-	elseif ItemNames[Name] and (Object:FindFirstChild("ModulePrompt", true) or Name == "FihFlakes" or Name == "Fihflakes" or Name == "Leftovers" or Name == "Pizza" or Name == "Briefcase" or Name == "PaperPlane" or Name == "LunchBox" or Name == "Lunch Box" or Name == "PaperCup" or Name == "Paper Cup" or Name == "WaitingTicket" or Name == "Waiting Ticket" or Name == "HoneyPot" or Name == "StairwellScrapper" or Name == "StairwellBlastDoor" or Name == "GweenSodaPack" or Name == "BottleCrate" or Name == "BrokenMonitor" or Name == "JerryCan") then
+	elseif ItemNames[Name] and (Object:FindFirstChild("ModulePrompt", true) or Name == "FihFlakes" or Name == "Fihflakes" or Name == "Leftovers" or Name == "Pizza" or Name == "Briefcase" or Name == "PaperPlane" or Name == "LunchBox" or Name == "Lunch Box" or Name == "PaperCup" or Name == "Paper Cup" or Name == "WaitingTicket" or Name == "Waiting Ticket" or Name == "HoneyPot" or Name == "StairwellScrapper" or Name == "StairwellBlastDoor" or Name == "GweenSodaPack" or Name == "BottleCrate" or Name == "BrokenMonitor" or Name == "JerryCan" or Name == "ObjectScanner" or Name == "PeachCobbler") then
 		if ToggleOn("ItemESPToggle") then Functions.AddESP({ Object = Object, Text = ItemNames[Name], Color = Options.ItemESPColor.Value }, Object:GetAttribute("ParentRoom") ~= nil) end
 		if Name == "LotusHolder" or Name == "LotusPetalPickup" then
 			Object.Handle:GetPropertyChangedSignal("LocalTransparencyModifier"):Connect(function()
@@ -5587,10 +5595,7 @@ end)
 
 Connections.FloorReplicatedHandler = FloorReplicated.DescendantAdded:Connect(function(Object)
 	if Object.Name == "GlitchScreech" then
-		Modules.GlitchScreech = Object
-		pcall(function()
-			Object.__AbysallNames = { "GlitchScreech", "GlitchScreech_Disabled" }
-		end)
+		RegisterModule("GlitchScreech", Object)
 		if ToggleOn("RemoveScreech") then Object.Name = "GlitchScreech_Disabled" end
 	end
 	if Object.Name:find("Jumpscare") and Object:IsA("ModuleScript")
