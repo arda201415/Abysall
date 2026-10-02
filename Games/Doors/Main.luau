@@ -5193,6 +5193,7 @@ Connections.QueueConnection = Services.RunService.RenderStepped:Connect(function
 		Globals.QueueCount -= 1
 		Globals.QueueInFlight += 1
 
+		local Completed = false
 		task.spawn(function()
 			if Globals.QueuedSet then Globals.QueuedSet[Object] = nil end
 			local Ok, Err = pcall(Functions.HandleObject, Object)
@@ -5201,14 +5202,18 @@ Connections.QueueConnection = Services.RunService.RenderStepped:Connect(function
 				Globals.HandleErrorLast = tostring(Err):sub(1, 200)
 			end
 			Globals.QueueInFlight -= 1
+			Completed = true
 			if Globals.Stuck[Object] then
 				Globals.Stuck[Object] = nil
 				Globals.StuckCount = math.max(0, (Globals.StuckCount or 1) - 1)
 			end
 		end)
 
-		-- Watchdog: 20sn'de bitmeyen objeyi isaretle (timeout'suz WaitForChild)
+		-- Watchdog: yalnizca gercekten bitmemis ve oyunda kalan objeyi isaretle.
 		task.delay(20, function()
+			if Completed then return end
+			local Alive, Parent = pcall(function() return Object.Parent end)
+			if not Alive or Parent == nil then return end
 			Globals.Stuck[Object] = true
 			Globals.StuckCount = (Globals.StuckCount or 0) + 1
 			Globals.StuckLast = Object.Name .. " (" .. Object.ClassName .. ")"
