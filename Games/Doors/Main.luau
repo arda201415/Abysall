@@ -60,7 +60,8 @@ local Objects = {
 	SeekNodes = {},
 	SeekDuckBoards = {},
 	SeekBridges = {},
-	PathLights = {}
+	PathLights = {},
+	LiveEntities = {},
 }
 
 Globals.IncompatibleMessage = "Your executor doesn't support this feature."
@@ -386,6 +387,7 @@ local ItemNames = {
 	["ObjectScanner"]      = "Object Scanner",
 	["PeachCobbler"]       = "Peach Cobbler",
 	["DinkyLamp"]          = "Dinky Lamp",
+	["SalvageScrap"]       = "Salvage Scrap",
 }
 
 local CutsceneNames = {
@@ -1868,8 +1870,132 @@ Groupboxes.Exploits_Bypass:AddToggle("BypassKillbricks",     { Text = "Bypass Ki
 Groupboxes.Exploits_Bypass:AddToggle("BypassSeekingWall",    { Text = "Bypass Seeking Wall",     Default = false, Tooltip = "Prevents 'ScaryWall' from hurting you." })
 Groupboxes.Exploits_Bypass:AddToggle("BypassSnare",          { Text = "Bypass Snare",            Default = false, Tooltip = "Prevents 'Snare' from trapping you." })
 Groupboxes.Exploits_Bypass:AddToggle("BypassBanana",         { Text = "Bypass Banana",           Default = false, Tooltip = "Prevents 'Banana Peel' from slipping you up (sometimes doesn't work)." })
-Groupboxes.Exploits_Bypass:AddToggle("BypassJeff",           { Text = "Bypass Jeff",             Default = false, Tooltip = "Prevents 'Jeff the Killer' from stabbing you (sometimes doesn't work)." })
-Groupboxes.Exploits_Bypass:AddToggle("BypassDrone",          { Text = "Bypass Drone",            Default = false, Tooltip = "Deletes the 'WalkedInto' remote inside 'Drones' models so touching them doesn't knock you down (stays deleted until rejoin)." })
+Groupboxes.Exploits_Bypass:AddToggle("BypassJeff",          { Text = "Bypass Jeff",             Default = false, Tooltip = "Prevents 'Jeff the Killer' from stabbing you (sometimes doesn't work)." })
+Groupboxes.Exploits_Bypass:AddToggle("BypassCreak",         { Text = "Bypass Creak",            Default = false, Tooltip = "Disables touch on Creak's parts and reuses the Eyes view spoof while Creak is active. Camera is not moved." })
+Groupboxes.Exploits_Bypass:AddToggle("BypassDrone",         { Text = "Bypass Drone",            Default = false, Tooltip = "Deletes the 'WalkedInto' remote inside 'Drones' models so touching them doesn't knock you down (stays deleted until rejoin)." })
+
+local CreakModels = setmetatable({}, { __mode = "k" })
+local CreakTouchState = setmetatable({}, { __mode = "k" })
+
+local function IsCreakModel(Object)
+	if typeof(Object) ~= "Instance" or not Object:IsA("Model") then return false end
+	local Name = string.lower(Object.Name or "")
+	return Name == "creak" or Name == "creek"
+end
+
+local function SetCreakTouch(Model, Disabled)
+	if typeof(Model) ~= "Instance" then return end
+	for _, Part in ipairs(Model:GetDescendants()) do
+		if Part:IsA("BasePart") then
+			if CreakTouchState[Part] == nil then
+				CreakTouchState[Part] = Part.CanTouch
+			end
+			if Disabled then
+				Part.CanTouch = false
+			else
+				Part.CanTouch = CreakTouchState[Part]
+			end
+		end
+	end
+end
+
+local function TrackCreakModel(Object)
+	if not IsCreakModel(Object) then return end
+	CreakModels[Object] = true
+	if ToggleOn("BypassCreak") then
+		SetCreakTouch(Object, true)
+	end
+end
+
+local function RestoreCreakModels()
+	local Dead = {}
+	for Model in pairs(CreakModels) do
+		SetCreakTouch(Model, false)
+		Dead[#Dead + 1] = Model
+	end
+	for _, Model in ipairs(Dead) do
+		CreakModels[Model] = nil
+	end
+end
+
+local function DisconnectStoredConnection(Key)
+	local Connection = Connections[Key]
+	if Connection then
+		pcall(function() Connection:Disconnect() end)
+		Connections[Key] = nil
+	end
+end
+
+local function FindCreakModels()
+	local Found = {}
+	local function Add(Object)
+		if IsCreakModel(Object) then
+			Found[#Found + 1] = Object
+		end
+	end
+
+	for _, Name in ipairs({ "Creak", "Creek" }) do
+		Add(Services.Workspace:FindFirstChild(Name))
+	end
+
+	local LiveFolder = Services.Workspace:FindFirstChild("LiveEntities")
+	if LiveFolder then
+		for _, Name in ipairs({ "Creak", "Creek" }) do
+			Add(LiveFolder:FindFirstChild(Name, true))
+		end
+	end
+	return Found
+end
+
+local function FireCreakLookSpoof()
+	if Floor == "Fools" or Floor == "OldHotel" then
+		Functions.FireMotor(0, (Globals.SpoofOffset == 200 and 65 or -65), 0, false)
+	else
+		Functions.FireMotor(-650)
+	end
+end
+
+local function IsCreakActive()
+	for Model in pairs(CreakModels) do
+		if Model.Parent then return true end
+	end
+	return Services.Workspace:FindFirstChild("Creak") ~= nil
+		or Services.Workspace:FindFirstChild("Creek") ~= nil
+end
+
+local function ShouldSpoofCreakLook()
+	return ToggleOn("BypassCreak") and IsCreakActive()
+end
+
+local function SetCreakConnections(Enabled)
+	DisconnectStoredConnection("CreakBypassLoop")
+	DisconnectStoredConnection("CreakWatcher")
+	if not Enabled then return end
+
+	local CreakAcc = 0
+	Connections.CreakBypassLoop = Services.RunService.Heartbeat:Connect(function(Delta)
+		if not ToggleOn("BypassCreak") then return end
+		CreakAcc += Delta
+		if CreakAcc < 0.25 then return end
+		CreakAcc = 0
+		local Dead = {}
+		for Model in pairs(CreakModels) do
+			if Model.Parent then
+				SetCreakTouch(Model, true)
+			else
+				Dead[#Dead + 1] = Model
+			end
+		end
+		for _, Model in ipairs(Dead) do
+			CreakModels[Model] = nil
+		end
+	end)
+	Connections.CreakWatcher = Services.Workspace.DescendantAdded:Connect(function(Descendant)
+		if ToggleOn("BypassCreak") then
+			TrackCreakModel(Descendant)
+		end
+	end)
+end
 
 OnChange("BypassGiggle", function(Value)
 	for _, Object in Objects.Entities do
@@ -1983,6 +2109,31 @@ OnChange("BypassJeff", function(Value)
 			local Humanoid = Object:WaitForChild("Humanoid", 5)
 			if Humanoid then Humanoid.Health = 0 end
 		end
+	end
+end)
+OnChange("BypassCreak", function(Value)
+	if Value then
+		local Found = false
+		for _, Object in ipairs(Objects.Entities) do
+			if IsCreakModel(Object) then
+				TrackCreakModel(Object)
+				Found = true
+			end
+		end
+		for _, Model in ipairs(FindCreakModels()) do
+			TrackCreakModel(Model)
+			Found = true
+		end
+		SetCreakConnections(true)
+		if ShouldSpoofCreakLook() then
+			FireCreakLookSpoof()
+		end
+		if not Found then
+			Functions.Notify({ Title = "Creak bulunamadi; ciktiginda uygulanacak." })
+		end
+	else
+		SetCreakConnections(false)
+		RestoreCreakModels()
 	end
 end)
 Functions.RemoveDroneWalkedInto = function(Model)
@@ -2865,6 +3016,7 @@ Groupboxes.Visuals_ESP_Toggles:AddDropdown("EntityESPOptions",     {
 	AllowNull = true
 })
 Groupboxes.Visuals_ESP_Toggles:AddToggle("EntityESPToggle",     { Text = "Entities",      Default = false, Tooltip = "Highlights all entities that spawn." })
+Groupboxes.Visuals_ESP_Toggles:AddToggle("LiveEntitiesESPToggle", { Text = "Live Entities Folder", Default = false, Tooltip = "Highlights everything inside the LiveEntities folder." })
 Groupboxes.Visuals_ESP_Toggles:AddToggle("MirrorShadowESPToggle", { Text = "Mirror Shadow", Default = false, Tooltip = "Highlights your MirrorShadow model." })
 Groupboxes.Visuals_ESP_Toggles:AddToggle("HonchoBoxESPToggle", { Text = "Honcho Boxes",  Default = false, Tooltip = "Highlights 'ArchivesStorageBox' crates whose ID matches an 'ArchivesPackageDeposit' (Honcho mail room)." })
 
@@ -2876,6 +3028,7 @@ Toggles.ItemESPToggle:AddColorPicker("ItemESPColor",           { Text = "Items",
 Toggles.CurrencyESPToggle:AddColorPicker("CurrencyESPColor",   { Text = "Currency",     Default = Color3.fromRGB(255, 255, 0),   Transparency = 0 })
 Toggles.LadderESPToggle:AddColorPicker("LadderESPColor",       { Text = "Ladders",      Default = Color3.fromRGB(255, 255, 255), Transparency = 0 })
 Toggles.EntityESPToggle:AddColorPicker("EntityESPColor",       { Text = "Entities",     Default = Color3.fromRGB(255, 0, 0),     Transparency = 0 })
+Toggles.LiveEntitiesESPToggle:AddColorPicker("LiveEntitiesESPColor", { Text = "Live Entities", Default = Color3.fromRGB(255, 0, 0), Transparency = 0 })
 Toggles.HonchoBoxESPToggle:AddColorPicker("HonchoBoxESPColor", { Text = "Honcho Boxes", Default = Color3.fromRGB(0, 255, 0),     Transparency = 0 })
 
 local HidingSpotLabels = {
@@ -2899,6 +3052,107 @@ local EntityESPLabels = {
 local NodeEntities = {
 	Rush = true, Ambush = true, Eyes = true, Blitz = true, Lookman = true, ["A-60"] = true, ["A-120"] = true, Sally = true, ["Jeff The Killer"] = true, Monument = true, Honcho = true, Bash = true, Ransom = true, Scribbles = true, Drone = true, Alma = true, Fih = true, ["AR0xMBUSH"] = true, ["RNIUSHCG=="] = true
 }
+
+local LiveEntitiesSeen = setmetatable({}, { __mode = "k" })
+local LiveEntitiesFolder, LiveEntitiesConn = nil, nil
+
+local function LiveEntityLabel(Object)
+	local Known = EntityESPLabels[Object.Name]
+	if Known then return Known end
+	local Data = Entities[Object.Name]
+	if Data then return Data.Alias end
+	return Object.Name
+end
+
+local function TrackedLiveEntityModelAncestor(Object)
+	if not LiveEntitiesFolder then return false end
+	local Parent = Object.Parent
+	while Parent and Parent ~= LiveEntitiesFolder do
+		if Parent:IsA("Model") and LiveEntitiesSeen[Parent] then return true end
+		Parent = Parent.Parent
+	end
+	return false
+end
+
+local function HookLiveEntity(Object)
+	TrackCreakModel(Object)
+	if not ToggleOn("LiveEntitiesESPToggle") then return end
+	if LiveEntitiesSeen[Object] then return end
+	if not (Object:IsA("Model") or Object:IsA("BasePart")) then return end
+	if TrackedLiveEntityModelAncestor(Object) then return end
+
+	local Added = pcall(function()
+		Functions.AddESP({ Object = Object, Text = LiveEntityLabel(Object), Color = Options.LiveEntitiesESPColor.Value }, false)
+	end)
+	if not Added then return end
+	LiveEntitiesSeen[Object] = true
+	table.insert(Objects.LiveEntities, Object)
+	pcall(function()
+		Object.Destroying:Once(function()
+			LiveEntitiesSeen[Object] = nil
+			Functions.RemoveESP(Object)
+		end)
+	end)
+end
+
+local function UnhookLiveEntitiesFolder()
+	if LiveEntitiesConn then
+		pcall(function() LiveEntitiesConn:Disconnect() end)
+		local Position = table.find(Connections, LiveEntitiesConn)
+		if Position then table.remove(Connections, Position) end
+		LiveEntitiesConn = nil
+	end
+	LiveEntitiesFolder = nil
+end
+
+local function FindLiveEntitiesFolder()
+	local Folder = Services.Workspace:FindFirstChild("LiveEntities")
+	if Folder then return Folder end
+	if CurrentRooms then
+		return CurrentRooms:FindFirstChild("LiveEntities", true)
+	end
+	return nil
+end
+
+local function WatchLiveEntitiesFolder()
+	if LiveEntitiesFolder and LiveEntitiesFolder.Parent then return true end
+	UnhookLiveEntitiesFolder()
+	local Folder = FindLiveEntitiesFolder()
+	if typeof(Folder) ~= "Instance" then return false end
+	LiveEntitiesFolder = Folder
+	local Descendants = {}
+	pcall(function() Descendants = Folder:GetDescendants() end)
+	for _, Descendant in ipairs(Descendants) do
+		HookLiveEntity(Descendant)
+	end
+	LiveEntitiesConn = Folder.DescendantAdded:Connect(HookLiveEntity)
+	table.insert(Connections, LiveEntitiesConn)
+	return true
+end
+
+local function ClearLiveEntitiesESP()
+	for _, Object in ipairs(Objects.LiveEntities) do
+		pcall(function() Functions.RemoveESP(Object) end)
+		LiveEntitiesSeen[Object] = nil
+	end
+	Objects.LiveEntities = {}
+end
+
+OnChange("LiveEntitiesESPToggle", function(Value)
+	if Value then
+		if not WatchLiveEntitiesFolder() then
+			Functions.Notify({ Title = "LiveEntities bulunamadi." })
+		end
+	else
+		ClearLiveEntitiesESP()
+		UnhookLiveEntitiesFolder()
+	end
+end)
+Options.LiveEntitiesESPColor:OnChanged(function(Value)
+	for _, Object in ipairs(Objects.LiveEntities) do
+		Abysall.ESPLibrary:UpdateObjectColor(Object, Value)
+	end
+end)
 
 OnChange("DoorESPToggle", function(Value)
 	for _, Object in Objects.Doors do
@@ -3700,7 +3954,7 @@ if Functions.CheckCompatability({"hookmetamethod", "newcclosure", "getnamecallme
 			end
 
 			if Self.Name == "MotorReplication" and Method == "FireServer" then
-				local DoBypass = (ToggleOn("BypassEyes") and Globals.IsEyes) or (ToggleOn("BypassLookman") and Globals.IsLookman)
+				local DoBypass = (ToggleOn("BypassEyes") and Globals.IsEyes) or (ToggleOn("BypassLookman") and Globals.IsLookman) or ShouldSpoofCreakLook()
 				if DoBypass then
 					if Floor == "Fools" or Floor == "OldHotel" then
 						Args[1] = 0 Args[2] = (Globals.SpoofOffset == 200 and 65 or -65) Args[3] = 0 Args[4] = false
@@ -4132,6 +4386,7 @@ Functions.HandleCharacter = function(NewCharacter)
 
 		Globals.IsEyes    = Services.Workspace:FindFirstChild("Eyes") ~= nil or Services.Workspace:FindFirstChild("Lookman") ~= nil
 		Globals.IsLookman = Services.Workspace:FindFirstChild("BackdoorLookman") ~= nil
+		Globals.IsCreak = IsCreakActive()
 
 		if ToggleOn("AmbientToggle") then
 			Services.TweenService:Create(Services.Lighting, TweenInfo.new(0.2, Enum.EasingStyle.Exponential), { Ambient = Options.AmbientColor.Value }):Play()
@@ -4236,7 +4491,7 @@ Functions.HandleCharacter = function(NewCharacter)
 		end
 
 		local DoEyesBypass = (ToggleOn("BypassEyes") and Globals.IsEyes) or (ToggleOn("BypassLookman") and Globals.IsLookman)
-		if DoEyesBypass then
+		if DoEyesBypass or ShouldSpoofCreakLook() then
 			if Floor == "Fools" or Floor == "OldHotel" then
 				Functions.FireMotor(0, (Globals.SpoofOffset == 200 and 65 or -65), 0, false)
 			else
@@ -4835,7 +5090,7 @@ Functions.HandleObject = function(Object)
 	elseif Name == "MouseHole" then
 		if ToggleOn("ChestESPToggle") then Functions.AddESP({ Object = Object, Text = "Mouse", Color = Options.ChestESPColor.Value }, true) end
 		table.insert(Objects.Chests, Object)
-	elseif ItemNames[Name] and (Object:FindFirstChild("ModulePrompt", true) or Name == "FihFlakes" or Name == "Fihflakes" or Name == "Leftovers" or Name == "Pizza" or Name == "Briefcase" or Name == "PaperPlane" or Name == "LunchBox" or Name == "Lunch Box" or Name == "PaperCup" or Name == "Paper Cup" or Name == "WaitingTicket" or Name == "Waiting Ticket" or Name == "HoneyPot" or Name == "StairwellScrapper" or Name == "StairwellBlastDoor" or Name == "GweenSodaPack" or Name == "BottleCrate" or Name == "BrokenMonitor" or Name == "JerryCan" or Name == "ObjectScanner" or Name == "PeachCobbler" or Name == "DinkyLamp") then
+	elseif ItemNames[Name] and (Object:FindFirstChild("ModulePrompt", true) or Name == "FihFlakes" or Name == "Fihflakes" or Name == "Leftovers" or Name == "Pizza" or Name == "Briefcase" or Name == "PaperPlane" or Name == "LunchBox" or Name == "Lunch Box" or Name == "PaperCup" or Name == "Paper Cup" or Name == "WaitingTicket" or Name == "Waiting Ticket" or Name == "HoneyPot" or Name == "StairwellScrapper" or Name == "StairwellBlastDoor" or Name == "GweenSodaPack" or Name == "BottleCrate" or Name == "BrokenMonitor" or Name == "JerryCan" or Name == "ObjectScanner" or Name == "PeachCobbler" or Name == "DinkyLamp" or Name == "SalvageScrap") then
 		if ToggleOn("ItemESPToggle") then Functions.AddESP({ Object = Object, Text = ItemNames[Name], Color = Options.ItemESPColor.Value }, Object:GetAttribute("ParentRoom") ~= nil) end
 		if Name == "LotusHolder" or Name == "LotusPetalPickup" then
 			Object.Handle:GetPropertyChangedSignal("LocalTransparencyModifier"):Connect(function()
@@ -6078,6 +6333,8 @@ Connections.EntityHandler = Services.Workspace.ChildAdded:Connect(function(Entit
 		return
 	end
 
+	TrackCreakModel(Entity)
+
 	local PPStart = tick()
 	while not Entity.PrimaryPart and tick() - PPStart < 10 do
 		local Prefer = Entity:FindFirstChild("HumanoidRootPart") or Entity:FindFirstChild("RushNew")
@@ -6141,6 +6398,12 @@ Connections.EntityHandler = Services.Workspace.ChildAdded:Connect(function(Entit
 		CurrentRooms.ChildAdded:Wait()
 		task.wait(10)
 		Entity:Destroy()
+	end
+end)
+
+Connections.LiveEntitiesFolderWatcher = Services.Workspace.DescendantAdded:Connect(function(Object)
+	if Object.Name == "LiveEntities" and ToggleOn("LiveEntitiesESPToggle") then
+		WatchLiveEntitiesFolder()
 	end
 end)
 
@@ -6224,7 +6487,14 @@ Library:OnUnload(function()
 		end
 	end
 
+	for Model in pairs(CreakModels) do
+		SetCreakTouch(Model, false)
+		CreakModels[Model] = nil
+	end
+
 	for _, Object in Objects.SeekBridges do Object:Destroy() end
+
+	RestoreCreakModels()
 
 	for _, Fog in Globals.FogInstances do
 		Fog.Density = Fog:GetAttribute("Density_Old")
