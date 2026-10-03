@@ -385,6 +385,7 @@ local ItemNames = {
 	["JerryCan"]           = "Jerry Can",
 	["ObjectScanner"]      = "Object Scanner",
 	["PeachCobbler"]       = "Peach Cobbler",
+	["DinkyLamp"]          = "Dinky Lamp",
 }
 
 local CutsceneNames = {
@@ -3585,6 +3586,43 @@ Groupboxes.Floors_Farming:AddButton({
 })
 
 Groupboxes.Floors_Farming:AddDivider()
+Groupboxes.Floors_Farming:AddToggle("AutoGlitchFragment", {
+	Text = "Auto Glitch Fragment", Default = false,
+	Tooltip = "6 kez void'e gider, her seferinde 5 saniye bekler.",
+})
+OnChange("AutoGlitchFragment", function(Value)
+	if not Value then
+		Globals.AutoGlitchFragmentRunning = false
+		return
+	end
+	if Globals.AutoGlitchFragmentRunning then return end
+	Globals.AutoGlitchFragmentRunning = true
+	task.spawn(function()
+		local Completed = 0
+		Functions.Notify({ Title = "Glitch Fragment baslatildi (6 tur)." })
+		while Completed < 6 and ToggleOn("AutoGlitchFragment") do
+			local Model = LocalPlayer.Character or Character
+			if Model then
+				pcall(function() Model:PivotTo(CFrame.new(0, -120, 0)) end)
+				Completed += 1
+				local Waited = 0
+				while Waited < 5 and ToggleOn("AutoGlitchFragment") do
+					Waited += task.wait()
+				end
+			else
+				task.wait(1)
+			end
+		end
+		Globals.AutoGlitchFragmentRunning = false
+		pcall(function() Toggles.AutoGlitchFragment:SetValue(false) end)
+		if Completed >= 6 then
+			Functions.Notify({ Title = "Glitch Fragment bitti (6/6)." })
+		else
+			Functions.Notify({ Title = "Glitch Fragment durduruldu (" .. Completed .. "/6)." })
+		end
+	end)
+end)
+Groupboxes.Floors_Farming:AddDivider()
 Groupboxes.Floors_Farming:AddButton({
 	Text = "Start Death Farm",
 	DoubleClick = true,
@@ -4797,7 +4835,7 @@ Functions.HandleObject = function(Object)
 	elseif Name == "MouseHole" then
 		if ToggleOn("ChestESPToggle") then Functions.AddESP({ Object = Object, Text = "Mouse", Color = Options.ChestESPColor.Value }, true) end
 		table.insert(Objects.Chests, Object)
-	elseif ItemNames[Name] and (Object:FindFirstChild("ModulePrompt", true) or Name == "FihFlakes" or Name == "Fihflakes" or Name == "Leftovers" or Name == "Pizza" or Name == "Briefcase" or Name == "PaperPlane" or Name == "LunchBox" or Name == "Lunch Box" or Name == "PaperCup" or Name == "Paper Cup" or Name == "WaitingTicket" or Name == "Waiting Ticket" or Name == "HoneyPot" or Name == "StairwellScrapper" or Name == "StairwellBlastDoor" or Name == "GweenSodaPack" or Name == "BottleCrate" or Name == "BrokenMonitor" or Name == "JerryCan" or Name == "ObjectScanner" or Name == "PeachCobbler") then
+	elseif ItemNames[Name] and (Object:FindFirstChild("ModulePrompt", true) or Name == "FihFlakes" or Name == "Fihflakes" or Name == "Leftovers" or Name == "Pizza" or Name == "Briefcase" or Name == "PaperPlane" or Name == "LunchBox" or Name == "Lunch Box" or Name == "PaperCup" or Name == "Paper Cup" or Name == "WaitingTicket" or Name == "Waiting Ticket" or Name == "HoneyPot" or Name == "StairwellScrapper" or Name == "StairwellBlastDoor" or Name == "GweenSodaPack" or Name == "BottleCrate" or Name == "BrokenMonitor" or Name == "JerryCan" or Name == "ObjectScanner" or Name == "PeachCobbler" or Name == "DinkyLamp") then
 		if ToggleOn("ItemESPToggle") then Functions.AddESP({ Object = Object, Text = ItemNames[Name], Color = Options.ItemESPColor.Value }, Object:GetAttribute("ParentRoom") ~= nil) end
 		if Name == "LotusHolder" or Name == "LotusPetalPickup" then
 			Object.Handle:GetPropertyChangedSignal("LocalTransparencyModifier"):Connect(function()
