@@ -2061,7 +2061,7 @@ Groupboxes.Archives_Misc:AddSlider("AutoBringDroppedInterval", {
 })
 
 local BringAcc = 0
-TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
+table.insert(Connections, Services.RunService.Heartbeat:Connect(function(Delta)
 	if not ToggleOn("AutoBringDroppedItems") then
 		BringAcc = 0
 		return
