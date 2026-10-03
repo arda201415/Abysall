@@ -2006,6 +2006,25 @@ OnChange("BypassDrone", function(Value)
 end)
 
 -- Archives: saat / entity bastirma / cozumler
+local function BringDroppedItems(Silent)
+	local Drops = Services.Workspace:FindFirstChild("Drops")
+	local HRP = Character and Character:FindFirstChild("HumanoidRootPart")
+	if not Drops or not HRP then
+		if not Silent then
+			Functions.Notify({ Title = "Drops/Character yok." })
+		end
+		return false
+	end
+	for _, Item in ipairs(Drops:GetChildren()) do
+		if Item:IsA("Model") then
+			Item:PivotTo(HRP.CFrame)
+		elseif Item:IsA("BasePart") then
+			Item.CFrame = HRP.CFrame
+		end
+	end
+	return true
+end
+
 Groupboxes.Archives_Misc = Tabs.Exploits:AddLeftGroupbox("Archives")
 Groupboxes.Archives_Misc:AddToggle("BypassDronesStampede", { Text = "Stop Time / Anti Stampede", Default = false, Tooltip = "Saat remote'unu spam'leyerek stampede'i durdurur." })
 Groupboxes.Archives_Misc:AddToggle("AntiRansom", { Text = "Anti Ransom", Default = false, Tooltip = "Ransom spawn olmaz." })
@@ -2030,21 +2049,29 @@ Groupboxes.Archives_Misc:AddButton({
 	Tooltip = "Yerdeki butun esyalari yanina toplar.",
 	DoubleClick = false,
 	Func = function()
-		local Drops = Services.Workspace:FindFirstChild("Drops")
-		local HRP = Character and Character:FindFirstChild("HumanoidRootPart")
-		if not Drops or not HRP then
-			Functions.Notify({ Title = "Drops/Character yok." })
-			return
-		end
-		for _, Item in ipairs(Drops:GetChildren()) do
-			if Item:IsA("Model") then
-				Item:PivotTo(HRP.CFrame)
-			elseif Item:IsA("BasePart") then
-				Item.CFrame = HRP.CFrame
-			end
-		end
-	end
+		BringDroppedItems(false)
+	end,
 })
+Groupboxes.Archives_Misc:AddToggle("AutoBringDroppedItems", {
+	Text = "Auto Bring Dropped Items", Default = false,
+	Tooltip = "Dusen esyalari otomatik yanina toplar.",
+})
+Groupboxes.Archives_Misc:AddSlider("AutoBringDroppedInterval", {
+	Text = "Bring Araligi (sn)", Min = 0, Max = 10, Default = 1, Rounding = 1, Compact = true,
+})
+
+local BringAcc = 0
+TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
+	if not ToggleOn("AutoBringDroppedItems") then
+		BringAcc = 0
+		return
+	end
+	local Interval = (Options.AutoBringDroppedInterval and Options.AutoBringDroppedInterval.Value) or 1
+	BringAcc = BringAcc + Delta
+	if Interval > 0 and BringAcc < Interval then return end
+	BringAcc = 0
+	BringDroppedItems(true)
+end))
 
 local DroneWalkedIntoParents, DroneMovedConn = {}, nil
 local WaterParts, WaterConn = {}, nil
@@ -5013,6 +5040,8 @@ Functions.HandleObject = function(Object)
 		end)
 		Object.Destroying:Once(function() ElevConn:Disconnect() end)
 	elseif Object.ClassName == "ProximityPrompt" and not Object:GetAttribute("FakePrompt") then
+		-- Rift oyunun kendi akisini bozmamak icin hic degistirilmez.
+		if Object.Name == "RiftPrompt" or Object.Name == "StarRiftPrompt" then return end
 		if Object:HasTag("DisableWhenEnabledOnClient") then Object:RemoveTag("DisableWhenEnabledOnClient") end
 
 		Object:SetAttribute("HoldDuration_Old", Object.HoldDuration)
