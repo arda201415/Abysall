@@ -4826,6 +4826,9 @@ Functions.HandleObject = function(Object)
 			end)
 		end
 		table.insert(Objects.Objectives, Object)
+	elseif Name == "StairwellFireAlarm" then
+		if ToggleOn("ObjectiveESPToggle") then Functions.AddESP({ Object = Object, Text = "Fire Alarm", Color = Options.ObjectiveESPColor.Value }, true) end
+		table.insert(Objects.Objectives, Object)
 	elseif Name == "Ladder" then
 		if ToggleOn("LadderESPToggle") then Functions.AddESP({ Object = Object, Text = "Ladder", Color = Options.LadderESPColor.Value }, true) end
 		table.insert(Objects.Ladders, Object)
@@ -5479,7 +5482,8 @@ local AllowedInstances = {
 	MovingDoor=true, StardustPickup=true, Hole=true, Groundskeeper=true, MandrakeLive=true,
 	GardenGateButton=true, LotusPetalPickup=true, VineGuillotine=true, LiveEntityBramble=true,
 	RiftSpawn=true, ElevatorBreaker=true, RunnerNodes=true, PathLights=true, DuckBoard=true,
-	Padlock=true, EyestalkEndCutscene=true, MinecartRig=true, SeekMovingNewClone=true
+	Padlock=true, EyestalkEndCutscene=true, MinecartRig=true, SeekMovingNewClone=true,
+	StairwellFireAlarm=true,
 }
 
 Functions.QueueObject = function(Object)
