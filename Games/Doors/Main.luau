@@ -5647,41 +5647,10 @@ local AUTOPLAY_FIGURE_DISTANCE = 60
 local AUTOPLAY_WALKSPEED = 16
 local AutoPlaySavedWalkSpeed = nil
 
--- Doors oyun ici hareketi Collision parcalari ile yonetir ve WalkSpeed'i 0
--- birakabiliyor. WalkSpeed 0 iken Humanoid:MoveTo hic hareket uretmez.
-local function AutoPlayEnsureWalkSpeed()
-	local Hum = AutoPlayChar() and AutoPlayChar():FindFirstChildOfClass("Humanoid")
-	if not Hum then return end
-	if AutoPlaySavedWalkSpeed == nil then
-		AutoPlaySavedWalkSpeed = Hum.WalkSpeed
-	end
-	if Hum.WalkSpeed < 1 then
-		pcall(function() Hum.WalkSpeed = AUTOPLAY_WALKSPEED end)
-		AutoPlayLog("WalkSpeed 0 idi, " .. AUTOPLAY_WALKSPEED .. " yapildi")
-	end
-end
-
-local function AutoPlayRestoreWalkSpeed()
-	local Hum = AutoPlayChar() and AutoPlayChar():FindFirstChildOfClass("Humanoid")
-	if Hum and AutoPlaySavedWalkSpeed ~= nil then
-		pcall(function() Hum.WalkSpeed = AutoPlaySavedWalkSpeed end)
-	end
-	AutoPlaySavedWalkSpeed = nil
-end
-
--- Toggles tablosu kutuphane tarafindan yeniden kurulabiliyor; eski referansi
--- tutmak yerine her seferinde tazeliyoruz, yoksa dongu sessizce birakilir.
-local AutoPlayToggleRef = nil
-
-local function AutoPlayGetToggle()
-	if AutoPlayToggleRef == nil then
-		if Toggles then AutoPlayToggleRef = Toggles["AutoPlay"] end
-		return AutoPlayToggleRef
-	end
-	-- Obje hala gecerli mi (Toggles.Identity ayni mi)?
-	if AutoPlayToggleRef.Value ~= nil then return AutoPlayToggleRef end
-	if Toggles then AutoPlayToggleRef = Toggles["AutoPlay"] end
-	return AutoPlayToggleRef
+local function AutoPlayChar()
+	local Model = LocalPlayer.Character
+	if Model and Model.Parent then return Model end
+	return nil
 end
 
 local function AutoPlayLog(...)
@@ -5694,20 +5663,18 @@ local function AutoPlayLog(...)
 	end)
 end
 
-local function AutoPlayChar()
-	local Model = LocalPlayer.Character
-	if Model and Model.Parent then return Model end
-	return nil
-end
+-- Toggles tablosu kutuphane tarafindan yeniden kurulabiliyor; eski referansi
+-- tutmak yerine her seferinde tazeliyoruz, yoksa dongu sessizce birakilir.
+local AutoPlayToggleRef = nil
 
--- her adimda taze parca coz (olu karakter / eski referans sessiz olumu engeller)
-local function AutoPlayParts()
-	local Model = AutoPlayChar()
-	if not Model then return nil, nil end
-	local Hum = Model:FindFirstChildOfClass("Humanoid")
-	local HRP = Model:FindFirstChild("HumanoidRootPart")
-	if not Hum or Hum.Health <= 0 or not HRP then return nil, nil end
-	return Hum, HRP
+local function AutoPlayGetToggle()
+	if AutoPlayToggleRef == nil then
+		if Toggles then AutoPlayToggleRef = Toggles["AutoPlay"] end
+		return AutoPlayToggleRef
+	end
+	if AutoPlayToggleRef.Value ~= nil then return AutoPlayToggleRef end
+	if Toggles then AutoPlayToggleRef = Toggles["AutoPlay"] end
+	return AutoPlayToggleRef
 end
 
 local function AutoPlayOn()
@@ -5740,6 +5707,40 @@ end
 local function AutoPlayRoom(Number)
 	if not CurrentRooms then return nil end
 	return CurrentRooms:FindFirstChild(tostring(Number))
+end
+
+-- her adimda taze parca coz (olu karakter / eski referans sessiz olumu engeller)
+local function AutoPlayParts()
+	local Model = AutoPlayChar()
+	if not Model then return nil, nil end
+	local Hum = Model:FindFirstChildOfClass("Humanoid")
+	local HRP = Model:FindFirstChild("HumanoidRootPart")
+	if not Hum or Hum.Health <= 0 or not HRP then return nil, nil end
+	return Hum, HRP
+end
+
+-- Doors oyun ici hareketi Collision parcalari ile yonetir ve WalkSpeed'i 0
+-- birakabiliyor. WalkSpeed 0 iken Humanoid:MoveTo hic hareket uretmez.
+local function AutoPlayEnsureWalkSpeed()
+	local Model = AutoPlayChar()
+	local Hum = Model and Model:FindFirstChildOfClass("Humanoid")
+	if not Hum then return end
+	if AutoPlaySavedWalkSpeed == nil then
+		AutoPlaySavedWalkSpeed = Hum.WalkSpeed
+	end
+	if Hum.WalkSpeed < 1 then
+		pcall(function() Hum.WalkSpeed = AUTOPLAY_WALKSPEED end)
+		AutoPlayLog("WalkSpeed 0 idi, " .. AUTOPLAY_WALKSPEED .. " yapildi")
+	end
+end
+
+local function AutoPlayRestoreWalkSpeed()
+	local Model = AutoPlayChar()
+	local Hum = Model and Model:FindFirstChildOfClass("Humanoid")
+	if Hum and AutoPlaySavedWalkSpeed ~= nil then
+		pcall(function() Hum.WalkSpeed = AutoPlaySavedWalkSpeed end)
+	end
+	AutoPlaySavedWalkSpeed = nil
 end
 
 local function AutoPlayPivot(Target)
