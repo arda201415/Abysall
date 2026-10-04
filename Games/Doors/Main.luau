@@ -1757,6 +1757,11 @@ Groupboxes.Self_Automation = Tabs.General:AddRightGroupbox("Automation")
 Groupboxes.Self_Automation:AddToggle("AutoBreakerBox", {
 	Text = "Auto Breaker Box", Default = false, Tooltip = "Automatically solves the breaker box."
 })
+Groupboxes.Self_Automation:AddDivider()
+Groupboxes.Self_Automation:AddToggle("AutoPlay", {
+	Text = "Auto Play", Default = false,
+	Tooltip = "Kapi ilerletir, kilitler icin anahtar alir, 50. kapida kitaplari toplar ve kodu girer, 100. kapida breaker'i cozer.",
+})
 Groupboxes.Self_Automation:AddToggle("AutoSolveAnchors", {
 	Text = "Auto Solve Anchors", Default = false,
 	Tooltip = "Automatically enters the correct code into anchors when you are near them."
@@ -4827,8 +4832,9 @@ Functions.HandleObject = function(Object)
 		end
 		table.insert(Objects.Objectives, Object)
 	elseif Name == "StairwellFireAlarm" then
-		if ToggleOn("ObjectiveESPToggle") then Functions.AddESP({ Object = Object, Text = "Fire Alarm", Color = Options.ObjectiveESPColor.Value }, true) end
-		table.insert(Objects.Objectives, Object)
+		local Target = Object:FindFirstChild("Switch", true) or Object
+		if ToggleOn("ObjectiveESPToggle") then Functions.AddESP({ Object = Target, Text = "Fire Alarm", Color = Options.ObjectiveESPColor.Value }, true) end
+		table.insert(Objects.Objectives, Target)
 	elseif Name == "Ladder" then
 		if ToggleOn("LadderESPToggle") then Functions.AddESP({ Object = Object, Text = "Ladder", Color = Options.LadderESPColor.Value }, true) end
 		table.insert(Objects.Ladders, Object)
@@ -5623,6 +5629,236 @@ Connections.PlayerHandler = Services.Players.PlayerAdded:Connect(function(Player
 end)
 
 local PromptsToFire = {}
+
+-- // Auto Play //
+-- Tek anahtar: kapi ilerletir, kilitler icin anahtar toplar, 50'de kitaplari
+-- toplar ve kodu girer, 100'de plug + breaker cozer. Figure yaklasirsa geri
+-- cekilir ama yurume hizi degismez.
+Globals.AutoPlayRunning = false
+Globals.AutoPlayState = ""
+
+local AUTOPLAY_FIGURE_DISTANCE = 60
+
+local function AutoPlayChar()
+	return Character or LocalPlayer.Character
+end
+
+local function AutoPlayOn()
+	return ToggleOn("AutoPlay")
+end
+
+local function AutoPlayWait(Seconds)
+	local Waited = 0
+	while Waited < Seconds do
+		if not AutoPlayOn() then return false end
+		Waited += task.wait(0.1) or 0.1
+	end
+	return true
+end
+
+local function AutoPlayNotify(Title, Body)
+	Functions.Notify({ Title = "Auto Play: " .. Title, Body = Body or "", Time = 4 })
+end
+
+local function AutoPlayRoom(Number)
+	if not CurrentRooms then return nil end
+	return CurrentRooms:FindFirstChild(tostring(Number))
+end
+
+local function AutoPlayPivot(Target)
+	if type(Target) ~= "Instance" then return false end
+	local Model = AutoPlayChar()
+	if not Model then return false end
+	if Target:IsA("Model") then
+		return pcall(function() Model:PivotTo(Target:GetPivot()) end)
+	end
+	if Target:IsA("BasePart") then
+		return pcall(function() Model:PivotTo(Target.CFrame) end)
+	end
+	return false
+end
+
+local function AutoPlayNearestFigure()
+	local Best, BestDist = nil, math.huge
+	for _, Object in ipairs(Objects.Entities) do
+		if Object.Parent and (Object.Name == "Figure" or Object.Name == "FigureRig" or Object.Name == "FigureRagdoll") then
+			local Part = Object.PrimaryPart or Object:FindFirstChild("HumanoidRootPart")
+			if Part then
+				local Distance = LocalPlayer:DistanceFromCharacter(Part.Position)
+				if Distance < BestDist then Best, BestDist = Part, Distance end
+			end
+		end
+	end
+	return Best, BestDist
+end
+
+-- Figure mesafesi korunur, hiz degistirilmez (sadece geri cekilme)
+local function AutoPlayAvoidFigure()
+	local Model = AutoPlayChar()
+	local Part, Distance = AutoPlayNearestFigure()
+	if not Part or not Model or not Model.Parent then return false end
+	if Distance > AUTOPLAY_FIGURE_DISTANCE then return false end
+	local MyPart = Model:FindFirstChild("HumanoidRootPart")
+	if not MyPart then return false end
+	local Away = MyPart.Position - Part.Position
+	if Away.Magnitude < 0.01 then
+		Away = Vector3.new(0, 0, 1)
+	end
+	-- sadece konum degistir, yon ve hiz aynen kalir
+	local Target = Part.Position + Away.Unit * AUTOPLAY_FIGURE_DISTANCE
+	pcall(function()
+		Model:PivotTo(CFrame.new(Target) * (MyPart.CFrame - MyPart.CFrame.Position))
+	end)
+	return true
+end
+
+local function AutoPlayFirePromptIn(Room, Predicate, Limit)
+	local Fired = 0
+	if type(Room) ~= "Instance" then return 0 end
+	for _, Descendant in ipairs(Room:GetDescendants()) do
+		if not AutoPlayOn() then break end
+		if Descendant:IsA("ProximityPrompt") and (not Predicate or Predicate(Descendant)) then
+			if AutoPlayAvoidFigure() then
+				AutoPlayWait(0.2)
+			end
+			pcall(function()
+				Functions.FirePrompt(Descendant)
+			end)
+			Fired += 1
+			if not AutoPlayWait(0.15) then break end
+			if Limit and Fired >= Limit then break end
+		end
+	end
+	return Fired
+end
+
+-- 50: kitaplari topla, kodu hesapla, gir
+local function AutoPlayLibrary(Room)
+	if not AutoPlayWait(0.5) then return false end
+	AutoPlayNotify("50", "Kitaplar toplaniyor")
+	AutoPlayFirePromptIn(Room, function(Prompt)
+		local Parent = Prompt.Parent
+		if not Parent then return false end
+		return Parent.Name == "LibraryHintPaper" or Parent.Name == "LibraryHintPaperHard"
+			or Parent.Name == "LibraryBook" or string.find(string.lower(Parent.Name), "book", 1, true) ~= nil
+	end)
+	if not AutoPlayWait(0.5) then return false end
+
+	local Code = nil
+	pcall(function() Code = Functions.GetLibraryCode() end)
+	if type(Code) ~= "string" or not string.find(Code, "%d") then
+		-- kod net degilse tahmin etmeyi dene
+		pcall(function() Code = Functions.GetRandomCode() end)
+	end
+	if type(Code) == "string" and string.find(Code, "%d") then
+		local PL = RemotesFolder and RemotesFolder:FindFirstChild("PL")
+		if PL then
+			pcall(function() PL:FireServer(Code) end)
+			AutoPlayNotify("50", "Kod girildi: " .. Code)
+			return AutoPlayWait(1)
+		end
+	end
+	AutoPlayNotify("50", "Kod bulunamadi, atlandi")
+	return false
+end
+
+-- 100: plug + breaker
+local function AutoPlayBreaker(Room)
+	if not AutoPlayWait(0.5) then return false end
+	AutoPlayNotify("100", "Plug ve breaker")
+	AutoPlayFirePromptIn(Room, nil)
+	if not AutoPlayWait(0.5) then return false end
+
+	local Breaker = nil
+	if type(Room) == "Instance" then
+		Breaker = Room:FindFirstChild("ElevatorBreaker", true)
+	end
+	if not Breaker then
+		Breaker = CurrentRooms and CurrentRooms:FindFirstChild("ElevatorBreaker", true)
+	end
+	if Breaker then
+		AutoPlayPivot(Breaker.PrimaryPart or Breaker)
+		if not AutoPlayWait(0.4) then return false end
+		local Surface = Breaker:FindFirstChild("SurfaceGui", true)
+		local CodeLabel = Surface and Surface:FindFirstChild("Frame", true) and Surface.Frame:FindFirstChild("Code", true)
+		if CodeLabel then
+			pcall(function() RemotesFolder.EBF:FireServer() end)
+			AutoPlayNotify("100", "Breaker tetiklendi")
+		end
+	else
+		pcall(function() RemotesFolder.EBF:FireServer() end)
+	end
+
+	-- cozulmesini bekle
+	local Waited = 0
+	while AutoPlayOn() and Waited < 20 do
+		Waited += 1
+		AutoPlayWait(0.5)
+		if Globals.BreakerBoxFinishedNotified then break end
+		if Breaker == nil or not Breaker.Parent then break end
+	end
+	return AutoPlayWait(1)
+end
+
+local function AutoPlayNextRoom()
+	if not AutoPlayWait(0.15) then return false end
+	local Door = Functions.GetNextClosedDoor()
+	if not Door then return false end
+	if AutoPlayAvoidFigure() then
+		AutoPlayWait(0.2)
+	end
+	AutoPlayPivot(Door)
+	if not AutoPlayWait(0.3) then return false end
+	pcall(function() Door.ClientOpen:FireServer() end)
+	pcall(function() Door.ClientOpen:Fire() end)
+	return true
+end
+
+local function AutoPlayRun()
+	if Globals.AutoPlayRunning then return end
+	Globals.AutoPlayRunning = true
+	Globals.AutoPlayState = "basliyor"
+	AutoPlayNotify("baslatildi")
+
+	task.spawn(function()
+		local LastRoom = -1
+		while AutoPlayOn() and Globals.AutoPlayRunning do
+			local Number = tonumber(LatestRoom.Value) or 0
+			local Room = AutoPlayRoom(Number)
+			if Room then
+				-- kilitler icin anahtarlari topla (Auto Interact mantigi)
+				AutoPlayFirePromptIn(Room, function(Prompt)
+					local Names = { UnlockPrompt = true, SkullPrompt = true, LockPrompt = true, ThingToEnable = true, FusesPrompt = true }
+					return Names[Prompt.Name] == true
+				end, 3)
+
+				if Number ~= LastRoom then
+					LastRoom = Number
+					Globals.AutoPlayState = "oda " .. Number
+					if Number == 49 or Number == 50 then
+						AutoPlayLibrary(AutoPlayRoom(50) or Room)
+					elseif Number == 99 or Number == 100 then
+						AutoPlayBreaker(AutoPlayRoom(100) or Room)
+					end
+				end
+			end
+			if not AutoPlayNextRoom() then
+				if not AutoPlayWait(0.5) then break end
+			end
+		end
+		Globals.AutoPlayRunning = false
+		Globals.AutoPlayState = ""
+		AutoPlayNotify("durdu")
+	end)
+end
+
+OnChange("AutoPlay", function(Value)
+	if Value then
+		AutoPlayRun()
+	else
+		Globals.AutoPlayRunning = false
+	end
+end)
 local PromptCooldown = {}
 
 Functions.FirePrompt      = Abysall.Environment.fireproximityprompt
