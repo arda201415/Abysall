@@ -5645,6 +5645,31 @@ Globals.AutoPlayState = ""
 
 local AUTOPLAY_FIGURE_DISTANCE = 60
 
+-- Toggles tablosu kutuphane tarafindan yeniden kurulabiliyor; eski referansi
+-- tutmak yerine her seferinde tazeliyoruz, yoksa dongu sessizce birakilir.
+local AutoPlayToggleRef = nil
+
+local function AutoPlayGetToggle()
+	if AutoPlayToggleRef == nil then
+		if Toggles then AutoPlayToggleRef = Toggles["AutoPlay"] end
+		return AutoPlayToggleRef
+	end
+	-- Obje hala gecerli mi (Toggles.Identity ayni mi)?
+	if AutoPlayToggleRef.Value ~= nil then return AutoPlayToggleRef end
+	if Toggles then AutoPlayToggleRef = Toggles["AutoPlay"] end
+	return AutoPlayToggleRef
+end
+
+local function AutoPlayLog(...)
+	local Parts = {}
+	for I = 1, select("#", ...) do
+		Parts[I] = tostring(select(I, ...))
+	end
+	pcall(function()
+		warn("[Abysall-AutoPlay] " .. table.concat(Parts, " "))
+	end)
+end
+
 local function AutoPlayChar()
 	local Model = LocalPlayer.Character
 	if Model and Model.Parent then return Model end
@@ -5666,7 +5691,13 @@ local function AutoPlayOn()
 		Globals.AutoPlayRunning = false
 		return false
 	end
-	return ToggleOn("AutoPlay")
+	local Toggle = AutoPlayGetToggle()
+	if Toggle == nil then
+		AutoPlayLog("toggle bulunamadi (Toggles tablosu degismis olabilir)")
+		Globals.AutoPlayRunning = false
+		return false
+	end
+	return Toggle.Value == true
 end
 
 local function AutoPlayWait(Seconds)
@@ -5703,9 +5734,19 @@ end
 -- Auto Rooms ile ayni yontem: PathfindingService ile yol hesapla, Humanoid:MoveTo ile yuru
 local function AutoPlayWalkTo(Position, Timeout)
 	local Hum, HRP = AutoPlayParts()
-	if not Hum or not HRP then return false end
+	if not Hum or not HRP then
+		AutoPlayLog("yuru baslamadi: Humanoid/HRP yok")
+		return false
+	end
 	if not AutoPlayOn() then return false end
-	if typeof(Position) ~= "Vector3" then return false end
+	if typeof(Position) ~= "Vector3" then
+		AutoPlayLog("gecersiz hedef: " .. typeof(Position))
+		return false
+	end
+
+	local StartPos = HRP.Position
+	local Distance = (Position - StartPos).Magnitude
+	AutoPlayLog("hedef: " .. tostring(Position) .. " mesafe=" .. math.floor(Distance))
 
 	local Waypoints = {}
 	local Computed = pcall(function()
@@ -5716,14 +5757,16 @@ local function AutoPlayWalkTo(Position, Timeout)
 			AgentRadius = 2,
 			AgentHeight = 3,
 		})
-		Path:ComputeAsync(HRP.Position, Position)
+		Path:ComputeAsync(StartPos, Position)
 		Waypoints = Path:GetWaypoints()
 	end)
 	if not Computed or #Waypoints == 0 then
+		AutoPlayLog("path yok, dogrudan MoveTo")
 		local Ok = pcall(function() Hum:MoveTo(Position) end)
 		if not Ok then return false end
 		return AutoPlayWait(Timeout or 5)
 	end
+	AutoPlayLog("waypoint=" .. #Waypoints)
 
 	local StartTick = tick()
 	for _, Waypoint in ipairs(Waypoints) do
@@ -5735,7 +5778,10 @@ local function AutoPlayWalkTo(Position, Timeout)
 			local LiveHum, LiveHRP = AutoPlayParts()
 			if not LiveHum or not LiveHRP then return false end
 			Hum, HRP = LiveHum, LiveHRP
-			if tick() - StartTick > (Timeout or 12) then return false end
+			if tick() - StartTick > (Timeout or 12) then
+				AutoPlayLog("zaman asimi, kalan=" .. math.floor((Waypoint.Position - HRP.Position).Magnitude))
+				return false
+			end
 			local Flat = Vector3.new(Waypoint.Position.X, HRP.Position.Y, Waypoint.Position.Z)
 			if (Flat - HRP.Position).Magnitude < 4 then
 				Arrived = true
@@ -5903,6 +5949,9 @@ local function AutoPlayFindDoor()
 			end
 		end
 	end
+	if not Best then
+		AutoPlayLog("kapit bulunamadi (oda " .. Start .. ")")
+	end
 	return Best
 end
 
@@ -5910,22 +5959,28 @@ local function AutoPlayNextRoom()
 	if not AutoPlayWait(0.15) then return false end
 	local Door = AutoPlayFindDoor()
 	if not Door then return false end
+	AutoPlayLog("kapi bulundu: oda " .. tostring(Door.Parent and Door.Parent.Name))
 	if AutoPlayAvoidFigure() then
 		AutoPlayWait(0.2)
 	end
 	local DoorPart = Door:FindFirstChild("Door") or Door
 	local Entered = AutoPlayWalkToInstance(DoorPart, 15)
-	if not Entered then return false end
+	if not Entered then
+		AutoPlayLog("kapiya varilamadi")
+		return false
+	end
 	if not AutoPlayWait(0.3) then return false end
 	pcall(function() Door.ClientOpen:FireServer() end)
 	pcall(function() Door.ClientOpen:Fire() end)
+	AutoPlayLog("kapi acildi")
 	return true
 end
 
 local function AutoPlayRun()
 	if Globals.AutoPlayRunning then return end
 	Globals.AutoPlayRunning = true
-	Globals.AutoPlayState = "basliyor"
+	AutoPlayLog("baslatildi, toggle=" .. tostring(AutoPlayGetToggle()))
+	AutoPlayLog("karakter=" .. tostring(AutoPlayChar()))
 	AutoPlayNotify("baslatildi")
 
 	task.spawn(function()
