@@ -67,6 +67,9 @@ local Objects = {
 Globals.IncompatibleMessage = "Your executor doesn't support this feature."
 
 Functions.CheckCompatability = function(Array)
+	if not Abysall or not Abysall.Environment then
+		return false
+	end
 	for _, Name in Array do
 		if not Abysall.Environment[Name] then
 			return false
@@ -431,8 +434,9 @@ if FinishedLoadingRoom then
 end
 
 local function GetHiddenContainer()
-	if Functions.CheckCompatability({"gethui"}) then
-		return Abysall.Environment.gethui()
+	if Abysall and Abysall.Environment and Functions.CheckCompatability({"gethui"}) then
+		local Ok, Hui = pcall(function() return Abysall.Environment.gethui() end)
+		if Ok and Hui then return Hui end
 	end
 	return Services.CoreGui
 end
@@ -5644,6 +5648,10 @@ local function AutoPlayChar()
 end
 
 local function AutoPlayOn()
+	if Abysall == nil then
+		Globals.AutoPlayRunning = false
+		return false
+	end
 	return ToggleOn("AutoPlay")
 end
 
