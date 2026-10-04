@@ -2747,7 +2747,9 @@ Groupboxes.Visuals_Camera:AddSlider("ViewmodelOffsetZ", { Text = "Z Offset", Min
 
 Toggles.AmbientToggle:AddColorPicker("AmbientColor", { Text = "Ambient", Default = Color3.fromRGB(255, 255, 255), Transparency = 0 })
 OnChange("AmbientToggle", function(Value)
-	local OldAmbient = CurrentRooms:FindFirstChild(tostring(LocalPlayer:GetAttribute("CurrentRoom"))):GetAttribute("Ambient")
+	-- Config yuklenirken oda henuz yoksa FindFirstChild nil doner
+	local Room = CurrentRooms and CurrentRooms:FindFirstChild(tostring(LocalPlayer:GetAttribute("CurrentRoom")))
+	local OldAmbient = Room and Room:GetAttribute("Ambient") or Services.Lighting.Ambient
 	Services.TweenService:Create(Services.Lighting, TweenInfo.new(0.2, Enum.EasingStyle.Exponential), {
 		Ambient = Value and Options.AmbientColor.Value or OldAmbient
 	}):Play()
@@ -6844,8 +6846,14 @@ Library:OnUnload(function()
 	Globals.RoomsNodesFolder:Destroy()
 	Globals.ManipulateBody:Destroy()
 
-	local OldAmbient = CurrentRooms:FindFirstChild(tostring(LocalPlayer:GetAttribute("CurrentRoom"))):GetAttribute("Ambient")
-	Services.TweenService:Create(Services.Lighting, TweenInfo.new(0.2, Enum.EasingStyle.Exponential), { Ambient = OldAmbient }):Play()
+	local OldAmbient = nil
+	pcall(function()
+		local Room = CurrentRooms and CurrentRooms:FindFirstChild(tostring(LocalPlayer:GetAttribute("CurrentRoom")))
+		if Room then OldAmbient = Room:GetAttribute("Ambient") end
+	end)
+	if OldAmbient ~= nil then
+		Services.TweenService:Create(Services.Lighting, TweenInfo.new(0.2, Enum.EasingStyle.Exponential), { Ambient = OldAmbient }):Play()
+	end
 
 	for _, Prompt in Objects.Prompts do
 		if FakePrompts[Prompt] then
