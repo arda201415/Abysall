@@ -364,9 +364,22 @@ Library:OnUnload(function()
     end
     pcall(function() Abysall.ESPLibrary:Unload() end)
     pcall(function()
+        FlyBody.Velocity = Vector3.zero
+        FlyBody.Parent = nil
+    end)
+    pcall(ApplyBright, false)
+    pcall(ApplyNoFog, false)
+    pcall(function()
         local Char = LocalPlayer.Character
         local Hum = Char and Char:FindFirstChildOfClass("Humanoid")
         if Hum then Hum.WalkSpeed = 16 end
+        if Char then
+            for _, P in ipairs(Char:GetDescendants()) do
+                if P:IsA("BasePart") and P.Name ~= "HumanoidRootPart" then
+                    P.CanCollide = true
+                end
+            end
+        end
     end)
     if type(Abysall.AddonDisablers) == "table" then
         for _, D in ipairs(Abysall.AddonDisablers) do
