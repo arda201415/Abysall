@@ -5644,6 +5644,30 @@ Globals.AutoPlayRunning = false
 Globals.AutoPlayState = ""
 
 local AUTOPLAY_FIGURE_DISTANCE = 60
+local AUTOPLAY_WALKSPEED = 16
+local AutoPlaySavedWalkSpeed = nil
+
+-- Doors oyun ici hareketi Collision parcalari ile yonetir ve WalkSpeed'i 0
+-- birakabiliyor. WalkSpeed 0 iken Humanoid:MoveTo hic hareket uretmez.
+local function AutoPlayEnsureWalkSpeed()
+	local Hum = AutoPlayChar() and AutoPlayChar():FindFirstChildOfClass("Humanoid")
+	if not Hum then return end
+	if AutoPlaySavedWalkSpeed == nil then
+		AutoPlaySavedWalkSpeed = Hum.WalkSpeed
+	end
+	if Hum.WalkSpeed < 1 then
+		pcall(function() Hum.WalkSpeed = AUTOPLAY_WALKSPEED end)
+		AutoPlayLog("WalkSpeed 0 idi, " .. AUTOPLAY_WALKSPEED .. " yapildi")
+	end
+end
+
+local function AutoPlayRestoreWalkSpeed()
+	local Hum = AutoPlayChar() and AutoPlayChar():FindFirstChildOfClass("Humanoid")
+	if Hum and AutoPlaySavedWalkSpeed ~= nil then
+		pcall(function() Hum.WalkSpeed = AutoPlaySavedWalkSpeed end)
+	end
+	AutoPlaySavedWalkSpeed = nil
+end
 
 -- Toggles tablosu kutuphane tarafindan yeniden kurulabiliyor; eski referansi
 -- tutmak yerine her seferinde tazeliyoruz, yoksa dongu sessizce birakilir.
@@ -5746,7 +5770,9 @@ local function AutoPlayWalkTo(Position, Timeout)
 
 	local StartPos = HRP.Position
 	local Distance = (Position - StartPos).Magnitude
-	AutoPlayLog("hedef: " .. tostring(Position) .. " mesafe=" .. math.floor(Distance))
+	AutoPlayLog("hedef: " .. tostring(Position) .. " mesafe=" .. math.floor(Distance)
+		.. " walkspeed=" .. tostring(Hum.WalkSpeed))
+	AutoPlayEnsureWalkSpeed()
 
 	local Waypoints = {}
 	local Computed = pcall(function()
@@ -5794,15 +5820,25 @@ local function AutoPlayWalkTo(Position, Timeout)
 end
 
 local function AutoPlayWalkToInstance(Target, Timeout)
-	if type(Target) ~= "Instance" then return false end
+	if type(Target) ~= "Instance" then
+		AutoPlayLog("hedef gecersiz: " .. typeof(Target))
+		return false
+	end
 	local Position = nil
 	if Target:IsA("Model") then
 		local Ok, Pivot = pcall(function() return Target:GetPivot() end)
-		if Ok and Pivot then Position = Pivot.Position end
+		if Ok and Pivot then
+			Position = Pivot.Position
+		else
+			AutoPlayLog("model pivot alinamadi: " .. Target.Name)
+		end
 	elseif Target:IsA("BasePart") then
 		Position = Target.Position
 	end
-	if not Position then return false end
+	if not Position then
+		AutoPlayLog("konum cozulemedi: " .. Target.Name .. " (" .. Target.ClassName .. ")")
+		return false
+	end
 	return AutoPlayWalkTo(Position, Timeout)
 end
 
@@ -5963,11 +5999,19 @@ local function AutoPlayNextRoom()
 	if AutoPlayAvoidFigure() then
 		AutoPlayWait(0.2)
 	end
+
+	-- Kapiyi acmak icin once yuruyerek yaklasmaya calis
 	local DoorPart = Door:FindFirstChild("Door") or Door
-	local Entered = AutoPlayWalkToInstance(DoorPart, 15)
+	local Entered = AutoPlayWalkToInstance(DoorPart, 10)
 	if not Entered then
-		AutoPlayLog("kapiya varilamadi")
-		return false
+		-- panel bulunamadiysa modelin PrimaryPart'ini dene
+		local Primary = Door:FindFirstChildOfClass("BasePart") or Door.PrimaryPart
+		Entered = AutoPlayWalkToInstance(Primary, 10)
+		if not Entered then
+			AutoPlayLog("kapiya varilamadi")
+			AutoPlayRestoreWalkSpeed()
+			return false
+		end
 	end
 	if not AutoPlayWait(0.3) then return false end
 	pcall(function() Door.ClientOpen:FireServer() end)
@@ -6021,6 +6065,7 @@ local function AutoPlayRun()
 		end
 		Globals.AutoPlayRunning = false
 		Globals.AutoPlayState = ""
+		AutoPlayRestoreWalkSpeed()
 		AutoPlayNotify("durdu")
 	end)
 end
@@ -6030,6 +6075,7 @@ OnChange("AutoPlay", function(Value)
 		AutoPlayRun()
 	else
 		Globals.AutoPlayRunning = false
+		AutoPlayRestoreWalkSpeed()
 	end
 end)
 local PromptCooldown = {}
