@@ -5678,6 +5678,70 @@ local function AutoPlayPivot(Target)
 	return false
 end
 
+-- Auto Rooms ile ayni yontem: PathfindingService ile yol hesapla, Humanoid:MoveTo ile yuru
+local function AutoPlayWalkTo(Position, Timeout)
+	local Model = AutoPlayChar()
+	local Hum = Model and Model:FindFirstChildOfClass("Humanoid")
+	local HRP = Model and Model:FindFirstChild("HumanoidRootPart")
+	if not Model or not Hum or Hum.Health <= 0 or not HRP then return false end
+	if not AutoPlayOn() then return false end
+
+	local Ok, Path = pcall(function()
+		return Services.PathfindingService:CreatePath({
+			AgentCanJump = true,
+			AgentCanClimb = false,
+			WaypointSpacing = 4,
+			AgentRadius = 2,
+			AgentHeight = 3,
+		})
+	end)
+	if not Ok or not Path then
+		Hum:MoveTo(Position)
+		return AutoPlayWait(Timeout or 5)
+	end
+
+	local Waypoints = {}
+	local Computed = pcall(function()
+		Path:ComputeAsync(HRP.Position, Position)
+		Waypoints = Path:GetWaypoints()
+	end)
+	if not Computed or #Waypoints == 0 then
+		Hum:MoveTo(Position)
+		return AutoPlayWait(Timeout or 5)
+	end
+
+	local StartTick = tick()
+	for _, Waypoint in ipairs(Waypoints) do
+		Hum:MoveTo(Waypoint.Position)
+		local Arrived = false
+		while not Arrived do
+			if not AutoPlayOn() then return false end
+			if Hum.Health <= 0 then return false end
+			if tick() - StartTick > (Timeout or 12) then return false end
+			local Flat = Vector3.new(Waypoint.Position.X, HRP.Position.Y, Waypoint.Position.Z)
+			if (Flat - HRP.Position).Magnitude < 4 then
+				Arrived = true
+				break
+			end
+			task.wait(0.1)
+		end
+	end
+	return true
+end
+
+local function AutoPlayWalkToInstance(Target, Timeout)
+	if type(Target) ~= "Instance" then return false end
+	local Position = nil
+	if Target:IsA("Model") then
+		local Ok, Pivot = pcall(function() return Target:GetPivot() end)
+		if Ok and Pivot then Position = Pivot.Position end
+	elseif Target:IsA("BasePart") then
+		Position = Target.Position
+	end
+	if not Position then return false end
+	return AutoPlayWalkTo(Position, Timeout)
+end
+
 local function AutoPlayNearestFigure()
 	local Best, BestDist = nil, math.huge
 	for _, Object in ipairs(Objects.Entities) do
@@ -5777,7 +5841,7 @@ local function AutoPlayBreaker(Room)
 		Breaker = CurrentRooms and CurrentRooms:FindFirstChild("ElevatorBreaker", true)
 	end
 	if Breaker then
-		AutoPlayPivot(Breaker.PrimaryPart or Breaker)
+		AutoPlayWalkToInstance(Breaker.PrimaryPart or Breaker, 15)
 		if not AutoPlayWait(0.4) then return false end
 		local Surface = Breaker:FindFirstChild("SurfaceGui", true)
 		local CodeLabel = Surface and Surface:FindFirstChild("Frame", true) and Surface.Frame:FindFirstChild("Code", true)
@@ -5807,7 +5871,9 @@ local function AutoPlayNextRoom()
 	if AutoPlayAvoidFigure() then
 		AutoPlayWait(0.2)
 	end
-	AutoPlayPivot(Door)
+	local DoorPart = Door:FindFirstChild("Door") or Door
+	local Entered = AutoPlayWalkToInstance(DoorPart, 15)
+	if not Entered then return false end
 	if not AutoPlayWait(0.3) then return false end
 	pcall(function() Door.ClientOpen:FireServer() end)
 	pcall(function() Door.ClientOpen:Fire() end)
