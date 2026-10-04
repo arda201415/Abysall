@@ -241,11 +241,120 @@ Groupboxes.Misc_Move:AddSlider("WalkSpeedVal", {
     Text = "WalkSpeed", Min = 16, Max = 200, Default = 16, Rounding = 0, Compact = true,
 })
 Groupboxes.Misc_Move:AddToggle("WalkSpeedOn", { Text = "Speed", Default = false })
+Groupboxes.Misc_Move:AddDivider()
+Groupboxes.Misc_Move:AddToggle("Fly", { Text = "Fly", Default = false })
+Toggles.Fly:AddKeyPicker("FlyKey", {
+    Text = "Fly", Default = "F", Mode = "Toggle", SyncToggleState = true,
+})
+Groupboxes.Misc_Move:AddSlider("FlySpeed", {
+    Text = "Fly Speed", Min = 0, Max = 200, Default = 50, Rounding = 0, Compact = true,
+})
+Groupboxes.Misc_Move:AddToggle("Noclip", { Text = "Noclip", Default = false })
+Toggles.Noclip:AddKeyPicker("NoclipKey", {
+    Text = "Noclip", Default = "N", Mode = "Toggle", SyncToggleState = true,
+})
 
 TrackConn(Services.RunService.RenderStepped:Connect(function()
     if Toggles.WalkSpeedOn and ToggleOn("WalkSpeedOn") and LocalPlayer.Character then
         local Hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
         if Hum then Hum.WalkSpeed = Options.WalkSpeedVal.Value end
+    end
+end))
+
+local FlyBody = Instance.new("BodyVelocity")
+FlyBody.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+FlyBody.Velocity = Vector3.zero
+
+local function FlyRoot()
+    local Char = LocalPlayer.Character
+    if not Char then return nil end
+    return Char:FindFirstChild("HumanoidRootPart") or Char:FindFirstChild("UpperTorso") or Char:FindFirstChild("Head")
+end
+
+local function FlyDir()
+    local Char = LocalPlayer.Character
+    local Hum = Char and Char:FindFirstChildOfClass("Humanoid")
+    if not Hum or Hum.MoveDirection == Vector3.zero or not Camera then
+        return Vector3.zero
+    end
+    local LookFlat = Vector3.new(Camera.CFrame.LookVector.X, 0, Camera.CFrame.LookVector.Z)
+    if LookFlat.Magnitude < 0.01 then LookFlat = Vector3.new(0, 0, -1) end
+    local FlatFrame = CFrame.new(Camera.CFrame.Position, Camera.CFrame.Position + LookFlat)
+    local Vel = (Camera.CFrame * CFrame.new(FlatFrame:VectorToObjectSpace(Hum.MoveDirection))).Position - Camera.CFrame.Position
+    if Vel.Magnitude < 0.01 then return Vector3.zero end
+    return Vel.Unit
+end
+
+TrackConn(Services.RunService.RenderStepped:Connect(function()
+    local R = FlyRoot()
+    if Toggles.Fly and ToggleOn("Fly") and R then
+        FlyBody.Parent = R
+        FlyBody.Velocity = FlyDir() * ((Options.FlySpeed and Options.FlySpeed.Value) or 50)
+    elseif FlyBody.Parent then
+        FlyBody.Velocity = Vector3.zero
+        FlyBody.Parent = nil
+    end
+end))
+
+TrackConn(Services.RunService.Stepped:Connect(function()
+    if Toggles.Noclip and ToggleOn("Noclip") and LocalPlayer.Character then
+        for _, P in ipairs(LocalPlayer.Character:GetDescendants()) do
+            if P:IsA("BasePart") and P.CanCollide then
+                P.CanCollide = false
+            end
+        end
+    end
+end))
+
+-- // Misc: World //
+Groupboxes.Misc_World = Tabs.Misc:AddRightGroupbox("World")
+Groupboxes.Misc_World:AddToggle("Fullbright", { Text = "Fullbright", Default = false })
+Groupboxes.Misc_World:AddToggle("NoFog", { Text = "No Fog", Default = false })
+
+local OldLight = {}
+local function ApplyBright(On)
+    local L = Services.Lighting
+    if On then
+        if OldLight.B == nil then
+            OldLight = { B = L.Brightness, C = L.ClockTime, G = L.GlobalShadows, F = L.FogEnd, A = L.Ambient }
+        end
+        L.Brightness = 2
+        L.ClockTime = 14
+        L.GlobalShadows = false
+        L.FogEnd = 100000
+        L.Ambient = Color3.new(1, 1, 1)
+    elseif OldLight.B ~= nil then
+        L.Brightness = OldLight.B
+        L.ClockTime = OldLight.C
+        L.GlobalShadows = OldLight.G
+        L.FogEnd = OldLight.F
+        L.Ambient = OldLight.A
+    end
+end
+OnChange("Fullbright", function(V) pcall(ApplyBright, V) end)
+
+local OldFog = nil
+local function ApplyNoFog(On)
+    local L = Services.Lighting
+    if On then
+        if OldFog == nil then OldFog = L.FogEnd end
+        L.FogEnd = 100000
+    elseif OldFog ~= nil then
+        L.FogEnd = OldFog
+    end
+end
+OnChange("NoFog", function(V) pcall(ApplyNoFog, V) end)
+
+local BrightAcc = 0
+TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
+    BrightAcc = BrightAcc + Delta
+    if BrightAcc < 2 then return end
+    BrightAcc = 0
+    if Toggles.Fullbright and ToggleOn("Fullbright") then
+        pcall(ApplyBright, true)
+    end
+    if Toggles.NoFog and ToggleOn("NoFog") then
+        pcall(ApplyNoFog, true)
     end
 end))
 
