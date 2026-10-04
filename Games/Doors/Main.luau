@@ -5646,7 +5646,19 @@ Globals.AutoPlayState = ""
 local AUTOPLAY_FIGURE_DISTANCE = 60
 
 local function AutoPlayChar()
-	return Character or LocalPlayer.Character
+	local Model = LocalPlayer.Character
+	if Model and Model.Parent then return Model end
+	return nil
+end
+
+-- her adimda taze parca coz (olu karakter / eski referans sessiz olumu engeller)
+local function AutoPlayParts()
+	local Model = AutoPlayChar()
+	if not Model then return nil, nil end
+	local Hum = Model:FindFirstChildOfClass("Humanoid")
+	local HRP = Model:FindFirstChild("HumanoidRootPart")
+	if not Hum or Hum.Health <= 0 or not HRP then return nil, nil end
+	return Hum, HRP
 end
 
 local function AutoPlayOn()
@@ -5690,43 +5702,39 @@ end
 
 -- Auto Rooms ile ayni yontem: PathfindingService ile yol hesapla, Humanoid:MoveTo ile yuru
 local function AutoPlayWalkTo(Position, Timeout)
-	local Model = AutoPlayChar()
-	local Hum = Model and Model:FindFirstChildOfClass("Humanoid")
-	local HRP = Model and Model:FindFirstChild("HumanoidRootPart")
-	if not Model or not Hum or Hum.Health <= 0 or not HRP then return false end
+	local Hum, HRP = AutoPlayParts()
+	if not Hum or not HRP then return false end
 	if not AutoPlayOn() then return false end
+	if typeof(Position) ~= "Vector3" then return false end
 
-	local Ok, Path = pcall(function()
-		return Services.PathfindingService:CreatePath({
+	local Waypoints = {}
+	local Computed = pcall(function()
+		local Path = Services.PathfindingService:CreatePath({
 			AgentCanJump = true,
 			AgentCanClimb = false,
 			WaypointSpacing = 4,
 			AgentRadius = 2,
 			AgentHeight = 3,
 		})
-	end)
-	if not Ok or not Path then
-		Hum:MoveTo(Position)
-		return AutoPlayWait(Timeout or 5)
-	end
-
-	local Waypoints = {}
-	local Computed = pcall(function()
 		Path:ComputeAsync(HRP.Position, Position)
 		Waypoints = Path:GetWaypoints()
 	end)
 	if not Computed or #Waypoints == 0 then
-		Hum:MoveTo(Position)
+		local Ok = pcall(function() Hum:MoveTo(Position) end)
+		if not Ok then return false end
 		return AutoPlayWait(Timeout or 5)
 	end
 
 	local StartTick = tick()
 	for _, Waypoint in ipairs(Waypoints) do
-		Hum:MoveTo(Waypoint.Position)
+		local MoveOk = pcall(function() Hum:MoveTo(Waypoint.Position) end)
+		if not MoveOk then return false end
 		local Arrived = false
 		while not Arrived do
 			if not AutoPlayOn() then return false end
-			if Hum.Health <= 0 then return false end
+			local LiveHum, LiveHRP = AutoPlayParts()
+			if not LiveHum or not LiveHRP then return false end
+			Hum, HRP = LiveHum, LiveHRP
 			if tick() - StartTick > (Timeout or 12) then return false end
 			local Flat = Vector3.new(Waypoint.Position.X, HRP.Position.Y, Waypoint.Position.Z)
 			if (Flat - HRP.Position).Magnitude < 4 then
@@ -5768,12 +5776,11 @@ end
 
 -- Figure mesafesi korunur, hiz degistirilmez (sadece geri cekilme)
 local function AutoPlayAvoidFigure()
-	local Model = AutoPlayChar()
+	local Hum, MyPart = AutoPlayParts()
+	if not Hum or not MyPart then return false end
 	local Part, Distance = AutoPlayNearestFigure()
-	if not Part or not Model or not Model.Parent then return false end
+	if not Part then return false end
 	if Distance > AUTOPLAY_FIGURE_DISTANCE then return false end
-	local MyPart = Model:FindFirstChild("HumanoidRootPart")
-	if not MyPart then return false end
 	local Away = MyPart.Position - Part.Position
 	if Away.Magnitude < 0.01 then
 		Away = Vector3.new(0, 0, 1)
@@ -5781,7 +5788,7 @@ local function AutoPlayAvoidFigure()
 	-- sadece konum degistir, yon ve hiz aynen kalir
 	local Target = Part.Position + Away.Unit * AUTOPLAY_FIGURE_DISTANCE
 	pcall(function()
-		Model:PivotTo(CFrame.new(Target) * (MyPart.CFrame - MyPart.CFrame.Position))
+		Hum:MoveTo(Target)
 	end)
 	return true
 end
@@ -5874,9 +5881,34 @@ local function AutoPlayBreaker(Room)
 	return AutoPlayWait(1)
 end
 
+-- modul Character degiskenine bagimli degil: taze karakterle kapiyi bulur
+local function AutoPlayFindDoor()
+	if not AutoPlayChar() then return nil end
+	local Start = 0
+	pcall(function()
+		if LatestRoom then Start = tonumber(LatestRoom.Value) or 0 end
+	end)
+	local Best, BestNum = nil, math.huge
+	local Descendants = {}
+	pcall(function() Descendants = Services.Workspace:GetDescendants() end)
+	for _, Obj in ipairs(Descendants) do
+		if Obj.Name == "Door" and Obj:IsA("Model") then
+			local Open = Obj:GetAttribute("Open")
+			if Open == false or Open == nil then
+				local N = tonumber(Obj.Parent and Obj.Parent.Name)
+				if N and N >= Start and N < BestNum then
+					BestNum = N
+					Best = Obj
+				end
+			end
+		end
+	end
+	return Best
+end
+
 local function AutoPlayNextRoom()
 	if not AutoPlayWait(0.15) then return false end
-	local Door = Functions.GetNextClosedDoor()
+	local Door = AutoPlayFindDoor()
 	if not Door then return false end
 	if AutoPlayAvoidFigure() then
 		AutoPlayWait(0.2)
@@ -5899,27 +5931,37 @@ local function AutoPlayRun()
 	task.spawn(function()
 		local LastRoom = -1
 		while AutoPlayOn() and Globals.AutoPlayRunning do
-			local Number = tonumber(LatestRoom.Value) or 0
-			local Room = AutoPlayRoom(Number)
-			if Room then
-				-- kilitler icin anahtarlari topla (Auto Interact mantigi)
-				AutoPlayFirePromptIn(Room, function(Prompt)
-					local Names = { UnlockPrompt = true, SkullPrompt = true, LockPrompt = true, ThingToEnable = true, FusesPrompt = true }
-					return Names[Prompt.Name] == true
-				end, 3)
+			local StepOk, StepErr = pcall(function()
+				local Number = 0
+				pcall(function()
+					if LatestRoom then Number = tonumber(LatestRoom.Value) or 0 end
+				end)
+				local Room = AutoPlayRoom(Number)
+				if Room then
+					-- kilitler icin anahtarlari topla (Auto Interact mantigi)
+					AutoPlayFirePromptIn(Room, function(Prompt)
+						local Names = { UnlockPrompt = true, SkullPrompt = true, LockPrompt = true, ThingToEnable = true, FusesPrompt = true }
+						return Names[Prompt.Name] == true
+					end, 3)
 
-				if Number ~= LastRoom then
-					LastRoom = Number
-					Globals.AutoPlayState = "oda " .. Number
-					if Number == 49 or Number == 50 then
-						AutoPlayLibrary(AutoPlayRoom(50) or Room)
-					elseif Number == 99 or Number == 100 then
-						AutoPlayBreaker(AutoPlayRoom(100) or Room)
+					if Number ~= LastRoom then
+						LastRoom = Number
+						Globals.AutoPlayState = "oda " .. Number
+						AutoPlayNotify("oda " .. Number)
+						if Number == 49 or Number == 50 then
+							AutoPlayLibrary(AutoPlayRoom(50) or Room)
+						elseif Number == 99 or Number == 100 then
+							AutoPlayBreaker(AutoPlayRoom(100) or Room)
+						end
 					end
 				end
-			end
-			if not AutoPlayNextRoom() then
-				if not AutoPlayWait(0.5) then break end
+				if not AutoPlayNextRoom() then
+					if not AutoPlayWait(0.5) then return end
+				end
+			end)
+			if not StepOk then
+				AutoPlayNotify("hata", tostring(StepErr):sub(1, 120))
+				if not AutoPlayWait(1) then break end
 			end
 		end
 		Globals.AutoPlayRunning = false
