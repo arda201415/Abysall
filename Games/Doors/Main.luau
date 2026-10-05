@@ -392,6 +392,9 @@ local ItemNames = {
 	["DinkyLamp"]          = "Dinky Lamp",
 	["SalvageScrap"]       = "Salvage Scrap",
 	["CoinRoll"]           = "Coin Roll",
+	-- Bread / Gween items
+	["TV_Stand"]           = "TV Stand",
+	["NoiseModel"]         = "Noise Model",
 }
 
 local CutsceneNames = {
@@ -5106,7 +5109,7 @@ Functions.HandleObject = function(Object)
 	elseif Name == "MouseHole" then
 		if ToggleOn("ChestESPToggle") then Functions.AddESP({ Object = Object, Text = "Mouse", Color = Options.ChestESPColor.Value }, true) end
 		table.insert(Objects.Chests, Object)
-	elseif ItemNames[Name] and (Object:FindFirstChild("ModulePrompt", true) or Name == "FihFlakes" or Name == "Fihflakes" or Name == "Leftovers" or Name == "Pizza" or Name == "Briefcase" or Name == "PaperPlane" or Name == "LunchBox" or Name == "Lunch Box" or Name == "PaperCup" or Name == "Paper Cup" or Name == "WaitingTicket" or Name == "Waiting Ticket" or Name == "HoneyPot" or Name == "StairwellScrapper" or Name == "StairwellBlastDoor" or Name == "GweenSodaPack" or Name == "BottleCrate" or Name == "BrokenMonitor" or Name == "JerryCan" or Name == "ObjectScanner" or Name == "PeachCobbler" or Name == "DinkyLamp" or Name == "SalvageScrap" or Name == "CoinRoll") then
+	elseif ItemNames[Name] and (Object:FindFirstChild("ModulePrompt", true) or Name == "FihFlakes" or Name == "Fihflakes" or Name == "Leftovers" or Name == "Pizza" or Name == "Briefcase" or Name == "PaperPlane" or Name == "LunchBox" or Name == "Lunch Box" or Name == "PaperCup" or Name == "Paper Cup" or Name == "WaitingTicket" or Name == "Waiting Ticket" or Name == "HoneyPot" or Name == "StairwellScrapper" or Name == "StairwellBlastDoor" or Name == "GweenSodaPack" or Name == "BottleCrate" or Name == "BrokenMonitor" or Name == "JerryCan" or Name == "ObjectScanner" or Name == "PeachCobbler" or Name == "DinkyLamp" or Name == "SalvageScrap" or Name == "CoinRoll" or Name == "TV_Stand" or Name == "NoiseModel") then
 		if ToggleOn("ItemESPToggle") then Functions.AddESP({ Object = Object, Text = ItemNames[Name], Color = Options.ItemESPColor.Value }, Object:GetAttribute("ParentRoom") ~= nil) end
 		if Name == "LotusHolder" or Name == "LotusPetalPickup" then
 			Object.Handle:GetPropertyChangedSignal("LocalTransparencyModifier"):Connect(function()
