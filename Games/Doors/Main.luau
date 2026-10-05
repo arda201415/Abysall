@@ -4853,6 +4853,9 @@ Functions.HandleObject = function(Object)
 	elseif Name == "Ladder" then
 		if ToggleOn("LadderESPToggle") then Functions.AddESP({ Object = Object, Text = "Ladder", Color = Options.LadderESPColor.Value }, true) end
 		table.insert(Objects.Ladders, Object)
+	elseif Name == "TV_Stand" then
+		if ToggleOn("EntityESPToggle") and Options.EntityESPOptions.Value["TV Stand"] then Functions.AddESP({ Object = Object, Text = "TV Stand", Color = Options.EntityESPColor.Value }, true) end
+		table.insert(Objects.Entities, Object)
 	elseif Name == "Door" and Object.Parent and tonumber(Object.Parent.Name) then
 		local DoorParts = {}
 		for _, Child in Object:GetChildren() do
