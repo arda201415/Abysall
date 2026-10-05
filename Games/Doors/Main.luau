@@ -6791,7 +6791,7 @@ end)
 
 local RusherAliases = { Rush=true, Ambush=true, Eyes=true, Lookman=true, Blitz=true, ["A-60"]=true, ["A-120"]=true, AR0xMBUSH=true, ["RNIUSHCG=="]=true, ["Custom Entity"]=true, CustomEntity=true }
 
-Connections.EntityHandler = Services.Workspace.ChildAdded:Connect(function(Entity)
+local function ProcessEntitySpawn(Entity)
 	local EntityData = Entities[Entity.Name]
 	if not EntityData then
 		-- Bilinmeyen workspace modeli: sessiz gecme, F9'a dus (throttle'li).
@@ -6872,6 +6872,23 @@ Connections.EntityHandler = Services.Workspace.ChildAdded:Connect(function(Entit
 		CurrentRooms.ChildAdded:Wait()
 		task.wait(10)
 		Entity:Destroy()
+	end
+end
+
+Connections.EntityHandler = Services.Workspace.ChildAdded:Connect(ProcessEntitySpawn)
+
+-- Bazi entity'ler Workspace altinda degil, workspace.Camera altinda spawn oluyor
+-- (orn. NoiseModel). Onlar icin Camera'yi da izlemek gerekiyor.
+local CameraContainer = Services.Workspace:FindFirstChild("Camera")
+if CameraContainer then
+	Connections.CameraEntityHandler = CameraContainer.ChildAdded:Connect(ProcessEntitySpawn)
+	for _, Child in ipairs(CameraContainer:GetChildren()) do
+		task.spawn(ProcessEntitySpawn, Child)
+	end
+end
+Connections.CameraWatcher = Services.Workspace.ChildAdded:Connect(function(Child)
+	if Child.Name == "Camera" then
+		Connections.CameraEntityHandler = Child.ChildAdded:Connect(ProcessEntitySpawn)
 	end
 end)
 

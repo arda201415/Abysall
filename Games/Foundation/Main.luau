@@ -241,13 +241,23 @@ Groupboxes.Misc_Move:AddSlider("WalkSpeedVal", {
     Text = "WalkSpeed", Min = 16, Max = 200, Default = 16, Rounding = 0, Compact = true,
 })
 Groupboxes.Misc_Move:AddToggle("WalkSpeedOn", { Text = "Speed", Default = false })
+Toggles.WalkSpeedOn:AddKeyPicker("WalkSpeedKey", {
+    Text = "Speed", Default = "V", Mode = "Toggle", SyncToggleState = true,
+})
 Groupboxes.Misc_Move:AddDivider()
+Groupboxes.Misc_Move:AddToggle("FreeCam", { Text = "Free Cam", Default = false })
+Toggles.FreeCam:AddKeyPicker("FreeCamKey", {
+    Text = "Free Cam", Default = "C", Mode = "Toggle", SyncToggleState = true,
+})
+Groupboxes.Misc_Move:AddSlider("FreeCamSpeed", {
+    Text = "Free Cam Speed", Min = 1, Max = 300, Default = 100, Rounding = 0, Compact = true,
+})
 Groupboxes.Misc_Move:AddToggle("Fly", { Text = "Fly", Default = false })
 Toggles.Fly:AddKeyPicker("FlyKey", {
     Text = "Fly", Default = "F", Mode = "Toggle", SyncToggleState = true,
 })
 Groupboxes.Misc_Move:AddSlider("FlySpeed", {
-    Text = "Fly Speed", Min = 0, Max = 200, Default = 50, Rounding = 0, Compact = true,
+    Text = "Fly Speed", Min = 1, Max = 300, Default = 50, Rounding = 0, Compact = true,
 })
 Groupboxes.Misc_Move:AddToggle("Noclip", { Text = "Noclip", Default = false })
 Toggles.Noclip:AddKeyPicker("NoclipKey", {
@@ -261,6 +271,66 @@ TrackConn(Services.RunService.RenderStepped:Connect(function()
     end
 end))
 
+local FreeCamActive = false
+local FreeCamCFrame = nil
+local FreeCamPos = Vector3.zero
+
+TrackConn(Services.RunService.RenderStepped:Connect(function()
+    local On = Toggles.FreeCam and ToggleOn("FreeCam")
+    if not On then
+        if FreeCamActive then
+            FreeCamActive = false
+            FreeCamCFrame = nil
+            if Camera then Camera.CameraType = Enum.CameraType.Custom end
+        end
+        return
+    end
+    if not Camera then return end
+    if not FreeCamActive then
+        FreeCamActive = true
+        FreeCamCFrame = Camera.CFrame
+        FreeCamPos = Camera.CFrame.Position
+        Camera.CameraType = Enum.CameraType.Scriptable
+    end
+
+    local Speed = (Options.FreeCamSpeed and Options.FreeCamSpeed.Value) or 100
+    local UIS = Services.UserInputService
+    local Delta = Services.RunService.RenderStepped:Wait()
+    local Move = Vector3.zero
+    if UIS:IsKeyDown(Enum.KeyCode.W) then Move = Move + FreeCamCFrame.LookVector end
+    if UIS:IsKeyDown(Enum.KeyCode.S) then Move = Move - FreeCamCFrame.LookVector end
+    if UIS:IsKeyDown(Enum.KeyCode.A) then Move = Move - FreeCamCFrame.RightVector end
+    if UIS:IsKeyDown(Enum.KeyCode.D) then Move = Move + FreeCamCFrame.RightVector end
+    if UIS:IsKeyDown(Enum.KeyCode.E) then Move = Move + Vector3.yAxis end
+    if UIS:IsKeyDown(Enum.KeyCode.Q) then Move = Move - Vector3.yAxis end
+    if Move.Magnitude > 0 then
+        FreeCamPos += Move.Unit * (Speed * Delta)
+    end
+
+    if UIS:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
+        local D = UIS:GetMouseDelta()
+        FreeCamCFrame = FreeCamCFrame * CFrame.new(-D.X, -D.Y, 0)
+    end
+    if UIS:IsKeyDown(Enum.KeyCode.LeftShift) or UIS:IsKeyDown(Enum.KeyCode.RightShift) then
+        FreeCamCFrame *= CFrame.Angles(-Delta * 2, 0, 0)
+    end
+    if UIS:IsKeyDown(Enum.KeyCode.Z) then
+        FreeCamCFrame *= CFrame.Angles(0, -Delta * 2, 0)
+    end
+    if UIS:IsKeyDown(Enum.KeyCode.C) then
+        FreeCamCFrame *= CFrame.Angles(0, Delta * 2, 0)
+    end
+    if UIS:IsKeyDown(Enum.KeyCode.R) then
+        FreeCamCFrame *= CFrame.Angles(Delta * 2, 0, 0)
+    end
+    if UIS:IsKeyDown(Enum.KeyCode.F) then
+        FreeCamCFrame *= CFrame.Angles(-Delta * 2, 0, 0)
+    end
+
+    Camera.CFrame = CFrame.new(FreeCamPos) * (FreeCamCFrame - FreeCamCFrame.Position)
+end))
+
+-- Fly
 local FlyBody = Instance.new("BodyVelocity")
 FlyBody.MaxForce = Vector3.new(9e9, 9e9, 9e9)
 FlyBody.Velocity = Vector3.zero
@@ -363,6 +433,11 @@ Library:OnUnload(function()
         pcall(function() Conn:Disconnect() end)
     end
     pcall(function() Abysall.ESPLibrary:Unload() end)
+    pcall(function()
+        FreeCamActive = false
+        FreeCamCFrame = nil
+        if Camera then Camera.CameraType = Enum.CameraType.Custom end
+    end)
     pcall(function()
         FlyBody.Velocity = Vector3.zero
         FlyBody.Parent = nil
