@@ -1807,8 +1807,8 @@ Toggles.AutoInteractToggle:AddKeyPicker("AutoInteractKeybind", {
 })
 Groupboxes.Self_Automation:AddDropdown("AutoInteractIgnoreList", {
 	Text = "Ignore List",
-	Values = { "Glitch Fragments", "Jeff Items", "Dropped Items", "Currency", "Minecarts", "Locks", "Office Chairs", "Large Printers", "Vending Machines", "Seats" },
-	Default = { "Glitch Fragments", "Jeff Items", "Dropped Items", "Office Chairs", "Large Printers", "Vending Machines", "Seats" },
+	Values = { "Glitch Fragments", "Jeff Items", "Dropped Items", "Currency", "Minecarts", "Locks", "Office Chairs", "Large Printers", "Vending Machines", "Seats", "Trash Cans" },
+	Default = { "Glitch Fragments", "Jeff Items", "Dropped Items", "Office Chairs", "Large Printers", "Vending Machines", "Seats", "Trash Cans" },
 	Multi = true, AllowNull = true
 })
 Groupboxes.Self_Automation:AddDivider()
@@ -6156,7 +6156,7 @@ if not Functions.FirePrompt then
 end
 
 local AutoInteractBlacklist = {
-	HidePrompt=true, RiftPrompt=true, StarRiftPrompt=true, InteractPrompt=true, ClimbPrompt=true,
+	HidePrompt=true, RiftPrompt=true, StarRiftPrompt=true, ClimbPrompt=true,
 	DonatePrompt=true, DialoguePrompt=true, RevivePrompt=true, EnterPrompt=true, AnimatePrompt=true,
 	ToolEventPrompt=true, Prompt=true, PropPrompt=true
 }
@@ -6216,6 +6216,7 @@ Functions.TriggerPrompt = function(Prompt)
 	if (Prompt.Name == "ArchivesLargePrinter" or Prompt.Parent.Name == "ArchivesLargePrinter") and Options.AutoInteractIgnoreList.Value["Large Printers"] then return end
 	if (Prompt.Name == "Vendor_ShakelightVendingMachine" or Prompt.Parent.Name == "Vendor_ShakelightVendingMachine") and Options.AutoInteractIgnoreList.Value["Vending Machines"] then return end
 	if (Prompt.Name == "SeatPrompt" or Prompt.Parent.Name == "SeatPrompt") and Options.AutoInteractIgnoreList.Value["Seats"] then return end
+	if (Prompt.Name == "TrashcanPrompt" or Prompt.Parent.Name == "TrashcanPrompt") and Options.AutoInteractIgnoreList.Value["Trash Cans"] then return end
 
 	if Prompt.Parent.Name == "Bandage" then
 		local BPack = Functions.HasItem("BandagePack")
