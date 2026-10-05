@@ -391,6 +391,7 @@ local ItemNames = {
 	["PeachCobbler"]       = "Peach Cobbler",
 	["DinkyLamp"]          = "Dinky Lamp",
 	["SalvageScrap"]       = "Salvage Scrap",
+	["CoinRoll"]           = "Coin Roll",
 }
 
 local CutsceneNames = {
@@ -1806,8 +1807,8 @@ Toggles.AutoInteractToggle:AddKeyPicker("AutoInteractKeybind", {
 })
 Groupboxes.Self_Automation:AddDropdown("AutoInteractIgnoreList", {
 	Text = "Ignore List",
-	Values = { "Glitch Fragments", "Jeff Items", "Dropped Items", "Currency", "Minecarts", "Locks" },
-	Default = { "Glitch Fragments", "Jeff Items", "Dropped Items" },
+	Values = { "Glitch Fragments", "Jeff Items", "Dropped Items", "Currency", "Minecarts", "Locks", "Office Chairs", "Large Printers", "Vending Machines", "Seats" },
+	Default = { "Glitch Fragments", "Jeff Items", "Dropped Items", "Office Chairs", "Large Printers", "Vending Machines", "Seats" },
 	Multi = true, AllowNull = true
 })
 Groupboxes.Self_Automation:AddDivider()
@@ -5105,7 +5106,7 @@ Functions.HandleObject = function(Object)
 	elseif Name == "MouseHole" then
 		if ToggleOn("ChestESPToggle") then Functions.AddESP({ Object = Object, Text = "Mouse", Color = Options.ChestESPColor.Value }, true) end
 		table.insert(Objects.Chests, Object)
-	elseif ItemNames[Name] and (Object:FindFirstChild("ModulePrompt", true) or Name == "FihFlakes" or Name == "Fihflakes" or Name == "Leftovers" or Name == "Pizza" or Name == "Briefcase" or Name == "PaperPlane" or Name == "LunchBox" or Name == "Lunch Box" or Name == "PaperCup" or Name == "Paper Cup" or Name == "WaitingTicket" or Name == "Waiting Ticket" or Name == "HoneyPot" or Name == "StairwellScrapper" or Name == "StairwellBlastDoor" or Name == "GweenSodaPack" or Name == "BottleCrate" or Name == "BrokenMonitor" or Name == "JerryCan" or Name == "ObjectScanner" or Name == "PeachCobbler" or Name == "DinkyLamp" or Name == "SalvageScrap") then
+	elseif ItemNames[Name] and (Object:FindFirstChild("ModulePrompt", true) or Name == "FihFlakes" or Name == "Fihflakes" or Name == "Leftovers" or Name == "Pizza" or Name == "Briefcase" or Name == "PaperPlane" or Name == "LunchBox" or Name == "Lunch Box" or Name == "PaperCup" or Name == "Paper Cup" or Name == "WaitingTicket" or Name == "Waiting Ticket" or Name == "HoneyPot" or Name == "StairwellScrapper" or Name == "StairwellBlastDoor" or Name == "GweenSodaPack" or Name == "BottleCrate" or Name == "BrokenMonitor" or Name == "JerryCan" or Name == "ObjectScanner" or Name == "PeachCobbler" or Name == "DinkyLamp" or Name == "SalvageScrap" or Name == "CoinRoll") then
 		if ToggleOn("ItemESPToggle") then Functions.AddESP({ Object = Object, Text = ItemNames[Name], Color = Options.ItemESPColor.Value }, Object:GetAttribute("ParentRoom") ~= nil) end
 		if Name == "LotusHolder" or Name == "LotusPetalPickup" then
 			Object.Handle:GetPropertyChangedSignal("LocalTransparencyModifier"):Connect(function()
@@ -6211,6 +6212,10 @@ Functions.TriggerPrompt = function(Prompt)
 	if Prompt:GetAttribute("AutoInteractIgnore") then return end
 	if Prompt.Name == "PushPrompt" and Options.AutoInteractIgnoreList.Value["Minecarts"] then return end
 	if (Prompt.Parent.Name == "GoldPile" or Prompt.Parent.Name == "StardustPickup") and Options.AutoInteractIgnoreList.Value["Currency"] then return end
+	if (Prompt.Name == "ArchivesOfficeChair" or Prompt.Parent.Name == "ArchivesOfficeChair") and Options.AutoInteractIgnoreList.Value["Office Chairs"] then return end
+	if (Prompt.Name == "ArchivesLargePrinter" or Prompt.Parent.Name == "ArchivesLargePrinter") and Options.AutoInteractIgnoreList.Value["Large Printers"] then return end
+	if (Prompt.Name == "Vendor_ShakelightVendingMachine" or Prompt.Parent.Name == "Vendor_ShakelightVendingMachine") and Options.AutoInteractIgnoreList.Value["Vending Machines"] then return end
+	if (Prompt.Name == "SeatPrompt" or Prompt.Parent.Name == "SeatPrompt") and Options.AutoInteractIgnoreList.Value["Seats"] then return end
 
 	if Prompt.Parent.Name == "Bandage" then
 		local BPack = Functions.HasItem("BandagePack")
