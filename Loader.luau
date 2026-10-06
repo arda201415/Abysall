@@ -30,18 +30,7 @@ local PlaceList = {
   [77614252294790] = "Foundation", -- THE FOUNDATION (alt yer)
 }
 
-local BannedUsers = {
-    ["ardacinarenginder"] = true,
-}
 
-do
-    local _, Username = pcall(function() return game:GetService("Players").LocalPlayer.Name end)
-    if Username and BannedUsers[tostring(Username):lower()] then
-        warn("[Abysall] bu kullanici icin erisim reddedildi: " .. tostring(Username))
-        getgenv().Abysall = nil
-        return
-    end
-end
 
 local BaseUrl = "https://raw.githubusercontent.com/arda201415/Abysall/refs/heads/main/"
 -- Bagimsiz modulleri paralel indir (sirali indirme yuklemeyi yavaslatiyordu)
