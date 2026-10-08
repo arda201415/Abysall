@@ -372,6 +372,7 @@ end)
 -- 3sn'den uzun takilirsa 1.2sn geri vites yapar.
 local DriveId = 0
 local DriveVisited = {}
+local DriveBlocked = {}
 local DriveTarget = nil
 local DriveHL, DriveBeam, DriveAtt0, DriveAtt1, DriveTag, DriveTagLabel = nil, nil, nil, nil, nil, nil
 local DriveKeys = { W = false, A = false, S = false, D = false }
@@ -413,23 +414,87 @@ local function DriveRefreshStreets()
     end
 end
 
+-- Hedef secimi: duz cizgide ENGEL olan adaylari eler. Sadece "en yakin" secmek
+-- 115m oteye dogrudan duvara toslamaya yol aciyordu.
+local function DriveBlockedBy(RP, S)
+    local DX, DZ = S.Position.X - RP.X, S.Position.Z - RP.Z
+    local D = math.sqrt(DX * DX + DZ * DZ)
+    if D < 1 then return false end
+    local Dir = Vector3.new(DX / D, 0, DZ / D)
+    local Char = LocalPlayer.Character
+    local BL = {}
+    if Char then table.insert(BL, Char) end
+    local Params = RaycastParams.new()
+    Params.FilterType = Enum.RaycastFilterType.Exclude
+    Params.FilterDescendantsInstances = BL
+    Params.IgnoreWater = true
+    -- Hedefe kadar 3.5 yukseklikte tarama: bina/direk/arfalar engel sayilir,
+    -- Street ve Roads altindaki yol parcalari sayilmaz.
+    local Probe = RP + Vector3.new(0, 3.5, 0)
+    local step = 6
+    local d = step
+    while d < D - 12 do
+        local Hit = Services.Workspace:Raycast(Probe, Dir * step, Params)
+        if Hit and Hit.Instance then
+            local IH = Hit.Instance
+            local IsRoad = IH.Name == "Street" or (DriveRoads and IH:IsDescendantOf(DriveRoads))
+            if not IsRoad then return true end
+        end
+        Probe += Dir * step
+        d += step
+    end
+    return false
+end
+
 local function DrivePickTarget(RootPos)
     local Best, BestD = nil, math.huge
-    for _, S in ipairs(DriveStreets) do
-        if S.Parent and not DriveVisited[S] then
-            local D = (S.Position - RootPos).Magnitude
-            if D < BestD then BestD = D Best = S end
-        end
-    end
-    if not Best then
-        DriveVisited = {}
+    local Fallback, FallbackD = nil, math.huge
+
+    local function Scan(Skip, Blocked)
+        local B, BD = nil, math.huge
         for _, S in ipairs(DriveStreets) do
-            if S.Parent then
+            if S.Parent and not Skip[S] and not Blocked[S] then
                 local D = (S.Position - RootPos).Magnitude
-                if D < BestD then BestD = D Best = S end
+                if D < BD then BD = D B = S end
             end
         end
+        return B, BD
     end
+
+    Best, BestD = Scan(DriveVisited, DriveBlocked)
+    if not Best then
+        -- Ziyaretli + engelli havuzlarini temizle, yeniden dene.
+        DriveVisited = {}
+        DriveBlocked = {}
+        Best, BestD = Scan(DriveVisited, DriveBlocked)
+    end
+    if not Best then return nil end
+
+    -- En yakin hedef duz cizgide engelliyse engelsiz olana kadar ara.
+    if DriveBlockedBy(RootPos, Best) then
+        for _, S in ipairs(DriveStreets) do
+            if S.Parent and not DriveVisited[S] and not DriveBlocked[S] and S ~= Best then
+                if not DriveBlockedBy(RootPos, S) then
+                    local D = (S.Position - RootPos).Magnitude
+                    if D < BestD then BestD = D Best = S end
+                else
+                    local D = (S.Position - RootPos).Magnitude
+                    if D < FallbackD then FallbackD = D Fallback = S end
+                end
+            end
+        end
+        -- Hicbiri engelsiz degilse: engelsiz olmayan en yakini kullan ve engel
+        -- listesine at ki bir sonraki denemede tekrar denenmesin.
+        if Best == nil or DriveBlockedBy(RootPos, Best) then
+            DriveBlocked[Fallback or DrivePickTarget.LastBlocked] = true
+        end
+        Best = Best or Fallback
+    end
+
+    if Best and DriveBlockedBy(RootPos, Best) then
+        DriveBlocked[Best] = true
+    end
+
     return Best
 end
 
@@ -497,15 +562,18 @@ OnChange("AutoDrive", function(Value)
     end
     -- AutoWheelie ile birlikte calisabilir: Wheelie aciksa gaz (W) ve geri (S)
     -- Wheelie'ye birakilir, Auto Drive sadece direksiyon (A/D) yapar.
-    DriveId = DriveId + 1
+DriveId = DriveId + 1
     local MyId = DriveId
     task.spawn(function()
         local NoStreetWarn = 0
         local StuckT = 0
+        local ReverseT = 0
+        local UprightT = 0
         while MyId == DriveId and ToggleOn("AutoDrive") do
             local Char = LocalPlayer.Character
             local Root = Char and Char:FindFirstChild("HumanoidRootPart")
             if not Root then
+                DriveReleaseAll()
                 task.wait(0.5)
             else
                 DriveRefreshStreets()
@@ -518,115 +586,137 @@ OnChange("AutoDrive", function(Value)
                     task.wait(1)
                 else
                     local RP = Root.Position
-                    if not DriveTarget or not DriveTarget.Parent then
-                        DriveShowTarget(DrivePickTarget(RP))
-                    end
-                    -- Karakter respawn olduysa isin kopmustur, hedefi yeniden goster.
-                    if DriveTarget and (not DriveBeam or not DriveBeam.Parent) then
-                        local T = DriveTarget
-                        DriveShowTarget(T)
-                    end
-                    local T = DriveTarget
-                    if T and T.Parent then
-                        local HX, HZ = Root.CFrame.LookVector.X, Root.CFrame.LookVector.Z
-                        local Head = Vector3.new(HX, 0, HZ)
-                        if Head.Magnitude < 0.01 then Head = Vector3.new(0, 0, -1) else Head = Head.Unit end
-                        local DX, DZ = T.Position.X - RP.X, T.Position.Z - RP.Z
-                        local Dist = math.sqrt(DX * DX + DZ * DZ)
-                        if DriveTagLabel then
-                            DriveTagLabel.Text = "HEDEF: " .. tostring(math.floor(Dist)) .. "m"
-                        end
+                    local WheelieOn = Toggles.AutoWheelie and ToggleOn("AutoWheelie") or false
 
-                        -- Varis: 80 stud icine girince ziyaret edildi say, siradakine gec.
-                        if Dist < 80 then
-                            DriveVisited[T] = true
+                    -- Devrilme kontrolu: arac yan yatmis / havada ise once duzelt.
+                    local UpY = Root.CFrame.Up.Y
+                    if UpY < 0.45 then
+                        UprightT = UprightT + 0.1
+                        if UprightT > 0.8 then
+                            UprightT = 0
+                            -- Space ile ziplama genelde araci dogru kaldirir.
+                            pcall(function() VIM:SendKeyEvent(true, Enum.KeyCode.Space, false, game) end)
+                            task.wait(0.15)
+                            pcall(function() VIM:SendKeyEvent(false, Enum.KeyCode.Space, false, game) end)
+                        end
+                    else
+                        UprightT = 0
+                    end
+
+                    -- Geri viste miyiz?
+                    if ReverseT > 0 then
+                        ReverseT = ReverseT - 0.1
+                        task.wait(0.1)
+                    else
+                        if not DriveTarget or not DriveTarget.Parent then
                             DriveShowTarget(DrivePickTarget(RP))
-                            T = DriveTarget
                         end
-
+                        if DriveTarget and (not DriveBeam or not DriveBeam.Parent) then
+                            local T = DriveTarget
+                            DriveShowTarget(T)
+                        end
+                        local T = DriveTarget
                         if T and T.Parent then
-                            local DirX, DirZ = DX / math.max(Dist, 0.01), DZ / math.max(Dist, 0.01)
-                            local CrossY = Head.Z * DirX - Head.X * DirZ
-                            local Dot = Head.X * DirX + Head.Z * DirZ
-                            local Ang = math.atan2(CrossY, Dot)
-
-                            -- Engel taramasi: on + sol/sag 30 derece.
-                            local BL = { Char }
-                            local Hum = Char:FindFirstChildOfClass("Humanoid")
-                            if Hum and Hum.SeatPart then
-                                table.insert(BL, Hum.SeatPart.Parent or Hum.SeatPart)
+                            local HX, HZ = Root.CFrame.LookVector.X, Root.CFrame.LookVector.Z
+                            local Head = Vector3.new(HX, 0, HZ)
+                            if Head.Magnitude < 0.01 then Head = Vector3.new(0, 0, -1) else Head = Head.Unit end
+                            local DX, DZ = T.Position.X - RP.X, T.Position.Z - RP.Z
+                            local Dist = math.sqrt(DX * DX + DZ * DZ)
+                            if DriveTagLabel then
+                                DriveTagLabel.Text = "HEDEF: " .. tostring(math.floor(Dist)) .. "m"
                             end
-                            local Up3 = RP + Vector3.new(0, 3, 0)
-                            local Hit = DriveRay(Up3, Head, 45, BL)
-                            local Steer = nil
-                            if Hit and Hit.Instance then
-                                local IH = Hit.Instance
-                                local IsRoad = IH.Name == "Street" or (DriveRoads and IH:IsDescendantOf(DriveRoads))
-                                if not IsRoad then
-                                    local function SideDist(Off)
-                                        local C, S = math.cos(Off), math.sin(Off)
-                                        local SX = Head.X * C + Head.Z * S
-                                        local SZ = -Head.X * S + Head.Z * C
-                                        local H2 = DriveRay(Up3, Vector3.new(SX, 0, SZ), 45, BL)
-                                        if H2 and H2.Position then
-                                            local OX, OZ = H2.Position.X - RP.X, H2.Position.Z - RP.Z
-                                            return math.sqrt(OX * OX + OZ * OZ)
+
+                            -- Varis: 80 stud icine girince ziyaret edildi say, siradakine gec.
+                            if Dist < 80 then
+                                DriveVisited[T] = true
+                                DriveShowTarget(DrivePickTarget(RP))
+                                T = DriveTarget
+                            end
+
+                            if T and T.Parent then
+                                local DirX, DirZ = DX / math.max(Dist, 0.01), DZ / math.max(Dist, 0.01)
+                                local CrossY = Head.Z * DirX - Head.X * DirZ
+                                local Dot = Head.X * DirX + Head.Z * DirZ
+                                local Ang = math.atan2(CrossY, Dot)
+
+                                -- Engel taramasi: on + sol/sag 30 derece.
+                                local BL = { Char }
+                                local Hum = Char:FindFirstChildOfClass("Humanoid")
+                                if Hum and Hum.SeatPart then
+                                    table.insert(BL, Hum.SeatPart.Parent or Hum.SeatPart)
+                                end
+                                local Up3 = RP + Vector3.new(0, 3, 0)
+                                local Hit = DriveRay(Up3, Head, 45, BL)
+                                local Steer = nil
+                                if Hit and Hit.Instance then
+                                    local IH = Hit.Instance
+                                    local IsRoad = IH.Name == "Street" or (DriveRoads and IH:IsDescendantOf(DriveRoads))
+                                    if not IsRoad then
+                                        local function SideDist(Off)
+                                            local C, S = math.cos(Off), math.sin(Off)
+                                            local SX = Head.X * C + Head.Z * S
+                                            local SZ = -Head.X * S + Head.Z * C
+                                            local H2 = DriveRay(Up3, Vector3.new(SX, 0, SZ), 45, BL)
+                                            if H2 and H2.Position then
+                                                local OX, OZ = H2.Position.X - RP.X, H2.Position.Z - RP.Z
+                                                return math.sqrt(OX * OX + OZ * OZ)
+                                            end
+                                            return 45
                                         end
-                                        return 45
+                                        local L = SideDist(0.5)
+                                        local R = SideDist(-0.5)
+                                        Steer = (L >= R) and "A" or "D"
                                     end
-                                    local L = SideDist(0.5)
-                                    local R = SideDist(-0.5)
-                                    Steer = (L >= R) and "A" or "D"
                                 end
-                            end
 
-                            -- Takilma: hiz 3'un altinda 3sn kalirsa 1.2sn geri git.
-                            -- (Wheelie aciksa gaz/geri ona aittir, sadece direksiyon birakilir.)
-                            local WheelieOn = Toggles.AutoWheelie and ToggleOn("AutoWheelie") or false
-                            local Speed = Root.AssemblyLinearVelocity.Magnitude
-                            if Speed < 3 then StuckT = StuckT + 0.1 else StuckT = 0 end
-                            if StuckT > 3 then
-                                StuckT = 0
-                                if WheelieOn then
-                                    -- Wheelie gazı yönetiyor: sadece direksiyonu bırak, geri vitese girme.
-                                    DriveKey("A", false)
-                                    DriveKey("D", false)
-                                else
-                                    DriveKey("W", false)
-                                    DriveKey("A", false)
-                                    DriveKey("D", false)
-                                    DriveKey("S", true)
-                                    local T0 = tick()
-                                    while tick() - T0 < 1.2 and MyId == DriveId and ToggleOn("AutoDrive") do
-                                        task.wait(0.1)
+                                -- Takilma: hiz 3'un altinda 3sn kalirsa 1.2sn geri git.
+                                local Speed = Root.AssemblyLinearVelocity.Magnitude
+                                if Speed < 3 then StuckT = StuckT + 0.1 else StuckT = 0 end
+                                if StuckT > 3 then
+                                    StuckT = 0
+                                    -- Bu hedefe bir daha deneme: engelli listesine at, yenisine gec.
+                                    if DriveTarget then
+                                        DriveBlocked[DriveTarget] = true
                                     end
-                                    DriveKey("S", false)
-                                end
-                            else
-                                if not WheelieOn then
-                                    DriveKey("W", true)
-                                    DriveKey("S", false)
+                                    DriveVisited = {}
+                                    DriveShowTarget(DrivePickTarget(RP))
+                                    if WheelieOn then
+                                        -- Wheelie gazı yönetiyor: sadece direksiyonu bırak, geri vitese girme.
+                                        DriveKey("A", false)
+                                        DriveKey("D", false)
+                                    else
+                                        DriveKey("W", false)
+                                        DriveKey("A", false)
+                                        DriveKey("D", false)
+                                        DriveKey("S", true)
+                                        ReverseT = 1.2
+                                    end
                                 else
-                                    DriveKey("W", false)
-                                    DriveKey("S", false)
-                                end
-                                if Steer then
-                                    DriveKey("A", Steer == "A")
-                                    DriveKey("D", Steer == "D")
-                                elseif Ang < -0.15 then
-                                    DriveKey("D", true)
-                                    DriveKey("A", false)
-                                elseif Ang > 0.15 then
-                                    DriveKey("A", true)
-                                    DriveKey("D", false)
-                                else
-                                    DriveKey("A", false)
-                                    DriveKey("D", false)
+                                    if not WheelieOn then
+                                        DriveKey("W", true)
+                                        DriveKey("S", false)
+                                    else
+                                        DriveKey("W", false)
+                                        DriveKey("S", false)
+                                    end
+                                    if Steer then
+                                        DriveKey("A", Steer == "A")
+                                        DriveKey("D", Steer == "D")
+                                    elseif Ang < -0.15 then
+                                        DriveKey("D", true)
+                                        DriveKey("A", false)
+                                    elseif Ang > 0.15 then
+                                        DriveKey("A", true)
+                                        DriveKey("D", false)
+                                    else
+                                        DriveKey("A", false)
+                                        DriveKey("D", false)
+                                    end
                                 end
                             end
                         end
+                        task.wait(0.1)
                     end
-                    task.wait(0.1)
                 end
             end
         end
