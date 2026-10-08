@@ -231,7 +231,7 @@ Groupboxes.Misc_Move:AddDivider()
 Groupboxes.Misc_Move:AddToggle("AutoWheelie", {
     Text = "Auto Wheelie",
     Default = false,
-    Tooltip = "Acilis: W (3s) -> Ctrl (0.3s) -> W (0.5s) -> release (0.2s). Sonra W (0.2s) / release (0.1s) loop.",
+    Tooltip = "Acilis: W (3s) -> Ctrl (0.3s) -> W (0.5s) -> release (0.2s). Sonra W (0.2s) / release (0.2s) loop.",
 })
 
 TrackConn(Services.RunService.RenderStepped:Connect(function()
@@ -348,10 +348,10 @@ OnChange("AutoWheelie", function(Value)
         WheelieKey(false, Enum.KeyCode.LeftControl)
         if not WheelieHold(Enum.KeyCode.W, 0.5, RunId) then return WheelieReleaseAll() end
         if not WheelieWait(0.2, RunId) then return WheelieReleaseAll() end
-        -- Denge dongusu: 0.2sn W bas -> 0.1sn birak, kapatilana kadar.
+        -- Denge dongusu: 0.2sn W bas -> 0.2sn birak, kapatilana kadar.
         while RunId == WheelieRun and ToggleOn("AutoWheelie") do
             if not WheelieHold(Enum.KeyCode.W, 0.2, RunId) then break end
-            if not WheelieWait(0.1, RunId) then break end
+            if not WheelieWait(0.2, RunId) then break end
         end
         WheelieReleaseAll()
     end)
