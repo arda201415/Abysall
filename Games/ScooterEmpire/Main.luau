@@ -233,6 +233,14 @@ Groupboxes.Misc_Move:AddToggle("AutoWheelie", {
     Default = false,
     Tooltip = "Acilis: W (3s) -> Ctrl (0.3s) -> W (0.5s) -> release (0.2s). Sonra W (0.2s) / release (0.2s) loop.",
 })
+Groupboxes.Misc_Move:AddToggle("AutoDrive", {
+    Text = "Auto Drive",
+    Default = false,
+    Tooltip = "Street parcalarinda otomatik surer: hedef yesil + isinla gosterilir, engelden kacar, takilirsa geri gider.",
+})
+Toggles.AutoDrive:AddKeyPicker("AutoDriveKey", {
+    Text = "Auto Drive", Default = "G", Mode = "Toggle", SyncToggleState = true,
+})
 
 TrackConn(Services.RunService.RenderStepped:Connect(function()
     if Toggles.WalkSpeedOn and ToggleOn("WalkSpeedOn") and LocalPlayer.Character then
@@ -357,6 +365,265 @@ OnChange("AutoWheelie", function(Value)
     end)
 end)
 
+-- // Auto Drive //
+-- Workspace.Map.Roads altindaki "Street" parcalarini toplar, en yakindan baslayip
+-- hepsini gezer. Hedef yesil Highlight + karakterden hedefe isin (Beam) + "HEDEF: Xm"
+-- etiketiyle gosterilir. W gaz, A/D direksiyon; onde engel varsa bos tarafa kacar,
+-- 3sn'den uzun takilirsa 1.2sn geri vites yapar.
+local DriveId = 0
+local DriveVisited = {}
+local DriveTarget = nil
+local DriveHL, DriveBeam, DriveAtt0, DriveAtt1, DriveTag, DriveTagLabel = nil, nil, nil, nil, nil, nil
+local DriveKeys = { W = false, A = false, S = false, D = false }
+local DriveStreets = {}
+local DriveStreetsAt = 0
+local DriveRoads = nil
+
+local function DriveKey(Key, Down)
+    if DriveKeys[Key] == Down then return end
+    DriveKeys[Key] = Down
+    WheelieKey(Down, Enum.KeyCode[Key])
+end
+
+local function DriveReleaseAll()
+    for _, K in ipairs({ "W", "A", "S", "D" }) do
+        DriveKey(K, false)
+    end
+end
+
+local function DriveClearVis()
+    DriveTarget = nil
+    for _, I in ipairs({ DriveHL, DriveBeam, DriveAtt0, DriveAtt1, DriveTag }) do
+        pcall(function() if I then I:Destroy() end end)
+    end
+    DriveHL, DriveBeam, DriveAtt0, DriveAtt1, DriveTag, DriveTagLabel = nil, nil, nil, nil, nil, nil
+end
+
+local function DriveRefreshStreets()
+    if tick() - DriveStreetsAt < 5 and #DriveStreets > 0 then return end
+    DriveStreetsAt = tick()
+    DriveStreets = {}
+    local Map = Services.Workspace:FindFirstChild("Map")
+    DriveRoads = Map and Map:FindFirstChild("Roads") or nil
+    if not DriveRoads then return end
+    for _, D in ipairs(DriveRoads:GetDescendants()) do
+        if D:IsA("BasePart") and D.Name == "Street" then
+            table.insert(DriveStreets, D)
+        end
+    end
+end
+
+local function DrivePickTarget(RootPos)
+    local Best, BestD = nil, math.huge
+    for _, S in ipairs(DriveStreets) do
+        if S.Parent and not DriveVisited[S] then
+            local D = (S.Position - RootPos).Magnitude
+            if D < BestD then BestD = D Best = S end
+        end
+    end
+    if not Best then
+        DriveVisited = {}
+        for _, S in ipairs(DriveStreets) do
+            if S.Parent then
+                local D = (S.Position - RootPos).Magnitude
+                if D < BestD then BestD = D Best = S end
+            end
+        end
+    end
+    return Best
+end
+
+local function DriveShowTarget(Target)
+    DriveClearVis()
+    if not Target or not Target.Parent then return end
+    DriveTarget = Target
+
+    DriveHL = Instance.new("Highlight")
+    DriveHL.Adornee = Target
+    DriveHL.FillColor = Color3.fromRGB(0, 255, 100)
+    DriveHL.OutlineColor = Color3.fromRGB(255, 255, 255)
+    DriveHL.FillTransparency = 0.6
+    DriveHL.Parent = Target
+
+    DriveTag = Instance.new("BillboardGui")
+    DriveTag.Size = UDim2.new(0, 140, 0, 44)
+    DriveTag.AlwaysOnTop = true
+    DriveTag.StudsOffset = Vector3.new(0, 8, 0)
+    DriveTag.Adornee = Target
+    DriveTag.Parent = Target
+    local TL = Instance.new("TextLabel")
+    TL.Size = UDim2.new(1, 0, 1, 0)
+    TL.BackgroundTransparency = 1
+    TL.TextColor3 = Color3.fromRGB(0, 255, 100)
+    TL.TextStrokeTransparency = 0
+    TL.TextScaled = true
+    TL.Font = Enum.Font.GothamBold
+    TL.Text = "HEDEF"
+    TL.Parent = DriveTag
+    DriveTagLabel = TL
+
+    local Char = LocalPlayer.Character
+    local Root = Char and Char:FindFirstChild("HumanoidRootPart")
+    if Root then
+        DriveAtt0 = Instance.new("Attachment")
+        DriveAtt0.Parent = Root
+        DriveAtt1 = Instance.new("Attachment")
+        DriveAtt1.Parent = Target
+        DriveBeam = Instance.new("Beam")
+        DriveBeam.Attachment0 = DriveAtt0
+        DriveBeam.Attachment1 = DriveAtt1
+        DriveBeam.Color = ColorSequence.new(Color3.fromRGB(0, 255, 100))
+        DriveBeam.Width0 = 1
+        DriveBeam.Width1 = 1
+        DriveBeam.FaceCamera = true
+        DriveBeam.Parent = Root
+    end
+end
+
+local function DriveRay(Origin, Dir, Len, Blacklist)
+    local Params = RaycastParams.new()
+    Params.FilterType = Enum.RaycastFilterType.Exclude
+    Params.FilterDescendantsInstances = Blacklist
+    Params.IgnoreWater = true
+    return Services.Workspace:Raycast(Origin, Dir * Len, Params)
+end
+
+OnChange("AutoDrive", function(Value)
+    if not Value then
+        DriveId = DriveId + 1
+        DriveReleaseAll()
+        DriveClearVis()
+        return
+    end
+    -- AutoWheelie ile ayni tuslari kullanir (W/Ctrl), cakismamasi icin kapatilir.
+    if Toggles.AutoWheelie then
+        pcall(function() Toggles.AutoWheelie.Value = false end)
+    end
+    DriveId = DriveId + 1
+    local MyId = DriveId
+    task.spawn(function()
+        local NoStreetWarn = 0
+        local StuckT = 0
+        while MyId == DriveId and ToggleOn("AutoDrive") do
+            local Char = LocalPlayer.Character
+            local Root = Char and Char:FindFirstChild("HumanoidRootPart")
+            if not Root then
+                task.wait(0.5)
+            else
+                DriveRefreshStreets()
+                if #DriveStreets == 0 then
+                    if tick() - NoStreetWarn > 5 then
+                        NoStreetWarn = tick()
+                        Library:Notify("Auto Drive: Street bulunamadi (Map.Roads yok).")
+                    end
+                    DriveReleaseAll()
+                    task.wait(1)
+                else
+                    local RP = Root.Position
+                    if not DriveTarget or not DriveTarget.Parent then
+                        DriveShowTarget(DrivePickTarget(RP))
+                    end
+                    -- Karakter respawn olduysa isin kopmustur, hedefi yeniden goster.
+                    if DriveTarget and (not DriveBeam or not DriveBeam.Parent) then
+                        local T = DriveTarget
+                        DriveShowTarget(T)
+                    end
+                    local T = DriveTarget
+                    if T and T.Parent then
+                        local HX, HZ = Root.CFrame.LookVector.X, Root.CFrame.LookVector.Z
+                        local Head = Vector3.new(HX, 0, HZ)
+                        if Head.Magnitude < 0.01 then Head = Vector3.new(0, 0, -1) else Head = Head.Unit end
+                        local DX, DZ = T.Position.X - RP.X, T.Position.Z - RP.Z
+                        local Dist = math.sqrt(DX * DX + DZ * DZ)
+                        if DriveTagLabel then
+                            DriveTagLabel.Text = "HEDEF: " .. tostring(math.floor(Dist)) .. "m"
+                        end
+
+                        -- Varis: 80 stud icine girince ziyaret edildi say, siradakine gec.
+                        if Dist < 80 then
+                            DriveVisited[T] = true
+                            DriveShowTarget(DrivePickTarget(RP))
+                            T = DriveTarget
+                        end
+
+                        if T and T.Parent then
+                            local DirX, DirZ = DX / math.max(Dist, 0.01), DZ / math.max(Dist, 0.01)
+                            local CrossY = Head.Z * DirX - Head.X * DirZ
+                            local Dot = Head.X * DirX + Head.Z * DirZ
+                            local Ang = math.atan2(CrossY, Dot)
+
+                            -- Engel taramasi: on + sol/sag 30 derece.
+                            local BL = { Char }
+                            local Hum = Char:FindFirstChildOfClass("Humanoid")
+                            if Hum and Hum.SeatPart then
+                                table.insert(BL, Hum.SeatPart.Parent or Hum.SeatPart)
+                            end
+                            local Up3 = RP + Vector3.new(0, 3, 0)
+                            local Hit = DriveRay(Up3, Head, 45, BL)
+                            local Steer = nil
+                            if Hit and Hit.Instance then
+                                local IH = Hit.Instance
+                                local IsRoad = IH.Name == "Street" or (DriveRoads and IH:IsDescendantOf(DriveRoads))
+                                if not IsRoad then
+                                    local function SideDist(Off)
+                                        local C, S = math.cos(Off), math.sin(Off)
+                                        local SX = Head.X * C + Head.Z * S
+                                        local SZ = -Head.X * S + Head.Z * C
+                                        local H2 = DriveRay(Up3, Vector3.new(SX, 0, SZ), 45, BL)
+                                        if H2 and H2.Position then
+                                            local OX, OZ = H2.Position.X - RP.X, H2.Position.Z - RP.Z
+                                            return math.sqrt(OX * OX + OZ * OZ)
+                                        end
+                                        return 45
+                                    end
+                                    local L = SideDist(0.5)
+                                    local R = SideDist(-0.5)
+                                    Steer = (L >= R) and "A" or "D"
+                                end
+                            end
+
+                            -- Takilma: hiz 3'un altinda 3sn kalirsa 1.2sn geri git.
+                            local Speed = Root.AssemblyLinearVelocity.Magnitude
+                            if Speed < 3 then StuckT = StuckT + 0.1 else StuckT = 0 end
+                            if StuckT > 3 then
+                                StuckT = 0
+                                DriveKey("W", false)
+                                DriveKey("A", false)
+                                DriveKey("D", false)
+                                DriveKey("S", true)
+                                local T0 = tick()
+                                while tick() - T0 < 1.2 and MyId == DriveId and ToggleOn("AutoDrive") do
+                                    task.wait(0.1)
+                                end
+                                DriveKey("S", false)
+                            else
+                                DriveKey("W", true)
+                                DriveKey("S", false)
+                                if Steer then
+                                    DriveKey("A", Steer == "A")
+                                    DriveKey("D", Steer == "D")
+                                elseif Ang < -0.15 then
+                                    DriveKey("D", true)
+                                    DriveKey("A", false)
+                                elseif Ang > 0.15 then
+                                    DriveKey("A", true)
+                                    DriveKey("D", false)
+                                else
+                                    DriveKey("A", false)
+                                    DriveKey("D", false)
+                                end
+                            end
+                        end
+                    end
+                    task.wait(0.1)
+                end
+            end
+        end
+        DriveReleaseAll()
+        DriveClearVis()
+    end)
+end)
+
 -- // Misc: World //
 Groupboxes.Misc_World = Tabs.Misc:AddRightGroupbox("World")
 Groupboxes.Misc_World:AddToggle("Fullbright", { Text = "Fullbright", Default = false })
@@ -408,8 +675,11 @@ TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
 end))
 
 Library:OnUnload(function()
-    WheelieRun += 1
+    WheelieRun = WheelieRun + 1
+    DriveId = DriveId + 1
     pcall(WheelieReleaseAll)
+    pcall(DriveReleaseAll)
+    pcall(DriveClearVis)
     for _, Conn in ipairs(Connections) do
         pcall(function() Conn:Disconnect() end)
     end
