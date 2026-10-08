@@ -28,6 +28,7 @@ local PlaceList = {
   [123720558354386] = "Pyramid", -- Build the Pyramid!
   [18186775539] = "Foundation", -- THE FOUNDATION (ana yer)
   [77614252294790] = "Foundation", -- THE FOUNDATION (alt yer)
+  [100659280755645] = "ScooterEmpire", -- Scooter Empire [BETA]
 }
 
 
