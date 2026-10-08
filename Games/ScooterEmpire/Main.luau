@@ -495,10 +495,8 @@ OnChange("AutoDrive", function(Value)
         DriveClearVis()
         return
     end
-    -- AutoWheelie ile ayni tuslari kullanir (W/Ctrl), cakismamasi icin kapatilir.
-    if Toggles.AutoWheelie then
-        pcall(function() Toggles.AutoWheelie.Value = false end)
-    end
+    -- AutoWheelie ile birlikte calisabilir: Wheelie aciksa gaz (W) ve geri (S)
+    -- Wheelie'ye birakilir, Auto Drive sadece direksiyon (A/D) yapar.
     DriveId = DriveId + 1
     local MyId = DriveId
     task.spawn(function()
@@ -583,22 +581,35 @@ OnChange("AutoDrive", function(Value)
                             end
 
                             -- Takilma: hiz 3'un altinda 3sn kalirsa 1.2sn geri git.
+                            -- (Wheelie aciksa gaz/geri ona aittir, sadece direksiyon birakilir.)
+                            local WheelieOn = Toggles.AutoWheelie and ToggleOn("AutoWheelie") or false
                             local Speed = Root.AssemblyLinearVelocity.Magnitude
                             if Speed < 3 then StuckT = StuckT + 0.1 else StuckT = 0 end
                             if StuckT > 3 then
                                 StuckT = 0
-                                DriveKey("W", false)
-                                DriveKey("A", false)
-                                DriveKey("D", false)
-                                DriveKey("S", true)
-                                local T0 = tick()
-                                while tick() - T0 < 1.2 and MyId == DriveId and ToggleOn("AutoDrive") do
-                                    task.wait(0.1)
+                                if WheelieOn then
+                                    -- Wheelie gazı yönetiyor: sadece direksiyonu bırak, geri vitese girme.
+                                    DriveKey("A", false)
+                                    DriveKey("D", false)
+                                else
+                                    DriveKey("W", false)
+                                    DriveKey("A", false)
+                                    DriveKey("D", false)
+                                    DriveKey("S", true)
+                                    local T0 = tick()
+                                    while tick() - T0 < 1.2 and MyId == DriveId and ToggleOn("AutoDrive") do
+                                        task.wait(0.1)
+                                    end
+                                    DriveKey("S", false)
                                 end
-                                DriveKey("S", false)
                             else
-                                DriveKey("W", true)
-                                DriveKey("S", false)
+                                if not WheelieOn then
+                                    DriveKey("W", true)
+                                    DriveKey("S", false)
+                                else
+                                    DriveKey("W", false)
+                                    DriveKey("S", false)
+                                end
                                 if Steer then
                                     DriveKey("A", Steer == "A")
                                     DriveKey("D", Steer == "D")
