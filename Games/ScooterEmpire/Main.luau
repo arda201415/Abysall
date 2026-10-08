@@ -589,7 +589,7 @@ DriveId = DriveId + 1
                     local WheelieOn = Toggles.AutoWheelie and ToggleOn("AutoWheelie") or false
 
                     -- Devrilme kontrolu: arac yan yatmis / havada ise once duzelt.
-                    local UpY = Root.CFrame.Up.Y
+                    local UpY = Root.CFrame.UpVector.Y
                     if UpY < 0.45 then
                         UprightT = UprightT + 0.1
                         if UprightT > 0.8 then
