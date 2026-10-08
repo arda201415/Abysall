@@ -79,6 +79,11 @@ Groupboxes.Exploits_Police:AddToggle("DisablePolice", {
     Default = false,
     Tooltip = "Deletes Workspace.Police and everything named 'Police' in the workspace.",
 })
+Groupboxes.Exploits_Police:AddToggle("DeleteParkedCars", {
+    Text = "Delete Parked Cars",
+    Default = false,
+    Tooltip = "Deletes 'ParkedCar' models (Workspace.Map.Props.ParkedCars).",
+})
 
 -- Silinen objeleri geri almak icin saklanir (toggle kapatilinca).
 local PoliceBackup = {}
@@ -136,6 +141,71 @@ end)
 TrackConn(Services.Workspace.DescendantAdded:Connect(function(Desc)
     if ToggleOn("DisablePolice") and Desc.Name:lower():find("police") then
         RemovePoliceInstance(Desc)
+    end
+end))
+
+-- // Delete Parked Cars //
+-- ParkedCar modeli ParkedCars klasoru altinda spawn olur ama baska klasorlere
+-- de tasinabilir; bu yuzden isim eslesmesi tum workspace icin yapilir.
+local ParkedCarBackup = {}
+
+local function RemoveParkedCar(Object)
+    if not Object or not Object.Parent then return end
+    if LocalPlayer.Character and Object:IsDescendantOf(LocalPlayer.Character) then return end
+    if LocalPlayer:FindFirstChild("PlayerGui") and Object:IsDescendantOf(LocalPlayer:FindFirstChild("PlayerGui")) then return end
+    if not ParkedCarBackup[Object] then
+        ParkedCarBackup[Object] = { Parent = Object.Parent }
+    end
+    pcall(function() Object:Destroy() end)
+end
+
+local function ScanAndRemoveParkedCars()
+    local Root = Services.Workspace
+    if not Root then return end
+    -- 1) Bilinen yol: Workspace.Map.Props.ParkedCars (agacla birlikte)
+    local ParkedCarsFolder = Root:FindFirstChild("Map", true)
+    if ParkedCarsFolder then
+        local Props = ParkedCarsFolder:FindFirstChild("Props")
+        if Props then
+            local Cars = Props:FindFirstChild("ParkedCars")
+            if Cars then
+                for _, Child in ipairs(Cars:GetChildren()) do
+                    if Child.Name:lower() == "parkedcar" then
+                        RemoveParkedCar(Child)
+                    end
+                end
+            end
+        end
+    end
+    -- 2) Baska yerde spawn olursa yedek: adinda 'parkedcar' gecen modeller.
+    for _, Desc in ipairs(Root:GetDescendants()) do
+        if Desc.Name:lower():find("parkedcar") and (Desc:IsA("Model") or Desc:IsA("Folder")) then
+            RemoveParkedCar(Desc)
+        end
+    end
+end
+
+local function RestoreParkedCars()
+    for Object, Info in pairs(ParkedCarBackup) do
+        if Object and Object.Parent == nil and Info and Info.Parent then
+            pcall(function() Object.Parent = Info.Parent end)
+        end
+    end
+    ParkedCarBackup = {}
+end
+
+OnChange("DeleteParkedCars", function(Value)
+    if Value then
+        ScanAndRemoveParkedCars()
+    else
+        RestoreParkedCars()
+    end
+end)
+
+-- Yeni spawn eden ParkedCar objelerini de yakala.
+TrackConn(Services.Workspace.DescendantAdded:Connect(function(Desc)
+    if ToggleOn("DeleteParkedCars") and Desc.Name:lower():find("parkedcar") and (Desc:IsA("Model") or Desc:IsA("Folder")) then
+        task.defer(RemoveParkedCar, Desc)
     end
 end))
 
