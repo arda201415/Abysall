@@ -231,7 +231,7 @@ Groupboxes.Misc_Move:AddDivider()
 Groupboxes.Misc_Move:AddToggle("AutoWheelie", {
     Text = "Auto Wheelie",
     Default = false,
-    Tooltip = "W (3s) -> Ctrl (0.3s) -> W (0.5s) -> release (0.2s) -> W (0.1s) -> release, loops until off.",
+    Tooltip = "Acilis: W (3s) -> Ctrl (0.3s) -> W (0.5s) -> release (0.2s). Sonra W (0.1s) / release (0.1s) loop.",
 })
 
 TrackConn(Services.RunService.RenderStepped:Connect(function()
@@ -340,20 +340,18 @@ OnChange("AutoWheelie", function(Value)
     task.spawn(function()
         -- Ilk acilista biraz gecikme: oyuncunun scooter'a binmesi icin sure tanir.
         if not WheelieWait(1, RunId) then return end
+        -- Acilis: 3sn W (hizlan) -> 0.3sn Ctrl (tek tekerlege kalk) ->
+        -- 0.5sn W -> 0.2sn birak. Bir kez yapilir.
+        if not WheelieHold(Enum.KeyCode.W, 3, RunId) then return WheelieReleaseAll() end
+        WheelieKey(true, Enum.KeyCode.LeftControl)
+        if not WheelieWait(0.3, RunId) then return WheelieReleaseAll() end
+        WheelieKey(false, Enum.KeyCode.LeftControl)
+        if not WheelieHold(Enum.KeyCode.W, 0.5, RunId) then return WheelieReleaseAll() end
+        if not WheelieWait(0.2, RunId) then return WheelieReleaseAll() end
+        -- Denge dongusu: 0.1sn W bas -> 0.1sn birak, kapatilana kadar.
         while RunId == WheelieRun and ToggleOn("AutoWheelie") do
-            -- 1) 3 saniye W basili tut (hizlan).
-            if not WheelieHold(Enum.KeyCode.W, 3, RunId) then break end
-            -- 2) Ctrl basili tut (0.3sn, tek tekerlek kaldir).
-            WheelieKey(true, Enum.KeyCode.LeftControl)
-            if not WheelieWait(0.3, RunId) then break end
-            WheelieKey(false, Enum.KeyCode.LeftControl)
-            -- 3) 0.5 saniye W.
-            if not WheelieHold(Enum.KeyCode.W, 0.5, RunId) then break end
-            -- 4) 0.2 saniye birak.
-            if not WheelieWait(0.2, RunId) then break end
-            -- 5) 0.1 saniye W bas.
             if not WheelieHold(Enum.KeyCode.W, 0.1, RunId) then break end
-            -- 6) Birak, basa don (loop).
+            if not WheelieWait(0.1, RunId) then break end
         end
         WheelieReleaseAll()
     end)
