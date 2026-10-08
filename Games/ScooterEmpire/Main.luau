@@ -227,6 +227,12 @@ Toggles.Fly:AddKeyPicker("FlyKey", {
 Groupboxes.Misc_Move:AddSlider("FlySpeed", {
     Text = "Fly Speed", Min = 1, Max = 300, Default = 50, Rounding = 0, Compact = true,
 })
+Groupboxes.Misc_Move:AddDivider()
+Groupboxes.Misc_Move:AddToggle("AutoWheelie", {
+    Text = "Auto Wheelie",
+    Default = false,
+    Tooltip = "W (3s) -> Ctrl -> W (0.5s) -> release (0.1s) -> W (0.1s) -> release, loops until off.",
+})
 
 TrackConn(Services.RunService.RenderStepped:Connect(function()
     if Toggles.WalkSpeedOn and ToggleOn("WalkSpeedOn") and LocalPlayer.Character then
@@ -280,6 +286,79 @@ TrackConn(Services.RunService.Stepped:Connect(function()
     end
 end))
 
+-- // Auto Wheelie //
+-- W (3sn) -> Ctrl tap -> W (0.5sn) -> birak (0.1sn) -> W (0.1sn) -> birak,
+-- kapatilana kadar doner. VirtualInputManager ile gercek tus basiymis gibi verilir.
+local WheelieRun = 0
+local VIM = nil
+pcall(function() VIM = CloneReference(game:GetService("VirtualInputManager")) end)
+
+local function WheelieKey(Down, Key)
+    if not VIM then return end
+    pcall(function() VIM:SendKeyEvent(Down, Key, false, game) end)
+end
+
+local function WheelieReleaseAll()
+    WheelieKey(false, Enum.KeyCode.W)
+    WheelieKey(false, Enum.KeyCode.LeftControl)
+    WheelieKey(false, Enum.KeyCode.RightControl)
+end
+
+local function WheelieHold(Key, Seconds, RunId)
+    WheelieKey(true, Key)
+    local Elapsed = 0
+    while Elapsed < Seconds do
+        if RunId ~= WheelieRun or not ToggleOn("AutoWheelie") then
+            WheelieKey(false, Key)
+            return false
+        end
+        task.wait(0.05)
+        Elapsed += 0.05
+    end
+    WheelieKey(false, Key)
+    return RunId == WheelieRun and ToggleOn("AutoWheelie")
+end
+
+local function WheelieWait(Seconds, RunId)
+    local Elapsed = 0
+    while Elapsed < Seconds do
+        if RunId ~= WheelieRun or not ToggleOn("AutoWheelie") then return false end
+        task.wait(0.05)
+        Elapsed += 0.05
+    end
+    return RunId == WheelieRun and ToggleOn("AutoWheelie")
+end
+
+OnChange("AutoWheelie", function(Value)
+    if not Value then
+        WheelieRun += 1
+        WheelieReleaseAll()
+        return
+    end
+    WheelieRun += 1
+    local RunId = WheelieRun
+    task.spawn(function()
+        -- Ilk acilista biraz gecikme: oyuncunun scooter'a binmesi icin sure tanir.
+        if not WheelieWait(1, RunId) then return end
+        while RunId == WheelieRun and ToggleOn("AutoWheelie") do
+            -- 1) 3 saniye W basili tut (hizlan).
+            if not WheelieHold(Enum.KeyCode.W, 3, RunId) then break end
+            -- 2) Ctrl tap (tek tekerlek kaldir).
+            WheelieKey(true, Enum.KeyCode.LeftControl)
+            if not WheelieWait(0.15, RunId) then break end
+            WheelieKey(false, Enum.KeyCode.LeftControl)
+            -- 3) 0.5 saniye W.
+            if not WheelieHold(Enum.KeyCode.W, 0.5, RunId) then break end
+            -- 4) 0.1 saniye birak.
+            if not WheelieWait(0.1, RunId) then break end
+            -- 5) 0.1 saniye W bas.
+            if not WheelieHold(Enum.KeyCode.W, 0.1, RunId) then break end
+            -- 6) Birak, basa don (loop).
+        end
+        WheelieReleaseAll()
+    end)
+end)
+
 -- // Misc: World //
 Groupboxes.Misc_World = Tabs.Misc:AddRightGroupbox("World")
 Groupboxes.Misc_World:AddToggle("Fullbright", { Text = "Fullbright", Default = false })
@@ -331,6 +410,8 @@ TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
 end))
 
 Library:OnUnload(function()
+    WheelieRun += 1
+    pcall(WheelieReleaseAll)
     for _, Conn in ipairs(Connections) do
         pcall(function() Conn:Disconnect() end)
     end
