@@ -5600,6 +5600,41 @@ do
 	end
 end
 
+-- Onceki (unload edilemeden kapanmis) oturumdan kalan sahte prompt'lari onar.
+-- Esleşme tablosu bos oldugu icin o prompt'lara basmak hicbir sey yapmiyordu.
+do
+	local Claimed = {}
+	for _, Real in pairs(FakePrompts) do
+		Claimed[Real] = true
+	end
+	local Pool = {}
+	if Globals.PromptContainer then
+		for _, P in ipairs(Globals.PromptContainer:GetChildren()) do
+			if P:IsA("ProximityPrompt") and not Claimed[P] then
+				table.insert(Pool, P)
+			end
+		end
+	end
+	local Fixed = 0
+	for _, Obj in ipairs(Services.Workspace:GetDescendants()) do
+		if Obj:IsA("ProximityPrompt") and Obj:GetAttribute("FakePrompt") and not FakePrompts[Obj] then
+			for I = #Pool, 1, -1 do
+				local Real = Pool[I]
+				if Real.Name == Obj.Name then
+					table.remove(Pool, I)
+					pcall(function() Real.Parent = Obj.Parent end)
+					pcall(function() Obj:Destroy() end)
+					Fixed = Fixed + 1
+					break
+				end
+			end
+		end
+	end
+	if Fixed > 0 then
+		warn("[Abysall] onceki oturumdan kalan " .. tostring(Fixed) .. " sahte prompt geri alindi")
+	end
+end
+
 Connections.InstanceHandler = Services.Workspace.DescendantAdded:Connect(function(Object)
 	Functions.QueueObject(Object)
 end)

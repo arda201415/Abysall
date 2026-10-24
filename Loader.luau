@@ -1,6 +1,18 @@
 if Abysall then
     -- Onceki calistirma yarida kesilmis olabilir; sessizce donmek yerine temizle
     warn("[Abysall] onceki oturum bulundu, temizleniyor")
+    -- Onceki oturumun cleanup'ini calistir. Bu olmadan:
+    --  - Doors'ta sahte (Fake) prompt'lar CoreGui'de saklanan gercek prompt'lari
+    --    geride birakir; yeni oturumda esleşme olmadigi icin prompt'a basmak
+    --    hicbir sey yapmaz.
+    --  - ScooterEmpire auto-drive/wheelie donguleri calismaya devam eder ve
+    --    W/A/S/D tuslari basili kalir.
+    pcall(function()
+        local Lib = Abysall.Interface and Abysall.Interface.Library
+        if Lib and type(Lib.Unload) == "function" then
+            Lib:Unload()
+        end
+    end)
     getgenv().Abysall = nil
 end
 getgenv().Abysall = {
