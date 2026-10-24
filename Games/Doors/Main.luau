@@ -1659,7 +1659,10 @@ Groupboxes.General_Character:AddToggle("FlyToggle", {
 	Text = "Fly", Default = false, Tooltip = "Allows you to freely fly around the map."
 })
 Toggles.FlyToggle:AddKeyPicker("FlyKeybind", {
-	Text = "Fly", Default = "F", Mode = "Toggle", SyncToggleState = true
+	-- F oyunun kendi etkilesim tusu (item/nesne toplama). Fly F'e baglanirsa
+	-- oyuncu item almaya basinca Fly acilip karakter uçuyor ve prompt'a
+	-- basilamiyor. H (Hover) kullan.
+	Text = "Fly", Default = "H", Mode = "Toggle", SyncToggleState = true
 })
 Groupboxes.General_Character:AddSlider("FlySpeed", {
 	Text = "Fly Speed", Min = 0, Max = 115, Default = 20, Rounding = 0, Compact = true
@@ -5377,54 +5380,13 @@ Functions.HandleObject = function(Object)
 		if ToggleOn("PromptClip")        then Object.RequiresLineOfSight = false end
 		Object.MaxActivationDistance = Object:GetAttribute("MaxActivationDistance_Old") * Options.PromptReachSlider.Value
 
-		local LockPromptNames = { UnlockPrompt=true, SkullPrompt=true, LockPrompt=true, ThingToEnable=true, FusesPrompt=true }
-
-		if Functions.CheckCompatability({"fireproximityprompt"}) and Floor ~= "OldHotel" and Floor ~= "Fools" then
-			local IsLockPrompt = LockPromptNames[Object.Name]
-				or (Object.Parent and Object.Parent:GetAttribute("Locked") == true)
-				or (Object.Parent and Object.Parent.Parent and Object.Parent.Parent.Name == "Locker_Small_Locked" and Object.Name == "ActivateEventPrompt")
-
-			if IsLockPrompt then
-				local FakePrompt = Object:Clone()
-				FakePrompt:SetAttribute("FakePrompt", true)
-				task.wait()
-				FakePrompt.Parent = Object.Parent
-
-				FakePrompt:SetAttribute("HoldDuration_Old", Object:GetAttribute("HoldDuration_Old"))
-				FakePrompt:SetAttribute("RequiresLineOfSight_Old", Object:GetAttribute("RequiresLineOfSight_Old"))
-				FakePrompt:SetAttribute("MaxActivationDistance_Old", Object:GetAttribute("MaxActivationDistance_Old"))
-
-				FakePrompt.HoldDuration = Object.HoldDuration
-				FakePrompt.RequiresLineOfSight = Object.RequiresLineOfSight
-				FakePrompt.MaxActivationDistance = Object.MaxActivationDistance
-
-				if ToggleOn("InstantPrompts")    then FakePrompt.HoldDuration = 0 end
-				if ToggleOn("PromptClip")        then FakePrompt.RequiresLineOfSight = false end
-				FakePrompt.MaxActivationDistance = FakePrompt:GetAttribute("MaxActivationDistance_Old") * Options.PromptReachSlider.Value
-
-				FakePrompts[FakePrompt] = Object
-				pcall(function() Object.Parent = Globals.PromptContainer end)
-
-				local FPEnabledConn = Object:GetPropertyChangedSignal("Enabled"):Connect(function()
-					FakePrompt.Enabled = Object.Enabled
-				end)
-				Object:GetPropertyChangedSignal("ActionText"):Once(function()
-					Object.Parent = FakePrompt.Parent
-					FakePrompt:Destroy()
-					FPEnabledConn:Disconnect()
-				end)
-				Object.Destroying:Once(function()
-					FakePrompt:Destroy()
-					FPEnabledConn:Disconnect()
-				end)
-				table.insert(Connections, FPEnabledConn)
-				table.insert(Objects.Prompts, FakePrompt)
-
-				FakePrompt.Enabled = false
-				task.wait()
-				FakePrompt.Enabled = Object.Enabled
-			end
-		end
+		-- ONCEDEN: kilit prompt'lari klonlanip (FakePrompt) gercek prompt
+		-- CoreGui'ye tasiniyordu. Bu, executor'in kendi prompt kancasini
+		-- (PlayerScripts/PromptService/PromptGate) bozuyordu:
+		-- "The current thread cannot access 'Instance' (lacking capability Plugin)"
+		-- -> prompt'a basilmiyor, oyuncu etkilesime giremiyordu.
+		-- Artik prompt'a HIC dokunulmuyor; sadece ozellikleri (mesafe/hold/LOS)
+		-- duzenleniyor ve nesne yerinde kaliyor.
 		table.insert(Objects.Prompts, Object)
 	elseif Name == "Padlock" then
 		Connections.PadlockConnection = Services.RunService.Heartbeat:Connect(function()
@@ -5452,17 +5414,20 @@ Functions.HandleObject = function(Object)
 end
 
 Connections.PromptAnimationFixer1 = Services.ProximityPromptService.PromptButtonHoldBegan:Connect(function(Object)
-	if not Object:GetAttribute("FakePrompt") then return end
+	-- ONCEDEN sadece FakePrompt isleniyordu; klon sistemi kaldirildigi icin
+	-- artik gercek prompt'lar isleniyor.
+	if Object:GetAttribute("FakePrompt") then return end
 	local ToolNames = { "Lockpick","Shears","SkeletonKey","Key","GeneratorFuse","KeyElectrical","KeyBackdoor","KeyIron", "Multitool" }
 	local AnimateToolNames = { "Lockpick","Shears","SkeletonKey","Key","KeyElectrical","KeyBackdoor","KeyIron", "Multitool" }
 	local Tool
 	for _, N in ToolNames do Tool = Character:FindFirstChild(N) if Tool then break end end
 
 	local Prompt = Object
+	local ParentName = Prompt.Parent and Prompt.Parent.Name or ""
 	local LockPromptNames = { UnlockPrompt=true, SkullPrompt=true, LockPrompt=true, ThingToEnable=true, FusesPrompt=true }
 	local IsLockPrompt = LockPromptNames[Object.Name]
-		or (Object.Parent and Object.Parent:GetAttribute("Locked") == true)
-		or (Object.Parent and Object.Parent.Parent and Object.Parent.Parent.Name == "Locker_Small_Locked" and Object.Name == "ActivateEventPrompt")
+		or (Prompt.Parent and Prompt.Parent:GetAttribute("Locked") == true)
+		or (Prompt.Parent and Prompt.Parent.Parent and Prompt.Parent.Parent.Name == "Locker_Small_Locked" and Object.Name == "ActivateEventPrompt")
 	if IsLockPrompt then
 		if Options.AutoInteractIgnoreList.Value["Locks"] then return end
 		local KeyItems = { "Key","GeneratorFuse","KeyBackdoor","KeyElectrical","KeyIron","Lockpick","SkeletonKey","Shears","Multitool" }
@@ -5473,10 +5438,10 @@ Connections.PromptAnimationFixer1 = Services.ProximityPromptService.PromptButton
 		if not HasKey then return end
 	end
 
-	if Prompt.Parent.Name == "CuttableVines" and not Functions.HasItem("Shears", true) and not Functions.HasItem("Multitool", true) or Prompt.Parent.Name == "Chest_Vine" and not Functions.HasItem("Shears", true) and not Functions.HasItem("Multitool", true) or Prompt.Parent.Name == "Cellar" and not Functions.HasItem("Shears", true) and not Functions.HasItem("Multitool", true) then return end
-	if Prompt.Parent.Name == "SkullLock" and not Functions.HasItem("SkeletonKey", true) then return end
-	if Prompt.Parent.Name == "Lock1" and not Functions.HasItem("Lockpick", true) and not Functions.HasItem("Multitool", true) or Prompt.Parent.Name == "Lock2" and not Functions.HasItem("Lockpick", true) and not Functions.HasItem("Multitool", true) then return end
-	if Functions.HasItem("Shears", true) and IsLockPrompt and Prompt.Parent.Name ~= "CuttableVines" and Prompt.Parent.Name ~= "Chest_Vine" and Prompt.Parent.Name ~= "Cellar" then return end
+	if ParentName == "CuttableVines" and not Functions.HasItem("Shears", true) and not Functions.HasItem("Multitool", true) or ParentName == "Chest_Vine" and not Functions.HasItem("Shears", true) and not Functions.HasItem("Multitool", true) or ParentName == "Cellar" and not Functions.HasItem("Shears", true) and not Functions.HasItem("Multitool", true) then return end
+	if ParentName == "SkullLock" and not Functions.HasItem("SkeletonKey", true) then return end
+	if ParentName == "Lock1" and not Functions.HasItem("Lockpick", true) and not Functions.HasItem("Multitool", true) or ParentName == "Lock2" and not Functions.HasItem("Lockpick", true) and not Functions.HasItem("Multitool", true) then return end
+	if Functions.HasItem("Shears", true) and IsLockPrompt and ParentName ~= "CuttableVines" and ParentName ~= "Chest_Vine" and ParentName ~= "Cellar" then return end
 	
 	if Tool and table.find(AnimateToolNames, Tool.Name) and Globals.UseAnimation and Globals.UseAnimationBreak then
 		Globals.UseAnimationBreak:Stop()
@@ -5602,25 +5567,37 @@ end
 
 -- Onceki (unload edilemeden kapanmis) oturumdan kalan sahte prompt'lari onar.
 -- Esleşme tablosu bos oldugu icin o prompt'lara basmak hicbir sey yapmiyordu.
+-- Gercek prompt'lar onceki oturumun gethui() klasorunde sakliydi; bu yuzden
+-- CoreGui agacinin tamami taranir (sadece bu oturumun konteyneri degil).
 do
 	local Claimed = {}
 	for _, Real in pairs(FakePrompts) do
 		Claimed[Real] = true
 	end
 	local Pool = {}
-	if Globals.PromptContainer then
-		for _, P in ipairs(Globals.PromptContainer:GetChildren()) do
-			if P:IsA("ProximityPrompt") and not Claimed[P] then
-				table.insert(Pool, P)
+	local function CollectFrom(Container)
+		if not Container then return end
+		pcall(function()
+			for _, P in ipairs(Container:GetDescendants()) do
+				if P:IsA("ProximityPrompt") and not Claimed[P] then
+					table.insert(Pool, P)
+				end
 			end
-		end
+		end)
 	end
+	CollectFrom(Globals.PromptContainer)
+	CollectFrom(Services.CoreGui)
+	pcall(function()
+		local Hui = Abysall.Environment and Abysall.Environment.gethui and Abysall.Environment.gethui()
+		if Hui and Hui ~= Services.CoreGui then CollectFrom(Hui) end
+	end)
+
 	local Fixed = 0
 	for _, Obj in ipairs(Services.Workspace:GetDescendants()) do
 		if Obj:IsA("ProximityPrompt") and Obj:GetAttribute("FakePrompt") and not FakePrompts[Obj] then
 			for I = #Pool, 1, -1 do
 				local Real = Pool[I]
-				if Real.Name == Obj.Name then
+				if Real.Name == Obj.Name and Real ~= Obj then
 					table.remove(Pool, I)
 					pcall(function() Real.Parent = Obj.Parent end)
 					pcall(function() Obj:Destroy() end)
@@ -6151,7 +6128,6 @@ if not Functions.FirePrompt then
 
 			local OldDist   = Prompt.MaxActivationDistance
 			local OldEnable = Prompt.Enabled
-			local OldParent = Prompt.Parent
 			local OldHold   = Prompt.HoldDuration
 			local OldLOS    = Prompt.RequiresLineOfSight
 
@@ -6160,21 +6136,9 @@ if not Functions.FirePrompt then
 			Prompt.HoldDuration = 0
 			Prompt.RequiresLineOfSight = false
 
-			local TempPart = Instance.new("Part")
-			TempPart.Parent = Services.Workspace
-			TempPart.CanCollide = false TempPart.CanQuery = false TempPart.CanTouch = false
-			TempPart.Anchored = true TempPart.Transparency = 1
-			TempPart.Size = Vector3.new(0.001, 0.001, 0.001)
-			TempPart.Position = Camera.CFrame:ToWorldSpace(CFrame.new(0, 0, -0.1)).Position
-
-			if not Prompt or not OldParent then
-				TempPart:Destroy()
-				PromptCooldown[Prompt] = nil
-				continue
-			end
-
-			pcall(function() Prompt.Parent = TempPart end)
-
+			-- ONCEDEN: prompt, kamera konumundaki gecici bir Part'a tasiniyordu.
+			-- Bu, executor'in prompt kancasini (PromptGate) bozuyordu.
+			-- Artik prompt yerinde kalir; sadece ozellikleri gecici olarak degistirilir.
 			local Shown, Fired = false, false
 
 			local ShownConn = Services.ProximityPromptService.PromptShown:Connect(function(P)
@@ -6196,10 +6160,8 @@ if not Functions.FirePrompt then
 			Prompt.Enabled = OldEnable
 			Prompt.HoldDuration = OldHold
 			Prompt.RequiresLineOfSight = OldLOS
-			pcall(function() Prompt.Parent = OldParent end)
 			task.wait()
 			PromptCooldown[Prompt] = nil
-			TempPart:Destroy()
 			ShownConn:Disconnect()
 			FiredConn:Disconnect()
 		end
@@ -6328,8 +6290,13 @@ Connections.AutoInteract = Services.RunService.Heartbeat:Connect(function()
     Globals.LastAutoInteractFire = tick()
 end)
 
+Globals.InfiniteItemsBusy = false
 Connections.InfiniteItemsHandler = Services.ProximityPromptService.PromptTriggered:Connect(function(Object)
-	if not Object:GetAttribute("FakePrompt") then return end
+	-- ONCEDEN sadece FakePrompt (klon) nesneleri islenirdi.
+	-- Klon/parent degistirme kaldirildigi icin artik GERCEK prompt'lar isleniyor.
+	if Object:GetAttribute("FakePrompt") then return end
+	if Object.Name == "ModulePrompt" then return end
+	if Globals.InfiniteItemsBusy then return end
 
 	local ToolNames = { "Lockpick","Shears","SkeletonKey","Key","GeneratorFuse","KeyElectrical","KeyBackdoor","KeyIron", "Multitool" }
 	local AnimateToolNames = { "Lockpick","Shears","SkeletonKey","Key","KeyElectrical","KeyBackdoor","KeyIron", "Multitool" }
@@ -6337,10 +6304,11 @@ Connections.InfiniteItemsHandler = Services.ProximityPromptService.PromptTrigger
 	for _, N in ToolNames do Tool = Character:FindFirstChild(N) if Tool then break end end
 
 	local Prompt = Object
+	local ParentName = Prompt.Parent and Prompt.Parent.Name or ""
 	local LockPromptNames = { UnlockPrompt=true, SkullPrompt=true, LockPrompt=true, ThingToEnable=true, FusesPrompt=true }
 	local IsLockPrompt = LockPromptNames[Object.Name]
-		or (Object.Parent and Object.Parent:GetAttribute("Locked") == true)
-		or (Object.Parent and Object.Parent.Parent and Object.Parent.Parent.Name == "Locker_Small_Locked" and Object.Name == "ActivateEventPrompt")
+		or (Prompt.Parent and Prompt.Parent:GetAttribute("Locked") == true)
+		or (Prompt.Parent and Prompt.Parent.Parent and Prompt.Parent.Parent.Name == "Locker_Small_Locked" and Object.Name == "ActivateEventPrompt")
 	if IsLockPrompt then
 		if Options.AutoInteractIgnoreList.Value["Locks"] then return end
 		local KeyItems = { "Key","GeneratorFuse","KeyBackdoor","KeyElectrical","KeyIron","Lockpick","SkeletonKey","Shears","Multitool" }
@@ -6351,10 +6319,10 @@ Connections.InfiniteItemsHandler = Services.ProximityPromptService.PromptTrigger
 		if not HasKey then return end
 	end
 
-	if Prompt.Parent.Name == "CuttableVines" and not Functions.HasItem("Shears", true) and not Functions.HasItem("Multitool", true) or Prompt.Parent.Name == "Chest_Vine" and not Functions.HasItem("Shears", true) and not Functions.HasItem("Multitool", true) or Prompt.Parent.Name == "Cellar" and not Functions.HasItem("Shears", true) and not Functions.HasItem("Multitool", true) then return end
-	if Prompt.Parent.Name == "SkullLock" and not Functions.HasItem("SkeletonKey", true) then return end
-	if Prompt.Parent.Name == "Lock1" and not Functions.HasItem("Lockpick", true) and not Functions.HasItem("Multitool", true) or Prompt.Parent.Name == "Lock2" and not Functions.HasItem("Lockpick", true) and not Functions.HasItem("Multitool", true) then return end
-	if Functions.HasItem("Shears", true) and IsLockPrompt and Prompt.Parent.Name ~= "CuttableVines" and Prompt.Parent.Name ~= "Chest_Vine" and Prompt.Parent.Name ~= "Cellar" then return end
+	if ParentName == "CuttableVines" and not Functions.HasItem("Shears", true) and not Functions.HasItem("Multitool", true) or ParentName == "Chest_Vine" and not Functions.HasItem("Shears", true) and not Functions.HasItem("Multitool", true) or ParentName == "Cellar" and not Functions.HasItem("Shears", true) and not Functions.HasItem("Multitool", true) then return end
+	if ParentName == "SkullLock" and not Functions.HasItem("SkeletonKey", true) then return end
+	if ParentName == "Lock1" and not Functions.HasItem("Lockpick", true) and not Functions.HasItem("Multitool", true) or ParentName == "Lock2" and not Functions.HasItem("Lockpick", true) and not Functions.HasItem("Multitool", true) then return end
+	if Functions.HasItem("Shears", true) and IsLockPrompt and ParentName ~= "CuttableVines" and ParentName ~= "Chest_Vine" and ParentName ~= "Cellar" then return end
 
 	if Tool and table.find(AnimateToolNames, Tool.Name) and Globals.UseAnimation and Globals.UseAnimationBreak then
 		Globals.UseAnimation:Stop()
@@ -6367,14 +6335,18 @@ Connections.InfiniteItemsHandler = Services.ProximityPromptService.PromptTrigger
 		end
 	end
 
+	local IsToolUsePrompt = IsLockPrompt
+		or ParentName == "CuttableVines" or ParentName == "Chest_Vine" or ParentName == "Cellar"
+		or ParentName == "SkullLock" or ParentName == "Lock1" or ParentName == "Lock2"
+
 	local AnyTool = Character:FindFirstChildOfClass("Tool")
 	local ToolData = AnyTool and ItemNames[AnyTool.Name]
-	if AnyTool and ToolData and ToggleOn("InfiniteItemsToggle") and Options.InfiniteItemsList.Value[ToolData] then
+	if IsToolUsePrompt and AnyTool and ToolData and ToggleOn("InfiniteItemsToggle") and Options.InfiniteItemsList.Value[ToolData] then
+		Globals.InfiniteItemsBusy = true
 		Drops.ChildAdded:Once(function(NewTool)
-			local Prompt = NewTool:FindFirstChild("ModulePrompt")
-			local RealPrompt = FakePrompts[Object]
-			Functions.FirePrompt(Prompt)
-			Functions.FirePrompt(RealPrompt)
+			local NewPrompt = NewTool:FindFirstChild("ModulePrompt")
+			if NewPrompt then Functions.FirePrompt(NewPrompt) end
+			task.delay(1, function() Globals.InfiniteItemsBusy = false end)
 		end)
 		Character.ChildAdded:Once(function(NewTool)
 			if NewTool.Name == "Shears" then
@@ -6384,9 +6356,7 @@ Connections.InfiniteItemsHandler = Services.ProximityPromptService.PromptTrigger
 			end
 		end)
 		RemotesFolder.DropItem:FireServer(AnyTool)
-	else
-		local RealPrompt = FakePrompts[Object]
-		Functions.FirePrompt(RealPrompt)
+		task.delay(3, function() Globals.InfiniteItemsBusy = false end)
 	end
 end)
 
@@ -6999,6 +6969,29 @@ Library:OnUnload(function()
 		end
 	end
 
+	-- PROMPT'LAR GERI AL: en kritik adim, en basta olmali. Onceki oturumdan
+	-- kalan sahte (Fake) prompt'lar duyada kalirsa E tusu hicbir sey yapmaz
+	-- (gercek prompt CoreGui'de sakli, eslesme tablosu bostu). Asagidaki
+	-- temizlik adimlarindan biri patlarsa buraya hiccbir zaman ulasmazdi.
+	pcall(function()
+		for _, Prompt in ipairs(Objects.Prompts) do
+			if FakePrompts[Prompt] then
+				local Real = FakePrompts[Prompt]
+				pcall(function() Real.Parent = Prompt.Parent end)
+				pcall(function() Prompt:Destroy() end)
+			end
+			if Prompt.Parent then
+				pcall(function()
+					Prompt.HoldDuration = Prompt:GetAttribute("HoldDuration_Old") or Prompt.HoldDuration
+					Prompt.RequiresLineOfSight = Prompt:GetAttribute("RequiresLineOfSight_Old") or Prompt.RequiresLineOfSight
+					Prompt.MaxActivationDistance = Prompt:GetAttribute("MaxActivationDistance_Old") or Prompt.MaxActivationDistance
+				end)
+			end
+		end
+	end)
+
+	-- Kalan temizlik: tek bir hata geri kalanini bosmasin
+	pcall(function()
 	for _, Object in Objects.Entities do
 		if Object.Name == "Snare" or Object.Name == "GiggleCeiling" then
 			local Hitbox = Object:FindFirstChild("Hitbox")
@@ -7075,13 +7068,8 @@ Library:OnUnload(function()
 
 	for _, Prompt in Objects.Prompts do
 		if FakePrompts[Prompt] then
-			FakePrompts[Prompt].Parent = Prompt.Parent
-			Prompt:Destroy()
-		end
-		if Prompt.Parent then
-			Prompt.HoldDuration = Prompt:GetAttribute("HoldDuration_Old") or Prompt.HoldDuration
-			Prompt.RequiresLineOfSight = Prompt:GetAttribute("RequiresLineOfSight_Old") or Prompt.RequiresLineOfSight
-			Prompt.MaxActivationDistance = Prompt:GetAttribute("MaxActivationDistance_Old") or Prompt.MaxActivationDistance
+			pcall(function() FakePrompts[Prompt].Parent = Prompt.Parent end)
+			pcall(function() Prompt:Destroy() end)
 		end
 	end
 
@@ -7142,7 +7130,9 @@ Library:OnUnload(function()
 	end
 	pcall(function() getgenv().abysall = nil end)
 	pcall(function() getgenv().mspaint = nil end)
+	end) -- kalan temizlik bitti
 
+	pcall(function() if Abysall and Abysall.ESPLibrary then Abysall.ESPLibrary:Unload() end end)
 	getgenv().Abysall = nil
 end)
 
