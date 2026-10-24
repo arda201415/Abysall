@@ -5,6 +5,10 @@
 -- remote isimleri dump'lanmadan eklenmedi (asagidaki Dump butonunu kullan).
 
 local LoadStart = tick()
+if not Abysall or not Abysall.Interface then
+    warn("[Abysall] MurderDuels direkt calistirildi: once ana Loader (README loadstring) calistir.")
+    return
+end
 Abysall.SavePath = "MurderDuels"
 
 local Library = Abysall.Interface.Library

@@ -5,6 +5,10 @@
 -- dogru ability'yi bulmak icin Ability Spy var.
 
 local LoadStart = tick()
+if not Abysall or not Abysall.Interface then
+    warn("[Abysall] Forsaken direkt calistirildi: once ana Loader (README loadstring) calistir.")
+    return
+end
 Abysall.SavePath = "Forsaken"
 
 local Library = Abysall.Interface.Library

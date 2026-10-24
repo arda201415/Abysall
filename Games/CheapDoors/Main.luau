@@ -3,6 +3,10 @@
 -- Entity uyarilari ClientEntityEvent'ten, revive ReviveEvent'ten.
 
 local LoadStart = tick()
+if not Abysall or not Abysall.Interface then
+    warn("[Abysall] CheapDoors direkt calistirildi: once ana Loader (README loadstring) calistir.")
+    return
+end
 Abysall.SavePath = "CheapDoors"
 
 local Library = Abysall.Interface.Library

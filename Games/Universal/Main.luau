@@ -3,6 +3,10 @@
 -- Remote dump + isimle atesleme, Player ESP, hareket.
 
 local LoadStart = tick()
+if not Abysall or not Abysall.Interface then
+    warn("[Abysall] Universal direkt calistirildi: once ana Loader (README loadstring) calistir.")
+    return
+end
 Abysall.SavePath = "Universal"
 
 local Library = Abysall.Interface.Library

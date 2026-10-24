@@ -1,4 +1,8 @@
 local LoadStart = tick()
+if not Abysall or not Abysall.Interface then
+    warn("[Abysall] Doors Lobby direkt calistirildi: once ana Loader (README loadstring) calistir.")
+    return
+end
 Abysall.SavePath = "Doors/Lobby"
 
 local Library = Abysall.Interface.Library

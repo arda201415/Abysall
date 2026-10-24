@@ -4,6 +4,10 @@
 -- isinlan, 10 sn bekle, sonrakine gec, bitince "done" bildir.
 
 local LoadStart = tick()
+if not Abysall or not Abysall.Interface then
+    warn("[Abysall] Primeval direkt calistirildi: once ana Loader (README loadstring) calistir.")
+    return
+end
 Abysall.SavePath = "Primeval"
 
 local Library = Abysall.Interface.Library

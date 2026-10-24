@@ -4,6 +4,10 @@
 -- (InvokeServer(tablo, ...)). Dogru format icin Ability Spy kullanilir.
 
 local LoadStart = tick()
+if not Abysall or not Abysall.Interface then
+    warn("[Abysall] LarpingLegends2 direkt calistirildi: once ana Loader (README loadstring) calistir.")
+    return
+end
 Abysall.SavePath = "LarpingLegends2"
 
 local Library = Abysall.Interface.Library
