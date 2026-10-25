@@ -1671,6 +1671,16 @@ Groupboxes.General_Character:AddDivider()
 Groupboxes.General_Character:AddToggle("NoclipToggle", {
 	Text = "Noclip", Default = false, Tooltip = "Allows your character to pass through solid objects."
 })
+Groupboxes.General_Character:AddToggle("NoclipBypassToggle", {
+	Text = "Noclip Wall Bypass", Default = false,
+	Tooltip = "Doors'un duvar kontrolunu atlar. Duvara girmeden once karakteri gokten (Bypass Height) atlayip duvarin arkasina indirir; boylece server karakteri duvar icinde gormez ve geri ulasmaz.",
+})
+Groupboxes.General_Character:AddSlider("NoclipBypassHeight", {
+	Text = "Bypass Height", Min = 100, Max = 3000, Default = 1000, Rounding = 50, Compact = true
+})
+Groupboxes.General_Character:AddSlider("NoclipBypassReach", {
+	Text = "Wall Reach", Min = 1, Max = 10, Default = 3, Rounding = 0, Compact = true
+})
 Groupboxes.General_Character:AddToggle("RemoveClosetDelay", {
 	Text = "Remove Closet Delay", Default = false,
 	Tooltip = "Removes the short window where you can't exit out of a closet after the animation finishes."
@@ -4399,7 +4409,197 @@ Functions.HandleCharacter = function(NewCharacter)
 		end
 	end
 
-	Connections.MainHandler = Services.RunService.RenderStepped:Connect(function(Delta)
+	-- ============================================================================
+-- NOCLIP WALL BYPASS
+--
+-- Doors'un server tarafi bir anti-cheat'i var: karakter duvarin ICINE girdigi
+-- anda (~0.5 sn icinde) son guvenli konuma ışınlıyor. Normal noclip
+-- (CanCollide = false) bu yuzden duvardan gecerken geri firlatiliyor.
+--
+-- Toplulugun (Deivid) kullandigi cozum: karakter duvara GIRMEDEN once
+-- 1) 1000 stud yukarı ışınlanıyor  -> server karakteri "duvar disinda" goruyor,
+-- 2) yukseklikte duvarin arkasina geciliyor,
+-- 3) normal yere iniyor.
+-- Boylece server hicbir zaman karakteri duvar icinde gormuyor.
+--
+-- Burada topluluk yonteminden farkli olarak:
+--  - duvar kamerenin baktigi yonde ve karakterden daha Once tespit ediliyor
+--    (Varsayilan yontem 0.5 studdu, yani karakter duvara girmis oluyordu),
+--  - gecis yolu kameranin yatay bakis yonune gore hesaplaniyor,
+--  - karakter duvara dogru basiyor mu kontrol ediliyor (bosuna ışınlama olmaz),
+--  - hiz/aci/state temizligi yapiliyor (anti-cheat'e yakalanmamak icin).
+-- ============================================================================
+local NoclipBypassParams = RaycastParams.new()
+NoclipBypassParams.FilterType = Enum.RaycastFilterType.Exclude
+NoclipBypassParams.IgnoreWater = true
+NoclipBypassParams.RespectCanCollide = true
+
+local NoclipBypassOverlap = OverlapParams.new()
+NoclipBypassOverlap.FilterType = Enum.RaycastFilterType.Exclude
+NoclipBypassOverlap.MaxParts = 4
+
+Globals.NoclipBypassBusy = false
+Globals.NoclipBypassCooldown = 0
+Globals.NoclipBypassCount = 0
+
+Functions.GetNoclipBypassFilter = function()
+	local Filter = {}
+	if Character then table.insert(Filter, Character) end
+	if CollisionClone    then table.insert(Filter, CollisionClone) end
+	if CollisionPartClone then table.insert(Filter, CollisionPartClone) end
+	if Globals.ManipulateBody then table.insert(Filter, Globals.ManipulateBody) end
+	if Globals.FlyBody       then table.insert(Filter, Globals.FlyBody) end
+	return Filter
+end
+
+Functions.IsInsideWall = function(Filter)
+	local Root = Character and Character:FindFirstChild("HumanoidRootPart")
+	if not Root then return false end
+	-- Maliyet icin 10 Hz ile sinirla
+	if tick() - (Globals.NoclipBypassOverlapTick or 0) < 0.1 then return false end
+	Globals.NoclipBypassOverlapTick = tick()
+	NoclipBypassOverlap.FilterDescendantsInstances = Filter
+	local Ok, Parts = pcall(function()
+		return Services.Workspace:GetPartBoundsInBox(
+			Root.Position + Vector3.new(0, 1, 0),
+			Vector3.new(1.4, 1.4, 1.4),
+			NoclipBypassOverlap
+		)
+	end)
+	if not Ok or not Parts then return false end
+	for _, Part in ipairs(Parts) do
+		if Part:IsA("BasePart") and Part.CanCollide then return true end
+	end
+	return false
+end
+
+Functions.CrossWallBypass = function()
+	local Root = Character and Character:FindFirstChild("HumanoidRootPart")
+	if not Root or not Camera or not Root:IsDescendantOf(Services.Workspace) then return false end
+	if tick() < Globals.NoclipBypassCooldown then return false end
+
+	-- 1) duvara dogru bakiyon mu? (yatay bakis yonu)
+	local Look = Camera.CFrame.LookVector
+	Look = Vector3.new(Look.X, 0, Look.Z)
+	if Look.Magnitude < 0.05 then return false end
+	Look = Look.Unit
+
+	-- 2) karakter duvara dogru basiyor mu? (bosuna ışınlama olmasin)
+	local MoveWorld = nil
+	local Move = Services.UserInputService:GetMoveVector()
+	if Move and Move.Magnitude > 0.15 then
+		MoveWorld = Camera.CFrame:VectorToWorldSpace(Vector3.new(Move.X, 0, -Move.Y))
+	else
+		local MoveDirection = Humanoid and Humanoid.MoveDirection
+		if MoveDirection and MoveDirection.Magnitude > 0.15 then
+			MoveWorld = Vector3.new(MoveDirection.X, 0, MoveDirection.Z)
+		end
+	end
+	if not MoveWorld or MoveWorld.Magnitude < 0.05 then return false end
+	MoveWorld = MoveWorld.Unit
+	if MoveWorld:Dot(Look) < 0.3 then return false end
+
+	-- 3) duvar tespiti: onunde collidable bir parca var mi?
+	local Filter = Functions.GetNoclipBypassFilter()
+	NoclipBypassParams.FilterDescendantsInstances = Filter
+
+	local Reach = Options.NoclipBypassReach and Options.NoclipBypassReach.Value or 3
+	local Origin = Root.Position + Vector3.new(0, 1.2, 0)
+	local Result = Services.Workspace:Raycast(Origin, Look * Reach, NoclipBypassParams)
+
+	local Forward = 0
+	if Result and Result.Instance and Result.Instance.CanCollide then
+		Forward = math.max(Result.Distance + 1.5, 2)
+	elseif Functions.IsInsideWall(Filter) then
+		-- karakter zaten duvara girmis: kameraya gore duvarin arkasina gec
+		Forward = 3
+	else
+		return false
+	end
+
+	-- 4) gecis
+	local Height = Options.NoclipBypassHeight and Options.NoclipBypassHeight.Value or 1000
+	local StartCF = Root.CFrame
+	local Rotation = StartCF - StartCF.Position
+	local Target = Root.Position + Look * Forward
+
+	Globals.NoclipBypassCooldown = tick() + 0.45
+	Globals.NoclipBypassCount = Globals.NoclipBypassCount + 1
+	Globals.NoclipBypassPrePos = Root.Position
+
+	local OldAnchored = Root.Anchored
+	Root.Anchored = true
+	pcall(function() Root.AssemblyLinearVelocity = Vector3.zero end)
+	pcall(function() Root.AssemblyAngularVelocity = Vector3.zero end)
+
+	-- Yukari: server'in guvenli konum kaydini (duvar disinda) guncellemesi icin
+	pcall(function() Character:PivotTo(CFrame.new(StartCF.Position + Vector3.new(0, Height, 0)) * Rotation) end)
+	task.wait()
+
+	-- Yukseklikte duvarin diger tarafi
+	local High = Target + Vector3.new(0, Height, 0)
+	pcall(function() Character:PivotTo(CFrame.new(High) * Rotation) end)
+	task.wait()
+
+	-- Normal yukseklige in
+	pcall(function() Character:PivotTo(CFrame.new(Target) * Rotation) end)
+	task.wait(0.1)
+
+	pcall(function() Root.AssemblyLinearVelocity = Vector3.zero end)
+	pcall(function() Root.AssemblyAngularVelocity = Vector3.zero end)
+	pcall(function() Root.Anchored = OldAnchored end)
+	if Humanoid then
+		pcall(function() Humanoid:ChangeState(Enum.HumanoidStateType.Running) end)
+	end
+	Globals.NoclipBypassPostPos = Root.Position
+	return true
+end
+
+Connections.NoclipBypass = Services.RunService.RenderStepped:Connect(function()
+	if not ToggleOn("NoclipToggle") or not ToggleOn("NoclipBypassToggle") then
+		Globals.NoclipBypassPostPos = nil
+		Globals.NoclipBypassPrePos  = nil
+		return
+	end
+	if ToggleOn("FlyToggle") or ToggleOn("VelocityManipulationToggle") then return end
+
+	local Root = Character and Character:FindFirstChild("HumanoidRootPart")
+	if not Root then return end
+
+	-- Anti-cheat reset tespiti: gecis yapildiktan sonra karakter tekrar
+	-- basladigi konuma donulduyse server gecisi yakalamis demektir.
+	if not Globals.NoclipBypassBusy and Globals.NoclipBypassPostPos and Globals.NoclipBypassPrePos then
+		local Now = Root.Position
+		if (Now - Globals.NoclipBypassPostPos).Magnitude > 20
+			and (Now - Globals.NoclipBypassPrePos).Magnitude < 8
+		then
+			Globals.NoclipBypassPostPos = nil
+			Globals.NoclipBypassResets = (Globals.NoclipBypassResets or 0) + 1
+			if Globals.NoclipBypassResets >= 3 then
+				Globals.NoclipBypassResets = 0
+				Globals.NoclipBypassBlockedUntil = tick() + 10
+				if not Globals.NoclipBypassWarned then
+					Globals.NoclipBypassWarned = true
+					Functions.Notify({
+						Title = "Noclip Bypass",
+						Body = "Anti-cheat gecisi yakaladi. 'Bypass Height' degerini degistirip tekrar dene."
+					})
+				end
+			end
+		end
+	end
+
+	if Globals.NoclipBypassBusy then return end
+	if tick() < (Globals.NoclipBypassBlockedUntil or 0) then return end
+
+	Globals.NoclipBypassBusy = true
+	task.spawn(function()
+		pcall(Functions.CrossWallBypass)
+		Globals.NoclipBypassBusy = false
+	end)
+end)
+
+Connections.MainHandler = Services.RunService.RenderStepped:Connect(function(Delta)
 		if Services.Workspace:FindFirstChild("Camera") then
 			Camera = Services.Workspace:FindFirstChild("Camera")
 		end
