@@ -17,10 +17,19 @@ local function ToggleOn(Name)
 	if T == nil then return false end
 	return T.Value == true
 end
+local function BindChange(Control, Fn)
+	if Control == nil then return end
+	-- Linoria calls OnChanged immediately when registering. The menu is built
+	-- before character/UI references exist, so only handle subsequent changes.
+	local Registering = true
+	Control:OnChanged(function(...)
+		if Registering then return end
+		return Fn(...)
+	end)
+	Registering = false
+end
 local function OnChange(Name, Fn)
-	local T = Toggles and Toggles[Name]
-	if T == nil then return end
-	T:OnChanged(Fn)
+	BindChange(Toggles and Toggles[Name], Fn)
 end
 local Options = Library.Options
 
@@ -1249,9 +1258,9 @@ end
 
 Functions.IsCrouching = function()
 	if Floor == "Fools" or Floor == "OldHotel" then
-		return Character:GetAttribute("Crouching")
+		return Character ~= nil and Character:GetAttribute("Crouching") == true
 	end
-	return CollisionPart.CollisionGroup == "PlayerCrouching"
+	return CollisionPart ~= nil and CollisionPart.CollisionGroup == "PlayerCrouching"
 end
 
 Functions.GetInjuriesSpeed = function()
@@ -1691,7 +1700,7 @@ Groupboxes.General_Character:AddToggle("RemoveAcceleration", {
 
 local CustomPhysics
 
-Options.SpeedBoostSlider:OnChanged(function(Value)
+BindChange(Options.SpeedBoostSlider, function(Value)
 	if RemotesFolder:FindFirstChild("Crouch") then
 		RemotesFolder.Crouch:FireServer(Value and true or Functions.IsCrouching(), true)
 	end
@@ -2529,18 +2538,33 @@ Groupboxes.Exploits_BypassRight:AddToggle("PositionSpoof", {
 Groupboxes.Exploits_BypassRight:AddToggle("CrouchSpoof", {
 	Text = "Crouch Spoof", Default = false, Tooltip = "Makes the game think you are always crouching."
 })
-OnChange("PositionSpoof", function(Value)
-	if Floor ~= "Fools" and Floor ~= "OldHotel" then
-		if Value then
-			RootPart.CFrame = RootPart.CFrame * CFrame.new(0, -2.346, 0)
-			Humanoid.HipHeight = 0.05
-			RemotesFolder.Crouch:FireServer(true, true)
-		else
-			RootPart.CFrame = RootPart.CFrame * CFrame.new(0, 2.346, 0)
-			Humanoid.HipHeight = 2.396
-		end
+local PositionSpoofState
+Functions.ApplyPositionSpoof = function(Value)
+	if Floor == "Fools" or Floor == "OldHotel" then return false end
+	if not RootPart or not RootPart.Parent or not Humanoid or not Humanoid.Parent then return false end
+	if not Character or Character ~= LocalPlayer.Character then return false end
+	if RootPart.Parent ~= Character or Humanoid.Parent ~= Character then return false end
+	if not PositionSpoofState or PositionSpoofState.Root ~= RootPart then
+		PositionSpoofState = { Root = RootPart, Applied = false }
 	end
-end)
+	local State = PositionSpoofState
+	Value = Value == true
+	if State.Applied == Value then return true end
+	if Value then
+		State.HipHeight = Humanoid.HipHeight
+		RootPart.CFrame = RootPart.CFrame * CFrame.new(0, -2.346, 0)
+		Humanoid.HipHeight = 0.05
+		State.Applied = true
+		local Crouch = RemotesFolder:FindFirstChild("Crouch")
+		if Crouch then Crouch:FireServer(true, true) end
+	else
+		RootPart.CFrame = RootPart.CFrame * CFrame.new(0, 2.346, 0)
+		Humanoid.HipHeight = State.HipHeight
+		State.Applied = false
+	end
+	return true
+end
+OnChange("PositionSpoof", Functions.ApplyPositionSpoof)
 Toggles.PositionSpoof:AddKeyPicker("PositionSpoof", {
 	Text = "Position Spoof", Default = "B", Mode = "Toggle", SyncToggleState = true
 })
@@ -4759,11 +4783,7 @@ Connections.MainHandler = Services.RunService.RenderStepped:Connect(function(Del
 	end)
 
 	task.wait(1)
-	if ToggleOn("PositionSpoof") and Floor ~= "Fools" and Floor ~= "OldHotel" then
-		RootPart.CFrame = RootPart.CFrame * CFrame.new(0, -2.346, 0)
-		Humanoid.HipHeight = 0.05
-		RemotesFolder.Crouch:FireServer(true, true)
-	end
+	Functions.ApplyPositionSpoof(ToggleOn("PositionSpoof"))
 
 	local Jam = Globals.MainUI.Initiator.Main_Game.Health:FindFirstChild("Jam")
 	if Jam and ToggleOn("RemoveJamminMusic") then
@@ -7037,6 +7057,7 @@ LocalPlayer.CharacterAdded:Connect(function(NewCharacter)
 end)
 
 Library:OnUnload(function()
+	pcall(function() Functions.ApplyPositionSpoof(false) end)
 	for Key, Connection in Connections do
 		if type(Key) == "string" then
 			pcall(function() Connection:Disconnect() end)
