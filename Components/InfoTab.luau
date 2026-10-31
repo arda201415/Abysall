@@ -68,4 +68,5 @@ return function(Window)
 	    toclipboard("https://dsc.gg/abysallhub")
 	    Library:Notify("Discord invite copied.")
     end)
+    return InfoTab
 end

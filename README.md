@@ -18,7 +18,7 @@ For the original full compatibility diagnostics, set
 `getgenv().AbysallFullChecks = true` before running the loader. These tests include
 network and signal checks and can take longer. Set it to `false` for fast startup.
 
-The **Home** page shows the 11 dedicated game modules and the Universal fallback,
+The **Home** page shows the 12 dedicated game modules and the Universal fallback,
 with features, supported places and module source update dates. Routing and this
 list share `Components/GameRegistry.luau`; update its IDs, features and `Updated`
 date when changing a game module. Browsing the catalog does not switch modules.
@@ -42,3 +42,10 @@ Closing or unloading the menu restores the previous mouse icon and lock state.
 optional client correction controls and character reset. Settings save separately
 under `Abysall/StealAnEgg`; the module appears in the Home catalog automatically.
 The source analysis and behavior reconstruction are in [Research/StealAnEgg.md](Research/StealAnEgg.md).
+
+**Tap Simulator** (`72858262610964`) adapts 26 MIT-licensed feature modules from
+[TrustyCoding/slopix-hub](https://github.com/TrustyCoding/slopix-hub/blob/main/games/72858262610964.lua)
+to the selected Abysall UI. The menu opens while game data initializes; feature
+controls and the saved profile load afterwards. Status and module errors appear
+on Home. See [Games/TapSimulator/README.md](Games/TapSimulator/README.md) for coverage
+and the pinned source/license details.

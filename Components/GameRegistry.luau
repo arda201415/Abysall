@@ -63,6 +63,12 @@ local Registry = {
             Features = { "Loop WalkSpeed", "Instant prompts", "Client correction controls", "Character reset" },
         },
         {
+            Id = "TapSimulator", Name = "Tap Simulator", PlaceIds = { 72858262610964 },
+            Dependencies = { "Games/TapSimulator/Modules.luau", "Games/TapSimulator/Bridge.luau" },
+            Updated = "2026-10-31", Coverage = "Main game and Halloween activities",
+            Features = { "Tapping and rebirth", "Hatching, pets and enchanting", "Crafting and potions", "Rewards and world events", "Minigames and Halloween automation" },
+        },
+        {
             Id = "Universal", Name = "Universal", Fallback = true,
             Updated = "2026-10-24", Coverage = "Other experiences; feature availability varies by game",
             Features = { "Player ESP", "Movement and lighting settings", "Aim settings", "Ability tools" },
