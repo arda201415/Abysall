@@ -69,6 +69,14 @@ local Registry = {
             Features = { "Tapping and rebirth", "Hatching, pets and enchanting", "Crafting and potions", "Rewards and world events", "Minigames and Halloween automation" },
         },
         {
+            Id = "NightsInTheForest", Name = "99 Nights in the Forest", GameIds = { 7326934954 },
+            PlaceIds = { 79546208627805, 126509999114328 },
+            PlaceScripts = { [79546208627805] = "Lobby" },
+            Dependencies = { "Games/NightsInTheForest/Catalog.luau", "Games/NightsInTheForest/Controller.luau" },
+            Updated = "2026-11-01", Coverage = "Forest matches; lobby information and settings",
+            Features = { "Item and NPC ESP", "Campfire, grinder and item teleports", "Small-tree farming", "NPC aimbot", "Flight" },
+        },
+        {
             Id = "Universal", Name = "Universal", Fallback = true,
             Updated = "2026-10-24", Coverage = "Other experiences; feature availability varies by game",
             Features = { "Player ESP", "Movement and lighting settings", "Aim settings", "Ability tools" },

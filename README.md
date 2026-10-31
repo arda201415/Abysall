@@ -18,7 +18,7 @@ For the original full compatibility diagnostics, set
 `getgenv().AbysallFullChecks = true` before running the loader. These tests include
 network and signal checks and can take longer. Set it to `false` for fast startup.
 
-The **Home** page shows the 12 dedicated game modules and the Universal fallback,
+The **Home** page shows the 13 dedicated game modules and the Universal fallback,
 with features, supported places and module source update dates. Routing and this
 list share `Components/GameRegistry.luau`; update its IDs, features and `Updated`
 date when changing a game module. Browsing the catalog does not switch modules.
@@ -49,3 +49,10 @@ to the selected Abysall UI. The menu opens while game data initializes; feature
 controls and the saved profile load afterwards. Status and module errors appear
 on Home. See [Games/TapSimulator/README.md](Games/TapSimulator/README.md) for coverage
 and the pinned source/license details.
+
+**99 Nights in the Forest** detects universe `7326934954`, lobby `79546208627805`
+and forest place `126509999114328`. It includes item/NPC ESP, the source's 69
+teleport names, campfire/grinder return, small-tree farming, right-click NPC aim
+and flight. The lobby shows information and settings; run the loader again in a
+forest match. Profiles save under `Abysall/NightsInTheForest`. Source analysis and
+adaptation notes are in [Research/99Nights.md](Research/99Nights.md).
