@@ -15,13 +15,22 @@ local InterfaceUrls = {
   Addons = AbysallUrl .. "Components/Addons.luau",
   SupportedGamesTab = AbysallUrl .. "Components/SupportedGamesTab.luau",
 }
+if UIStyle == "Linoria" then InterfaceUrls.LinoriaCursor = AbysallUrl .. "Components/LinoriaCursor.luau" end
 
 local Report = Abysall.ReportProgress
 local RunModule = Abysall.RunModule
 local InterfaceSources = Abysall.FetchModules(InterfaceUrls, "Downloading interface", 0.5, 0.68)
 
 Report("Starting interface", UIStyle, 0.7)
-local Library = RunModule(InterfaceSources.Library, UIStyle .. "/Library")
+local Library, Cursor
+if UIStyle == "Linoria" then
+  Cursor = RunModule(InterfaceSources.LinoriaCursor, "LinoriaCursor")()
+  -- Keep the cursor adapter local to this library, without replacing Drawing globally.
+  Library = RunModule("local Drawing = ...\n" .. InterfaceSources.Library, UIStyle .. "/Library", Cursor.Drawing)
+  Cursor:Bind(Library)
+else
+  Library = RunModule(InterfaceSources.Library, UIStyle .. "/Library")
+end
 local Interface = { UIStyle = UIStyle, Library = Library }
 -- Keep a reference for cleanup if a manager or shared tab fails to initialize.
 Abysall.Interface = Interface

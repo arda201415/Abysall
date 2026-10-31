@@ -18,7 +18,7 @@ For the original full compatibility diagnostics, set
 `getgenv().AbysallFullChecks = true` before running the loader. These tests include
 network and signal checks and can take longer. Set it to `false` for fast startup.
 
-The **Home** page shows the 10 dedicated game modules and the Universal fallback,
+The **Home** page shows the 11 dedicated game modules and the Universal fallback,
 with features, supported places and module source update dates. Routing and this
 list share `Components/GameRegistry.luau`; update its IDs, features and `Updated`
 date when changing a game module. Browsing the catalog does not switch modules.
@@ -29,3 +29,16 @@ hitboxes, independently of the ESP/prompt queue. Enable **Bypass Giggle** (or th
 relevant entity bypass) to use its protection. Turning a bypass off or unloading restores
 the original part properties. Next-door streaming requests run in the background;
 they do not generate rooms or entities that the server has not created yet.
+
+DOORS **Velocity Manipulation** uses **V** to toggle forward movement at the
+selected speed. Both methods hold altitude while collisions are disabled;
+**Pivot** advances in small steps based on frame time. Fly, hiding, cutscenes and
+character death suspend the movement force.
+
+The Linoria menu displays a small cursor in the current accent color while open.
+Closing or unloading the menu restores the previous mouse icon and lock state.
+
+**Steal An Egg** (`107778070777162`) includes Loop WalkSpeed, Instant Prompts,
+optional client correction controls and character reset. Settings save separately
+under `Abysall/StealAnEgg`; the module appears in the Home catalog automatically.
+The source analysis and behavior reconstruction are in [Research/StealAnEgg.md](Research/StealAnEgg.md).

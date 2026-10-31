@@ -2498,7 +2498,7 @@ OnChange("DisableAnticheat", function(Value)
 end)
 Toggles.VelocityManipulationToggle:AddKeyPicker("VelocityManipulationKeybind", {
 	Text = "Velocity Manipulation", Default = "V",
-	Mode = Library.IsMobile and "Toggle" or "Hold", SyncToggleState = true
+	Mode = "Toggle", SyncToggleState = true
 })
 Groupboxes.Exploits_BypassRight:AddDropdown("VelocityManipulationMode", {
 	Values = {"Velocity", "Pivot"}, Text = "Manipulation Method",
@@ -2507,6 +2507,54 @@ Groupboxes.Exploits_BypassRight:AddDropdown("VelocityManipulationMode", {
 Groupboxes.Exploits_BypassRight:AddSlider("VelocityManipulationSpeed", {
 	Text = "Manipulation Speed", Min = 1, Max = 20, Default = 7, Rounding = 1, Compact = true,
 })
+
+Functions.StopVelocityManipulation = function()
+	local Body = Globals.ManipulateBody
+	if Body then
+		Body.Velocity = Vector3.zero
+		Body.Parent = nil
+	end
+end
+Functions.StepVelocityManipulation = function(Delta)
+	if not ToggleOn("VelocityManipulationToggle") or ToggleOn("FlyToggle")
+		or not Character or Character ~= LocalPlayer.Character
+		or not RootPart or RootPart.Parent ~= Character or RootPart.Anchored
+		or not Humanoid or Humanoid.Parent ~= Character or Humanoid.Health <= 0
+		or Character:GetAttribute("Hiding") or Character:GetAttribute("AnimatingClient") then
+		Functions.StopVelocityManipulation()
+		return
+	end
+	local Look = RootPart.CFrame.LookVector
+	local Forward = Vector3.new(Look.X, 0, Look.Z)
+	if Forward.Magnitude < 0.001 then Functions.StopVelocityManipulation(); return end
+	Forward = Forward.Unit
+	local Speed = math.clamp(tonumber(Options.VelocityManipulationSpeed.Value) or 7, 1, 20)
+	local Method = Options.VelocityManipulationMode.Value
+	if Method ~= "Velocity" and Method ~= "Pivot" then
+		Functions.StopVelocityManipulation()
+		return
+	end
+	local Body = Globals.ManipulateBody
+	if not Body then
+		Body = Instance.new("BodyVelocity")
+		Body.Name = "AbysallVelocityManipulation"
+		-- This mode disables collisions, so both methods must also hold altitude.
+		Body.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+		Body.P = 50000
+		Globals.ManipulateBody = Body
+	end
+	Body.Velocity = Method == "Velocity" and Forward * Speed or Vector3.zero
+	Body.Parent = RootPart
+	if Method == "Pivot" then
+		local Step = Forward * Speed * math.clamp(tonumber(Delta) or 0, 0, 0.1)
+		Character:PivotTo(Character:GetPivot() + Step)
+	end
+end
+OnChange("VelocityManipulationToggle", function(Value)
+	if not Value then Functions.StopVelocityManipulation() end
+end)
+-- Movement must not depend on the unrelated UI/effect work in MainHandler.
+Connections.VelocityManipulation = Services.RunService.Heartbeat:Connect(Functions.StepVelocityManipulation)
 Groupboxes.Exploits_BypassRight:AddToggle("AntiTeleport", {
 	Text = "Anti-Teleport Spoof", Default = false,
 	Tooltip = "Server'in dogruladigi Collision parcalarini snap'lemek yerine hiz limitli takip ettirir. Noclip / teleport flag'ini zorlastirir."
@@ -4048,6 +4096,8 @@ Connections.TextBoxConnection2 = Services.UserInputService.TextBoxFocusReleased:
 end)
 
 Functions.HandleCharacter = function(NewCharacter)
+	Functions.StopVelocityManipulation()
+	if Globals.ManipulateBody then Globals.ManipulateBody:Destroy(); Globals.ManipulateBody = nil end
 	for _, Key in CharacterOldConnectionKeys do
 		if Connections[Key] then
 			Connections[Key]:Disconnect()
@@ -4377,9 +4427,6 @@ Functions.HandleCharacter = function(NewCharacter)
 		Globals.LastAutoAnchor = tick()
 	end)
 
-	Globals.ManipulateBody = Instance.new("BodyVelocity")
-	Globals.ManipulateBody.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-
 	Globals.FlyBody = Instance.new("BodyVelocity")
 	Globals.FlyBody.MaxForce = Vector3.new(9e9, 9e9, 9e9)
 
@@ -4697,17 +4744,6 @@ Connections.MainHandler = Services.RunService.RenderStepped:Connect(function(Del
 
 		CollisionClone.CollisionGroup = Collision.CollisionGroup
 		CollisionClone.Position = RootPart.Position + Vector3.new(0, ToggleOn("PositionSpoof") and 1.75 or 0.18, 0)
-
-		if ToggleOn("VelocityManipulationToggle") and Options.VelocityManipulationMode.Value == "Velocity" then
-			Globals.ManipulateBody.Parent = RootPart
-			Globals.ManipulateBody.Velocity = RootPart.CFrame.LookVector * (Options.VelocityManipulationSpeed and Options.VelocityManipulationSpeed.Value or 7)
-		else
-			Globals.ManipulateBody.Parent = nil
-		end
-
-		if ToggleOn("VelocityManipulationToggle") and Options.VelocityManipulationMode.Value == "Pivot" and Floor ~= "Fools" and Floor ~= "OldHotel" then
-			Character:PivotTo(Camera:GetPivot() * CFrame.new(0, 0, 2560))
-		end
 
 		if ToggleOn("FlyToggle") then
 			Globals.FlyBody.Parent = RootPart
@@ -7088,6 +7124,7 @@ LocalPlayer.CharacterAdded:Connect(function(NewCharacter)
 end)
 
 Library:OnUnload(function()
+	Functions.StopVelocityManipulation()
 	pcall(function() Functions.ApplyPositionSpoof(false) end)
 	for Key, Connection in Connections do
 		if type(Key) == "string" then
@@ -7162,7 +7199,7 @@ Library:OnUnload(function()
 
 	Globals.SeekNodesFolder:Destroy()
 	Globals.RoomsNodesFolder:Destroy()
-	Globals.ManipulateBody:Destroy()
+	if Globals.ManipulateBody then Globals.ManipulateBody:Destroy(); Globals.ManipulateBody = nil end
 
 	local OldAmbient = nil
 	pcall(function()

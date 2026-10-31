@@ -58,6 +58,11 @@ local Registry = {
             Features = { "Auto Drive", "Auto Wheelie", "Police and parked-car tools", "Movement settings" },
         },
         {
+            Id = "StealAnEgg", Name = "Steal An Egg", PlaceIds = { 107778070777162 },
+            Updated = "2026-10-31", Coverage = "Main game",
+            Features = { "Loop WalkSpeed", "Instant prompts", "Client correction controls", "Character reset" },
+        },
+        {
             Id = "Universal", Name = "Universal", Fallback = true,
             Updated = "2026-10-24", Coverage = "Other experiences; feature availability varies by game",
             Features = { "Player ESP", "Movement and lighting settings", "Aim settings", "Ability tools" },
