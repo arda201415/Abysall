@@ -61,6 +61,18 @@ The upstream Bouncy Obby toggle and its automation branch are commented out in
 this revision. That inactive code is retained; the active feature inventory has
 97 controls (59 toggles, 10 sliders, 26 dropdowns and 2 inputs).
 
+## Validation
+
+- 22 local checks cover both UI callback conventions, all 26 imported feature
+  factories and 97 active controls, delayed/retried data loading, profile ordering,
+  paced tap payloads, Stop All, offline reward preferences, label visibility,
+  isolated feature failures, rendering cleanup, worker cancellation, RE/RF lookup
+  and invocation timeouts. Roblox services, configs and signals are mocked.
+- 31 shared loader/UI integration checks include the new place route, Home catalog
+  and parallel dependency downloads.
+- Main, Bridge, Modules, Loader, GameRegistry and InfoTab compile with Luau.
+- Live game/server behavior has not been tested.
+
 ## Updating the import
 
 Change the pinned revision in `Tools/import-tapsimulator.cjs`, review the upstream

@@ -65,7 +65,7 @@ local Registry = {
         {
             Id = "TapSimulator", Name = "Tap Simulator", PlaceIds = { 72858262610964 },
             Dependencies = { "Games/TapSimulator/Modules.luau", "Games/TapSimulator/Bridge.luau" },
-            Updated = "2026-10-31", Coverage = "Main game and Halloween activities",
+            Updated = "2026-11-01", Coverage = "Main game and Halloween activities",
             Features = { "Tapping and rebirth", "Hatching, pets and enchanting", "Crafting and potions", "Rewards and world events", "Minigames and Halloween automation" },
         },
         {
