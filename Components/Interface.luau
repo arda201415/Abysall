@@ -13,30 +13,18 @@ local InterfaceUrls = {
   InfoTab = AbysallUrl .. "Components/InfoTab.luau",
   SettingsTab = AbysallUrl .. "Components/SettingsTab.luau",
   Addons = AbysallUrl .. "Components/Addons.luau",
+  SupportedGamesTab = AbysallUrl .. "Components/SupportedGamesTab.luau",
 }
 
--- 6 bagimsiz dosyayi paralel indir, sirasiyla calistir
-local InterfaceSources = {}
-for Key, Url in InterfaceUrls do
-	task.spawn(function()
-		local Ok, Res = pcall(function() return game:HttpGet(Url) end)
-		if Ok then InterfaceSources[Key] = Res end
-	end)
-end
-local InterfaceFetchStart = tick()
-while tick() - InterfaceFetchStart < 15 do
-	local Ready = true
-	for Key in InterfaceUrls do
-		if not InterfaceSources[Key] then Ready = false break end
-	end
-	if Ready then break end
-	task.wait()
-end
-for Key, Url in InterfaceUrls do
-	if not InterfaceSources[Key] then InterfaceSources[Key] = game:HttpGet(Url) end
-end
+local Report = Abysall.ReportProgress
+local RunModule = Abysall.RunModule
+local InterfaceSources = Abysall.FetchModules(InterfaceUrls, "Downloading interface", 0.5, 0.68)
 
-local Library = loadstring(InterfaceSources.Library)()
+Report("Starting interface", UIStyle, 0.7)
+local Library = RunModule(InterfaceSources.Library, UIStyle .. "/Library")
+local Interface = { UIStyle = UIStyle, Library = Library }
+-- Keep a reference for cleanup if a manager or shared tab fails to initialize.
+Abysall.Interface = Interface
 if UIStyle == "Linoria" then
   -- Linoria exposes these tables globally; game modules use Library fields.
   Library.Toggles = getgenv().Toggles
@@ -56,16 +44,30 @@ if UIStyle == "Linoria" then
   end
 end
 
-local Interface = {
-  UIStyle = UIStyle,
-  Library = Library,
-  SaveManager = loadstring(InterfaceSources.SaveManager)(),
-  ThemeManager = loadstring(InterfaceSources.ThemeManager)(),
+Report("Loading themes and profiles", UIStyle, 0.74)
+Interface.SaveManager = RunModule(InterfaceSources.SaveManager, UIStyle .. "/SaveManager")
+Interface.ThemeManager = RunModule(InterfaceSources.ThemeManager, UIStyle .. "/ThemeManager")
+Report("Preparing menu", "Info, games, settings and addons", 0.77)
+local ApplyInfo = RunModule(InterfaceSources.InfoTab, "InfoTab")
+local ApplySettings = RunModule(InterfaceSources.SettingsTab, "SettingsTab")
+local ApplyAddons = RunModule(InterfaceSources.Addons, "Addons")
+Interface.ApplySupportedGamesTab = RunModule(InterfaceSources.SupportedGamesTab, "SupportedGamesTab")
 
-  ApplyInfoTab = loadstring(InterfaceSources.InfoTab)(),
-  ApplySettingsTab = loadstring(InterfaceSources.SettingsTab)(),
-  ApplyAddons = loadstring(InterfaceSources.Addons)(),
-}
+function Interface.ApplyInfoTab(Window)
+  Report("Building menu", "Info and supported games", 0.9)
+  ApplyInfo(Window)
+  Interface.ApplySupportedGamesTab(Window)
+end
+
+function Interface.ApplySettingsTab(Window)
+  Report("Applying settings", "Loading your theme and profile...", 0.92)
+  return ApplySettings(Window)
+end
+
+function Interface.ApplyAddons(Window, CurrentGame)
+  Report("Loading addons", "Finishing your menu...", 0.96)
+  return ApplyAddons(Window, CurrentGame)
+end
 
 Interface.ThemeManager.BuiltInThemes = {
 		["Default"]        = { 1,  { FontColor = "ffffff", MainColor = "1c1c1c", AccentColor = "0055ff", BackgroundColor = "141414", OutlineColor = "323232" } },
