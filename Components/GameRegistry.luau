@@ -5,6 +5,7 @@ local Registry = {
     Entries = {
         {
             Id = "Doors", Name = "DOORS", GameIds = { 2440500124 },
+            PlaceScripts = { [6516141723] = "Lobby" },
             Updated = "2026-10-31", Coverage = "Lobby and in-game floors",
             Features = { "Entity alerts", "Player, item and entity ESP", "Puzzle helpers", "Rooms automation" },
         },
@@ -72,6 +73,11 @@ end
 
 function Registry:Resolve(GameId, PlaceId)
     return Games[GameId] or Places[PlaceId] or ById.Universal
+end
+
+function Registry:ScriptPath(Entry, PlaceId)
+    local Script = Entry.PlaceScripts and Entry.PlaceScripts[PlaceId] or "Main"
+    return "Games/" .. Entry.Id .. "/" .. Script .. ".luau"
 end
 
 return Registry

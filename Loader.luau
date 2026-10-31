@@ -61,7 +61,7 @@ local function CreateLoadingScreen()
         self.Status = "ready"
         if Elapsed then Elapsed.Text = string.format("%.1fs elapsed", tick() - self.StartedAt) end
         if Timer then Timer:Disconnect(); Timer = nil end
-        task.delay(0.8, function() self:Destroy() end)
+        task.delay(0.15, function() self:Destroy() end)
     end
 
     local Ok, Err = pcall(function()
@@ -164,46 +164,70 @@ function Session.ReportProgress(Stage, Detail, Progress)
     if getgenv().Abysall == Session then Loading:Update(Stage, Detail, Progress) end
 end
 
-function Session.FetchModules(Urls, Stage, StartProgress, EndProgress)
-    local Sources, Errors, Names = {}, {}, {}
-    local Completed, Closed = 0, false
-    for Name in pairs(Urls) do table.insert(Names, Name) end
-    table.sort(Names)
-    Session.ReportProgress(Stage, "Downloading " .. #Names .. " components...", StartProgress)
-    for _, Name in ipairs(Names) do
+-- A per-run cache shares in-flight downloads with later stages. A new session
+-- always fetches fresh sources so script updates take effect on the next run.
+local Downloads = {}
+function Session.PrefetchModules(Urls)
+    for _, Url in pairs(Urls) do
+        if Downloads[Url] then continue end
+        local Request = { StartedAt = tick() }
+        Downloads[Url] = Request
         task.spawn(function()
             local Ok, Result
             for _ = 1, 2 do
-                if Closed or getgenv().Abysall ~= Session then return end
-                Ok, Result = pcall(function() return game:HttpGet(Urls[Name]) end)
+                if Request.Expired or getgenv().Abysall ~= Session then return end
+                Ok, Result = pcall(function() return game:HttpGet(Url) end)
                 if Ok and type(Result) == "string" and Result ~= "" then break end
                 if Ok then Result = "empty or invalid response" end
                 Ok = false
             end
-            if Closed then return end
-            if Ok then Sources[Name] = Result else Errors[Name] = tostring(Result) end
-            Completed = Completed + 1
-            Session.ReportProgress(Stage, Name .. " (" .. Completed .. "/" .. #Names .. ")",
-                StartProgress + (EndProgress - StartProgress) * Completed / #Names)
+            if Request.Expired or getgenv().Abysall ~= Session then return end
+            if Ok then Request.Source = Result else Request.Error = tostring(Result) end
+            Request.Done = true
         end)
     end
-    local Started = tick()
-    while Completed < #Names and tick() - Started < 15 and getgenv().Abysall == Session do task.wait() end
-    Closed = true
+end
+
+function Session.FetchModules(Urls, Stage, StartProgress, EndProgress)
+    local Sources, Names, Reported = {}, {}, {}
+    for Name in pairs(Urls) do table.insert(Names, Name) end
+    table.sort(Names)
+    Session.ReportProgress(Stage, "Downloading " .. #Names .. " components...", StartProgress)
+    Session.PrefetchModules(Urls)
+    local Completed = 0
+    while getgenv().Abysall == Session do
+        for _, Name in ipairs(Names) do
+            local Request = Downloads[Urls[Name]]
+            if not Request.Done and tick() - Request.StartedAt >= 15 then
+                Request.Done, Request.Expired = true, true
+                Request.Error = "request timed out after 15s"
+            end
+            if Request.Done and not Reported[Name] then
+                Reported[Name] = true
+                Completed = Completed + 1
+                Session.ReportProgress(Stage, Name .. " (" .. Completed .. "/" .. #Names .. ")",
+                    StartProgress + (EndProgress - StartProgress) * Completed / #Names)
+            end
+        end
+        if Completed == #Names then break end
+        task.wait()
+    end
     if getgenv().Abysall ~= Session then error("Loading interrupted by another session.", 0) end
     for _, Name in ipairs(Names) do
-        if not Sources[Name] then
-            error("Could not download " .. Name .. ": " .. (Errors[Name] or "request timed out after 15s")
+        local Request = Downloads[Urls[Name]]
+        if not Request.Source then
+            error("Could not download " .. Name .. ": " .. tostring(Request.Error)
                 .. "\n" .. Urls[Name], 0)
         end
+        Sources[Name] = Request.Source
     end
     return Sources
 end
 
-function Session.RunModule(Source, Name)
+function Session.RunModule(Source, Name, ...)
     local Chunk, Err = loadstring(Source, "@Abysall/" .. Name)
     if not Chunk then error("Could not compile " .. Name .. ": " .. tostring(Err), 0) end
-    return Chunk()
+    return Chunk(...)
 end
 
 local function Bootstrap()
@@ -211,12 +235,17 @@ local function Bootstrap()
         Environment = BaseUrl .. "Components/Environment.luau",
         ESP = BaseUrl .. "Components/ESP.luau",
         GameRegistry = BaseUrl .. "Components/GameRegistry.luau",
+        Interface = BaseUrl .. "Components/Interface.luau",
+        InfoTab = BaseUrl .. "Components/InfoTab.luau",
+        SettingsTab = BaseUrl .. "Components/SettingsTab.luau",
+        Addons = BaseUrl .. "Components/Addons.luau",
+        SupportedGamesTab = BaseUrl .. "Components/SupportedGamesTab.luau",
     }, "Downloading core modules", 0.02, 0.24)
     Session.ReportProgress("Detecting game", "Finding the right module...", 0.25)
     Session.GameRegistry = Session.RunModule(Core.GameRegistry, "GameRegistry")
     Session.CurrentGame = Session.GameRegistry:Resolve(game.GameId, game.PlaceId)
     Session.ReportProgress("Checking compatibility", Session.CurrentGame.Name .. " / executor capabilities", 0.28)
-    Session.Environment = Session.RunModule(Core.Environment, "Environment")
+    Session.Environment = Session.RunModule(Core.Environment, "Environment", getgenv().AbysallFullChecks ~= true)
     Session.ReportProgress("Preparing visuals", "Starting the ESP library...", 0.4)
     Session.ESPLibrary = Session.RunModule(Core.ESP, "ESP")
     Session.ReportProgress("Reading preferences", "Loading your UI style and saved settings...", 0.44)
@@ -277,21 +306,19 @@ local function Bootstrap()
         if not OkSave then warn("[Abysall] user settings could not be saved: " .. tostring(ErrSave)) end
     end
 
-    local HubSources = Session.FetchModules({
-        Interface = BaseUrl .. "Components/Interface.luau",
-        Analytics = BaseUrl .. "Components/Analytics.luau",
-    }, "Downloading hub components", 0.46, 0.5)
-    Session.ReportProgress("Starting interface", Session.UILibrary, 0.5)
-    Session.Interface = Session.RunModule(HubSources.Interface, "Interface")
-    Session.ReportProgress("Preparing session", "Starting session services...", 0.8)
-    Session.Analytics = Session.RunModule(HubSources.Analytics, "Analytics")
-
+    -- Overlap the game download with the UI library and manager downloads.
     local Current = Session.CurrentGame
+    local GamePath = Session.GameRegistry:ScriptPath(Current, game.PlaceId)
+    local GameUrl = BaseUrl .. GamePath
+    Session.PrefetchModules({ Game = GameUrl })
+    Session.ReportProgress("Starting interface", Session.UILibrary, 0.5)
+    Session.Interface = Session.RunModule(Core.Interface, "Interface")
+
     local GameSource = Session.FetchModules({
-        [Current.Id] = BaseUrl .. "Games/" .. Current.Id .. "/Loader.luau",
+        [Current.Id] = GameUrl,
     }, "Loading game module", 0.82, 0.86)
     Session.ReportProgress("Starting " .. Current.Name, "Waiting for the game and building your menu...", 0.88)
-    Session.RunModule(GameSource[Current.Id], "Games/" .. Current.Id .. "/Loader")
+    Session.RunModule(GameSource[Current.Id], GamePath)
 end
 
 local Ok, Err = xpcall(Bootstrap, function(Message) return debug.traceback(tostring(Message), 2) end)
@@ -302,6 +329,16 @@ end
 if Ok then
     Session.LoadTime = tick() - Loading.StartedAt
     Loading:Finish(Session.CurrentGame.Name)
+    -- Optional session metadata must never delay opening the menu.
+    task.defer(function()
+        if getgenv().Abysall ~= Session then return end
+        local OkAnalytics, Result = pcall(function()
+            local Source = game:HttpGet(BaseUrl .. "Components/Analytics.luau")
+            if getgenv().Abysall ~= Session then return end
+            return Session.RunModule(Source, "Analytics")
+        end)
+        if OkAnalytics and getgenv().Abysall == Session then Session.Analytics = Result end
+    end)
 else
     Loading:Fail(Err)
     warn("[Abysall] " .. Loading.FailedStage .. ": " .. tostring(Err))

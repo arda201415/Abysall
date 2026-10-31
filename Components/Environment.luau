@@ -3,6 +3,9 @@ local Log = {}
 local Tested = 0
 local Failed = 0
 local Passed = 0
+local Detected = 0
+local FastStartup = ... == true
+Environment.FastStartup = FastStartup
 
 local BrokenFeatures = {
 	["Volcano"] = {"run_on_actor", "oth"},
@@ -29,6 +32,13 @@ local Global = setmetatable({}, {
 	end,
 })
 
+local ExecutorName, ExecutorVersion = "Unknown", nil
+if type(Global.identifyexecutor) == "function" then
+	local Ok, Name, Version = pcall(Global.identifyexecutor)
+	if Ok then ExecutorName, ExecutorVersion = tostring(Name), Version end
+end
+Environment.ExecutorName, Environment.ExecutorVersion = ExecutorName, ExecutorVersion
+
 local Services = setmetatable({}, {
 	__index = function(Self, Name)
 		return game:GetService(Name)
@@ -47,22 +57,24 @@ end
 
 Environment.Results = Results
 Environment.PrintResults = function()
-	local Executor = Environment.identifyexecutor and Environment.identifyexecutor() or "Unknown"
-	print("Test Result")
+	print(FastStartup and "Capability Detection" or "Test Result")
 	for _, Result in ipairs(Results) do
 		print(Result)
 		task.wait()
 	end
-	print("Executor - " .. Executor)
-	print("Tests Passed: " .. Passed .. "/" .. Tested)
-	print("Test Score: " .. math.floor((Passed / Tested) * 100 + 0.5) .. "%")
+	print("Executor - " .. ExecutorName)
+	if FastStartup then
+		print("Detected: " .. Detected .. "/" .. Tested .. " (availability only)")
+	else
+		print("Tests Passed: " .. Passed .. "/" .. Tested)
+		print("Test Score: " .. math.floor((Passed / Tested) * 100 + 0.5) .. "%")
+	end
 end
 
 local function RunTest(Name, Test, InternalName)
 	local TimedOut = false
 	Tested = Tested + 1
 
-	local ExecutorName = Global.identifyexecutor and Global.identifyexecutor() or "Unknown"
 	local BrokenList = BrokenFeatures[ExecutorName]
 	if BrokenList and table.find(BrokenList, Name) then
 		AddResult(Name, "❌ " .. Name .. " failed: test has been skipped", false)
@@ -74,6 +86,22 @@ local function RunTest(Name, Test, InternalName)
 	if not TargetGlobal then
 		AddResult(Name, "❌ " .. Name .. " failed: function is nil", false)
 		Failed = Failed + 1
+		return
+	end
+
+	-- Startup only detects callable capabilities. The full suite below performs
+	-- network requests, waits for signals, and mutates temporary game objects.
+	-- Keep it available explicitly without holding up the menu on every run.
+	if FastStartup then
+		local ExpectedType = Name == "Drawing.Fonts" and "table" or "function"
+		if type(TargetGlobal) == ExpectedType then
+			Environment[InternalName or Name] = TargetGlobal
+			Detected = Detected + 1
+			AddResult(Name, "- " .. Name .. " detected (availability only)", nil)
+		else
+			Failed = Failed + 1
+			AddResult(Name, "- " .. Name .. " unavailable: expected " .. ExpectedType, false)
+		end
 		return
 	end
 
@@ -626,4 +654,5 @@ RunTest("require", function()
 	TestScript = nil
 end)
 
+if type(Global.isfolder) == "function" then Environment.isfolder = Global.isfolder end
 return Environment

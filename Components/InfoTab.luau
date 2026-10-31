@@ -31,8 +31,8 @@ return function(Window)
     local User = InfoTab:AddLeftGroupbox("User Info")
 
     if type(User.AddImage) == "function" then
-        local Content = Services.Players:GetUserThumbnailAsync(LocalPlayer.UserId,
-            Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
+        -- Roblox resolves this content asynchronously; no thumbnail RPC on startup.
+        local Content = "rbxthumb://type=AvatarHeadShot&id=" .. LocalPlayer.UserId .. "&w=420&h=420"
         User:AddImage("UserIcon", { Image = Content })
     end
 
@@ -44,20 +44,23 @@ return function(Window)
         Changelog:AddLabel(Change, true)
     end
 
-    local Name, Version = Abysall.Environment.identifyexecutor()
+    local Environment = Abysall.Environment
+    local Name, Version = Environment.ExecutorName, Environment.ExecutorVersion
+    if not Name and Environment.identifyexecutor then Name, Version = Environment.identifyexecutor() end
     local Executor = InfoTab:AddRightGroupbox("Executor Info")
-    Executor:AddLabel("Name: " .. Name, true)
+    Executor:AddLabel("Name: " .. (Name or "Unknown"), true)
 	Executor:AddLabel("Version: " .. (Version and Version or "N/A"), true)
     Executor:AddDivider()
-    Executor:AddLabel("Test Result: ", true)
-
-    for Index, Result in pairs(Abysall.Environment.Results) do
-		-- fix for veloshitty 💔
-		Result = Result:gsub("<", "(")
-		Result = Result:gsub(">", ")")
-		
-        Executor:AddLabel(Result, true)
-    end
+    Executor:AddLabel(Environment.FastStartup and "Checks: availability only" or "Checks: full diagnostics", true)
+    local DetailsShown = false
+    Executor:AddButton("Show capability details", function()
+        if DetailsShown then return end
+        DetailsShown = true
+        for _, Result in ipairs(Environment.Results) do
+            Result = Result:gsub("<", "("):gsub(">", ")")
+            Executor:AddLabel(Result, true)
+        end
+    end)
 
     local Community = InfoTab:AddLeftGroupbox("Community")
     Community:AddButton("Copy Discord Invite", function()
