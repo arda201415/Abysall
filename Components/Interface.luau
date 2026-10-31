@@ -1,6 +1,9 @@
-local Library = (Abysall.UILibrary == "Linoria" and "LinoriaLib" or "Obsidian")
--- local BaseUrl = "https://raw.githubusercontent.com/mstudio45/" .. Library .. "/refs/heads/main/" -- broken since upio github got banned
-local BaseUrl = "https://raw.githubusercontent.com/deividcomsono/Obsidian/refs/heads/main/"
+local UIStyle = Abysall.UILibrary == "Linoria" and "Linoria" or "Obsidian"
+local BaseUrls = {
+  Obsidian = "https://raw.githubusercontent.com/deividcomsono/Obsidian/refs/heads/main/",
+  Linoria = "https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/",
+}
+local BaseUrl = BaseUrls[UIStyle]
 local AbysallUrl = "https://raw.githubusercontent.com/arda201415/Abysall/refs/heads/main/"
 
 local InterfaceUrls = {
@@ -33,8 +36,29 @@ for Key, Url in InterfaceUrls do
 	if not InterfaceSources[Key] then InterfaceSources[Key] = game:HttpGet(Url) end
 end
 
+local Library = loadstring(InterfaceSources.Library)()
+if UIStyle == "Linoria" then
+  -- Linoria exposes these tables globally; game modules use Library fields.
+  Library.Toggles = getgenv().Toggles
+  Library.Options = getgenv().Options
+  Library.Scheme = Library
+
+  -- Shared components also use Obsidian's table-based notification format.
+  local Notify = Library.Notify
+  function Library:Notify(Message, Duration)
+    if type(Message) == "table" then
+      Duration = Message.Time or Duration
+      local Title = tostring(Message.Title or "")
+      local Body = tostring(Message.Description or Message.Body or "")
+      Message = Title .. (Title ~= "" and Body ~= "" and "\n" or "") .. Body
+    end
+    return Notify(self, tostring(Message), type(Duration) == "number" and Duration or nil)
+  end
+end
+
 local Interface = {
-  Library = loadstring(InterfaceSources.Library)(),
+  UIStyle = UIStyle,
+  Library = Library,
   SaveManager = loadstring(InterfaceSources.SaveManager)(),
   ThemeManager = loadstring(InterfaceSources.ThemeManager)(),
 

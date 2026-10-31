@@ -3441,11 +3441,16 @@ Options.ESPTracerThickness:OnChanged(function(V) Abysall.ESPLibrary:SetTracerSiz
 OnChange("ESPArrowsToggle", function(V)    Abysall.ESPLibrary:SetArrows(V) end)
 Options.ESPArrowsRadius:OnChanged(function(V)    Abysall.ESPLibrary:SetArrowRadius(V) end)
 
-Tabs.Floors:UpdateWarningBox({
-	Visible = true,
-	Title = "Compatability Warning",
-	Text = "Features highlighted in red do not work in the current floor.",
-})
+if Tabs.Floors.UpdateWarningBox then
+	Tabs.Floors:UpdateWarningBox({
+		Visible = true,
+		Title = "Compatability Warning",
+		Text = "Features highlighted in red do not work in the current floor.",
+	})
+else
+	Tabs.Floors:AddLeftGroupbox("Compatibility Warning"):AddLabel(
+		"Features highlighted in red do not work in the current floor.", true)
+end
 
 Groupboxes.Floors_Automation = Tabs.Floors:AddRightGroupbox("Automation")
 Groupboxes.Floors_Automation:AddToggle("AutoSteerMinecart", {

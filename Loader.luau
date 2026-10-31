@@ -81,31 +81,46 @@ local Services = setmetatable({}, {
     end
 })
 
-if Abysall.Environment.writefile and Abysall.Environment.readfile then
-    if not Abysall.Environment.isfile("Abysall/UserData.json") then
-        local Data = {
-            TotalExecutions = 0,
-            UILibrary = "Obsidian"
-        }
-        Abysall.Environment.writefile("Abysall/UserData.json", Services.HttpService:JSONEncode(Data))
+local Env = Abysall.Environment
+local UserData = {}
+if Env.readfile then
+    local OkRead, Decoded = pcall(function()
+        return Services.HttpService:JSONDecode(Env.readfile("Abysall/UserData.json"))
+    end)
+    if OkRead and type(Decoded) == "table" then UserData = Decoded end
+end
+UserData.TotalExecutions = (tonumber(UserData.TotalExecutions) or 0) + 1
+UserData.UILibrary = UserData.UILibrary == "Linoria" and "Linoria" or "Obsidian"
+Abysall.TotalExecutions = UserData.TotalExecutions
+Abysall.UILibrary = UserData.UILibrary
+
+local function SaveUserData(Data)
+    if not (Env.readfile and Env.writefile) then
+        return false, "File access is unavailable."
     end
+    return pcall(function()
+        local MakeFolder = Env.makefolder or getgenv().makefolder
+        if MakeFolder then pcall(MakeFolder, "Abysall") end
+        Env.writefile("Abysall/UserData.json", Services.HttpService:JSONEncode(Data))
+    end)
+end
 
-    local UserData = Abysall.Environment.readfile("Abysall/UserData.json")
-    local Decoded = Services.HttpService:JSONDecode(UserData)
-    if not Decoded.TotalExecutions then
-        Decoded.TotalExecutions = 0    
+function Abysall.SetUIStyle(Value)
+    if Value ~= "Obsidian" and Value ~= "Linoria" then
+        return false, "Unknown UI style."
     end
+    local Updated = table.clone(UserData)
+    Updated.UILibrary = Value
+    local Ok, Err = SaveUserData(Updated)
+    if not Ok then return false, Err end
+    UserData = Updated
+    Abysall.UILibrary = Value
+    return true
+end
 
-    Decoded.TotalExecutions = Decoded.TotalExecutions + 1
-
-    if not Decoded.UILibrary then
-        Decoded.UILibrary = "Obsidian"
-    end
-
-    Abysall.TotalExecutions = Decoded.TotalExecutions
-    Abysall.UILibrary = Decoded.UILibrary
-
-    Abysall.Environment.writefile("Abysall/UserData.json", Services.HttpService:JSONEncode(Decoded))
+if Env.readfile and Env.writefile then
+    local OkSave, ErrSave = SaveUserData(UserData)
+    if not OkSave then warn("[Abysall] user settings could not be saved: " .. tostring(ErrSave)) end
 end
 
 local OkInterface, ErrInterface = pcall(function()

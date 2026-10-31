@@ -30,14 +30,11 @@ return function(Window)
 
     local User = InfoTab:AddLeftGroupbox("User Info")
 
-    local ImageSize = Enum.ThumbnailSize.Size420x420
-    local ImageType = Enum.ThumbnailType.HeadShot
-
-    local Content = Services.Players:GetUserThumbnailAsync(LocalPlayer.UserId, ImageType, ImageSize)
-
-    User:AddImage("UserIcon", {
-        Image = Content
-    })
+    if type(User.AddImage) == "function" then
+        local Content = Services.Players:GetUserThumbnailAsync(LocalPlayer.UserId,
+            Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
+        User:AddImage("UserIcon", { Image = Content })
+    end
 
     User:AddLabel("ID: " .. LocalPlayer.Name, true)
     User:AddLabel("Total Executions: " .. (Abysall.TotalExecutions and Abysall.TotalExecutions or "N/A"), true)

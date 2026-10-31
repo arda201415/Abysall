@@ -1,6 +1,6 @@
 -- Abysall Hub | Scooter Empire [BETA]
 -- PlaceId: 100659280755645
--- Disable Police (Workspace.Police + "Police" adli her sey) + hiz/noclip/fly/freecam/fullbright/nofog.
+-- Police / parked car removal, movement, Auto Wheelie and road-following Auto Drive.
 
 local LoadStart = tick()
 if not Abysall or not Abysall.Interface then
@@ -236,7 +236,7 @@ Groupboxes.Misc_Move:AddToggle("AutoWheelie", {
 Groupboxes.Misc_Move:AddToggle("AutoDrive", {
     Text = "Auto Drive",
     Default = false,
-    Tooltip = "Street parcalarinda otomatik surer: hedef yesil + isinla gosterilir, engelden kacar, takilirsa geri gider.",
+    Tooltip = "Follows connected Street surfaces using visible waypoints. With Auto Wheelie, only steers (A/D).",
 })
 Toggles.AutoDrive:AddKeyPicker("AutoDriveKey", {
     Text = "Auto Drive", Default = "G", Mode = "Toggle", SyncToggleState = true,
@@ -295,15 +295,47 @@ TrackConn(Services.RunService.Stepped:Connect(function()
 end))
 
 -- // Auto Wheelie //
--- W (3sn) -> Ctrl tap -> W (0.5sn) -> birak (0.1sn) -> W (0.1sn) -> birak,
--- kapatilana kadar doner. VirtualInputManager ile gercek tus basiymis gibi verilir.
+-- Acilis bir kez; ardindan 0.2sn W / 0.2sn birak dongusu.
 local WheelieRun = 0
 local VIM = nil
 pcall(function() VIM = CloneReference(game:GetService("VirtualInputManager")) end)
 
-local function WheelieKey(Down, Key)
+-- Iki otomasyon ayni sanal tusu birbirinin elinden almamali.
+local InputRequests = { Wheelie = {}, Drive = {} }
+local InputHeld = {}
+local InputUnloaded = false
+local InputWarned = false
+
+local function SyncInput(Key)
+    local Down = false
+    if not InputUnloaded then
+        local WheelieOwnsKey = Key == Enum.KeyCode.W or Key == Enum.KeyCode.S
+        if ToggleOn("AutoWheelie") and WheelieOwnsKey then
+            Down = InputRequests.Wheelie[Key] == true
+        else
+            Down = (ToggleOn("AutoWheelie") and InputRequests.Wheelie[Key] == true)
+                or (ToggleOn("AutoDrive") and InputRequests.Drive[Key] == true)
+        end
+    end
+    if (InputHeld[Key] == true) == Down then return end
     if not VIM then return end
-    pcall(function() VIM:SendKeyEvent(Down, Key, false, game) end)
+    local Ok, Err = pcall(function() VIM:SendKeyEvent(Down, Key, false, game) end)
+    if Ok then
+        InputHeld[Key] = Down
+    elseif not InputWarned then
+        InputWarned = true
+        warn("[Abysall-Input] " .. tostring(Err))
+        Library:Notify("Virtual key input failed. See F9 [Abysall-Input].")
+    end
+end
+
+local function RequestInput(Owner, Down, Key)
+    InputRequests[Owner][Key] = Down
+    SyncInput(Key)
+end
+
+local function WheelieKey(Down, Key)
+    RequestInput("Wheelie", Down, Key)
 end
 
 local function WheelieReleaseAll()
@@ -312,78 +344,78 @@ local function WheelieReleaseAll()
     WheelieKey(false, Enum.KeyCode.RightControl)
 end
 
-local function WheelieHold(Key, Seconds, RunId)
-    WheelieKey(true, Key)
-    local Elapsed = 0
-    while Elapsed < Seconds do
-        if RunId ~= WheelieRun or not ToggleOn("AutoWheelie") then
-            WheelieKey(false, Key)
-            return false
-        end
-        task.wait(0.05)
-        Elapsed += 0.05
-    end
-    WheelieKey(false, Key)
-    return RunId == WheelieRun and ToggleOn("AutoWheelie")
+local function WheelieActive(RunId)
+    return not InputUnloaded and RunId == WheelieRun and ToggleOn("AutoWheelie")
 end
 
 local function WheelieWait(Seconds, RunId)
-    local Elapsed = 0
-    while Elapsed < Seconds do
-        if RunId ~= WheelieRun or not ToggleOn("AutoWheelie") then return false end
-        task.wait(0.05)
-        Elapsed += 0.05
+    local Deadline = os.clock() + Seconds
+    while os.clock() < Deadline do
+        if not WheelieActive(RunId) then return false end
+        task.wait(math.max(0, math.min(0.03, Deadline - os.clock())))
     end
-    return RunId == WheelieRun and ToggleOn("AutoWheelie")
+    return WheelieActive(RunId)
+end
+
+local function WheelieHold(Key, Seconds, RunId)
+    if not WheelieActive(RunId) then return false end
+    WheelieKey(true, Key)
+    local Active = WheelieWait(Seconds, RunId)
+    if RunId == WheelieRun then WheelieKey(false, Key) end
+    return Active
 end
 
 OnChange("AutoWheelie", function(Value)
-    if not Value then
-        WheelieRun += 1
-        WheelieReleaseAll()
+    WheelieRun += 1
+    WheelieReleaseAll()
+    SyncInput(Enum.KeyCode.S)
+    if not Value then return end
+    if not VIM then
+        Library:Notify("Auto Wheelie requires VirtualInputManager.")
+        Toggles.AutoWheelie:SetValue(false)
         return
     end
-    WheelieRun += 1
     local RunId = WheelieRun
     task.spawn(function()
+        local function Finish()
+            -- Eski bir dongu yeni acilan dongunun tuslarini birakmasin.
+            if RunId == WheelieRun then WheelieReleaseAll() end
+        end
         -- Ilk acilista biraz gecikme: oyuncunun scooter'a binmesi icin sure tanir.
         if not WheelieWait(1, RunId) then return end
         -- Acilis: 3sn W (hizlan) -> 0.3sn Ctrl (tek tekerlege kalk) ->
         -- 0.5sn W -> 0.2sn birak. Bir kez yapilir.
-        if not WheelieHold(Enum.KeyCode.W, 3, RunId) then return WheelieReleaseAll() end
+        if not WheelieHold(Enum.KeyCode.W, 3, RunId) then return Finish() end
         WheelieKey(true, Enum.KeyCode.LeftControl)
-        if not WheelieWait(0.3, RunId) then return WheelieReleaseAll() end
+        if not WheelieWait(0.3, RunId) then return Finish() end
         WheelieKey(false, Enum.KeyCode.LeftControl)
-        if not WheelieHold(Enum.KeyCode.W, 0.5, RunId) then return WheelieReleaseAll() end
-        if not WheelieWait(0.2, RunId) then return WheelieReleaseAll() end
+        if not WheelieHold(Enum.KeyCode.W, 0.5, RunId) then return Finish() end
+        if not WheelieWait(0.2, RunId) then return Finish() end
         -- Denge dongusu: 0.2sn W bas -> 0.2sn birak, kapatilana kadar.
-        while RunId == WheelieRun and ToggleOn("AutoWheelie") do
+        while WheelieActive(RunId) do
             if not WheelieHold(Enum.KeyCode.W, 0.2, RunId) then break end
             if not WheelieWait(0.2, RunId) then break end
         end
-        WheelieReleaseAll()
+        Finish()
     end)
 end)
 
 -- // Auto Drive //
--- Workspace.Map.Roads altindaki "Street" parcalarini toplar, en yakindan baslayip
--- hepsini gezer. Hedef yesil Highlight + karakterden hedefe isin (Beam) + "HEDEF: Xm"
--- etiketiyle gosterilir. W gaz, A/D direksiyon; onde engel varsa bos tarafa kacar,
--- 3sn'den uzun takilirsa 1.2sn geri vites yapar.
+-- Uzak part merkezlerine duz cizgi yerine yol ustunde kisa ara hedefler.
+-- Her baglanti yol yuzeyinde kalmali ve scooter genisliginde engelsiz olmali.
 local DriveId = 0
 local DriveVisited = {}
 local DriveBlocked = {}
-local DriveTarget = nil
+local DriveTarget, DriveAim, DriveOrigin = nil, nil, nil
 local DriveHL, DriveBeam, DriveAtt0, DriveAtt1, DriveTag, DriveTagLabel = nil, nil, nil, nil, nil, nil
-local DriveKeys = { W = false, A = false, S = false, D = false }
+local DriveMarker = nil
 local DriveStreets = {}
 local DriveStreetsAt = 0
 local DriveRoads = nil
 
 local function DriveKey(Key, Down)
-    if DriveKeys[Key] == Down then return end
-    DriveKeys[Key] = Down
-    WheelieKey(Down, Enum.KeyCode[Key])
+    if (Key == "W" or Key == "S") and ToggleOn("AutoWheelie") then Down = false end
+    RequestInput("Drive", Down, Enum.KeyCode[Key])
 end
 
 local function DriveReleaseAll()
@@ -393,11 +425,13 @@ local function DriveReleaseAll()
 end
 
 local function DriveClearVis()
-    DriveTarget = nil
-    for _, I in ipairs({ DriveHL, DriveBeam, DriveAtt0, DriveAtt1, DriveTag }) do
-        pcall(function() if I then I:Destroy() end end)
+    DriveTarget, DriveAim, DriveOrigin = nil, nil, nil
+    -- pairs: yarida olusan gorsellerde nil araligi digerlerini atlamasin.
+    for _, Object in pairs({ DriveHL, DriveBeam, DriveAtt0, DriveAtt1, DriveTag, DriveMarker }) do
+        pcall(function() Object:Destroy() end)
     end
     DriveHL, DriveBeam, DriveAtt0, DriveAtt1, DriveTag, DriveTagLabel = nil, nil, nil, nil, nil, nil
+    DriveMarker = nil
 end
 
 local function DriveRefreshStreets()
@@ -414,108 +448,202 @@ local function DriveRefreshStreets()
     end
 end
 
--- Hedef secimi: duz cizgide ENGEL olan adaylari eler. Sadece "en yakin" secmek
--- 115m oteye dogrudan duvara toslamaya yol aciyordu.
-local function DriveBlockedBy(RP, S)
-    local DX, DZ = S.Position.X - RP.X, S.Position.Z - RP.Z
-    local D = math.sqrt(DX * DX + DZ * DZ)
-    if D < 1 then return false end
-    local Dir = Vector3.new(DX / D, 0, DZ / D)
-    local Char = LocalPlayer.Character
-    local BL = {}
-    if Char then table.insert(BL, Char) end
+local function DriveFlat(V)
+    return Vector3.new(V.X, 0, V.Z)
+end
+
+-- Uzun ve donuk yol parcalarinda da yuzeyin en yakin ic noktasini bulur.
+local function DriveClosestPoint(Part, RP)
+    if not Part or not Part.Parent then return nil end
+    local CF, Size = Part.CFrame, Part.Size
+    local Point = CF:PointToObjectSpace(RP)
+    local HalfX = math.max(0, Size.X / 2 - 2.5)
+    local HalfZ = math.max(0, Size.Z / 2 - 2.5)
+    return CF:PointToWorldSpace(Vector3.new(
+        math.clamp(Point.X, -HalfX, HalfX), Size.Y / 2,
+        math.clamp(Point.Z, -HalfZ, HalfZ)
+    ))
+end
+
+local function DriveOnTarget(Part, RP, Margin)
+    if not Part or not Part.Parent then return false end
+    local Point = Part.CFrame:PointToObjectSpace(RP)
+    local Size = Part.Size
+    Margin = Margin or 2
+    -- Baska bir Street'in ustunde olmak bu parta varildigi anlamina gelmez.
+    return math.abs(Point.X) <= math.max(0, Size.X / 2 - Margin)
+        and math.abs(Point.Z) <= math.max(0, Size.Z / 2 - Margin)
+        and Point.Y >= Size.Y / 2 - 3 and Point.Y <= Size.Y / 2 + 18
+end
+
+local function DriveCurrentStreet(RP)
+    local Best, BestHeight = nil, math.huge
+    for _, Street in ipairs(DriveStreets) do
+        if DriveOnTarget(Street, RP, 0) then
+            local Point = DriveClosestPoint(Street, RP)
+            local Height = math.abs(Point.Y - RP.Y)
+            if Height < BestHeight then Best, BestHeight = Street, Height end
+        end
+    end
+    return Best
+end
+
+local function DriveRayParams(Char, Root)
+    local Exclude = { Char }
+    -- Sadece Street zeminini atla; Roads altindaki bariyerler hala engeldir.
+    for _, Street in ipairs(DriveStreets) do table.insert(Exclude, Street) end
+    local Hum = Char:FindFirstChildOfClass("Humanoid")
+    local Seat = Hum and Hum.SeatPart
+    if Seat then
+        table.insert(Exclude, Seat)
+        local Vehicle = Seat:FindFirstAncestorOfClass("Model")
+        local Map = Services.Workspace:FindFirstChild("Map")
+        if Vehicle and Vehicle ~= Map and (not Map or not Map:IsDescendantOf(Vehicle)) then
+            table.insert(Exclude, Vehicle)
+        end
+    end
+    -- Seat kullanmayan scooterlarda karaktere kaynakli parcalari da atla.
+    local Ok, Parts = pcall(function() return Root:GetConnectedParts(true) end)
+    if Ok then
+        for _, Part in ipairs(Parts) do table.insert(Exclude, Part) end
+    end
     local Params = RaycastParams.new()
     Params.FilterType = Enum.RaycastFilterType.Exclude
-    Params.FilterDescendantsInstances = BL
+    Params.FilterDescendantsInstances = Exclude
     Params.IgnoreWater = true
-    -- Hedefe kadar 3.5 yukseklikte tarama: bina/direk/arfalar engel sayilir,
-    -- Street ve Roads altindaki yol parcalari sayilmaz.
-    local Probe = RP + Vector3.new(0, 3.5, 0)
-    local step = 6
-    local d = step
-    while d < D - 12 do
-        local Hit = Services.Workspace:Raycast(Probe, Dir * step, Params)
-        if Hit and Hit.Instance then
-            local IH = Hit.Instance
-            local IsRoad = IH.Name == "Street" or (DriveRoads and IH:IsDescendantOf(DriveRoads))
-            if not IsRoad then return true end
+    Params.RespectCanCollide = true
+    return Params
+end
+
+local function DriveBlockedBy(From, Aim, Params)
+    local Delta = Aim - From
+    local Flat = DriveFlat(Delta)
+    if Flat.Magnitude < 0.1 then return false end
+    local Side = Vector3.new(-Flat.Z, 0, Flat.X).Unit * 2
+    -- Tum mesafeyi iki yukseklikte, scooterin iki yaninda kontrol et.
+    for _, Height in ipairs({ 1.5, 3.5 }) do
+        for _, Offset in ipairs({ Vector3.zero, Side, -Side }) do
+            local Origin = From + Vector3.new(0, Height, 0) + Offset
+            if Services.Workspace:Raycast(Origin, Delta, Params) then return true end
         end
-        Probe += Dir * step
-        d += step
     end
     return false
 end
 
-local function DrivePickTarget(RootPos)
-    local Best, BestD = nil, math.huge
-    local Fallback, FallbackD = nil, math.huge
-
-    local function Scan(Skip, Blocked)
-        local B, BD = nil, math.huge
-        for _, S in ipairs(DriveStreets) do
-            if S.Parent and not Skip[S] and not Blocked[S] then
-                local D = (S.Position - RootPos).Magnitude
-                if D < BD then BD = D B = S end
-            end
+local function DriveRoadSegment(From, Aim, Current, Target)
+    if not Current then return true end -- Yola ilk giris engel kontrolunden gecer.
+    local Flat = DriveFlat(Aim - From)
+    local Side = Flat.Magnitude > 0.1 and Vector3.new(-Flat.Z, 0, Flat.X).Unit * 2 or Vector3.zero
+    local Steps = math.max(1, math.ceil((Aim - From).Magnitude / 4))
+    for I = 0, Steps do
+        local Point = From:Lerp(Aim, I / Steps)
+        -- Birlesen partlarin sinirinda yapay bosluk olmasin; genisligi yanlardan denetle.
+        for _, Offset in ipairs({ Vector3.zero, Side, -Side }) do
+            local Sample = Point + Offset
+            if not DriveOnTarget(Current, Sample, 0) and not DriveOnTarget(Target, Sample, 0) then return false end
         end
-        return B, BD
     end
+    return true
+end
 
-    Best, BestD = Scan(DriveVisited, DriveBlocked)
-    if not Best then
-        -- Ziyaretli + engelli havuzlarini temizle, yeniden dene.
-        DriveVisited = {}
-        DriveBlocked = {}
-        Best, BestD = Scan(DriveVisited, DriveBlocked)
+local function DriveAvoidPoint(Point)
+    if Point then table.insert(DriveBlocked, { Point = Point, Until = os.clock() + 5 }) end
+end
+
+local function DrivePickTarget(RP, Head, Speed, Params)
+    local Now = os.clock()
+    for I = #DriveBlocked, 1, -1 do
+        if DriveBlocked[I].Until <= Now then table.remove(DriveBlocked, I) end
     end
-    if not Best then return nil end
-
-    -- En yakin hedef duz cizgide engelliyse engelsiz olana kadar ara.
-    if DriveBlockedBy(RootPos, Best) then
-        for _, S in ipairs(DriveStreets) do
-            if S.Parent and not DriveVisited[S] and not DriveBlocked[S] and S ~= Best then
-                if not DriveBlockedBy(RootPos, S) then
-                    local D = (S.Position - RootPos).Magnitude
-                    if D < BestD then BestD = D Best = S end
-                else
-                    local D = (S.Position - RootPos).Magnitude
-                    if D < FallbackD then FallbackD = D Fallback = S end
+    local Current = DriveCurrentStreet(RP)
+    local From = DriveClosestPoint(Current, RP) or RP - Vector3.new(0, 3, 0)
+    local Ahead = math.clamp(18 + Speed * 0.4, 22, 48)
+    local Candidates = {}
+    for _, Street in ipairs(DriveStreets) do
+        local Closest = DriveClosestPoint(Street, RP)
+        if Closest and math.abs(Closest.Y - RP.Y) < 20
+            and DriveFlat(Closest - RP).Magnitude < (Current and Ahead + 12 or 40) then
+            local Point = Street.CFrame:PointToObjectSpace(RP)
+            local Size = Street.Size
+            local AlongX = Size.X >= Size.Z
+            local HalfLength = math.max(0, (AlongX and Size.X or Size.Z) / 2 - 4)
+            local Lane = math.min(8, (AlongX and Size.Z or Size.X) / 4)
+            local Along = AlongX and Point.X or Point.Z
+            for _, Sign in ipairs({ 1, -1 }) do
+                local Next = math.clamp(Along + Sign * Ahead, -HalfLength, HalfLength)
+                for _, Offset in ipairs({ 0, Lane, -Lane }) do
+                    local LocalPoint = AlongX and Vector3.new(Next, Size.Y / 2, Offset)
+                        or Vector3.new(Offset, Size.Y / 2, Next)
+                    local Aim = Street.CFrame:PointToWorldSpace(LocalPoint)
+                    local Delta = DriveFlat(Aim - RP)
+                    local Distance = Delta.Magnitude
+                    -- Yol sonunda yalnizca yana kayip hedef degistirme dongusune girme.
+                    if Sign * (Next - Along) >= 8 and Distance >= 8
+                        and Distance <= Ahead + 30 and DriveOnTarget(Street, Aim) then
+                        local Dot = Head:Dot(Delta.Unit)
+                        local Blocked = false
+                        for _, Entry in ipairs(DriveBlocked) do
+                            if (Entry.Point - Aim).Magnitude < 7 then Blocked = true break end
+                        end
+                        if Dot > -0.25 and not Blocked and DriveRoadSegment(From, Aim, Current, Street) then
+                            local Score = (1 - Dot) * Ahead * 1.3 + math.abs(Distance - Ahead) * 0.4
+                                + math.abs(Offset) * 0.3 + math.min(DriveVisited[Street] or 0, 5) * 4
+                            table.insert(Candidates, { Street = Street, Aim = Aim, Score = Score })
+                        end
+                    end
                 end
             end
         end
-        -- Hicbiri engelsiz degilse: engelsiz olmayan en yakini kullan ve engel
-        -- listesine at ki bir sonraki denemede tekrar denenmesin.
-        if Best == nil or DriveBlockedBy(RootPos, Best) then
-            DriveBlocked[Fallback or DrivePickTarget.LastBlocked] = true
+    end
+    table.sort(Candidates, function(A, B) return A.Score < B.Score end)
+    for _, Candidate in ipairs(Candidates) do
+        if not DriveBlockedBy(From, Candidate.Aim, Params) then
+            return Candidate.Street, Candidate.Aim
         end
-        Best = Best or Fallback
     end
-
-    if Best and DriveBlockedBy(RootPos, Best) then
-        DriveBlocked[Best] = true
-    end
-
-    return Best
+    -- Guvenli baglanti yoksa bina arkasindaki bir hedefi zorla secme.
+    return nil, nil
 end
 
-local function DriveShowTarget(Target)
-    DriveClearVis()
-    if not Target or not Target.Parent then return end
-    DriveTarget = Target
+local function DriveShowTarget(Target, Aim, RP, Root)
+    if not Target or not Target.Parent or not Aim then DriveClearVis() return end
+    if DriveMarker and not DriveMarker.Parent then DriveClearVis() end
+    if DriveTarget ~= Target then DriveVisited[Target] = (DriveVisited[Target] or 0) + 1 end
+    DriveTarget, DriveAim, DriveOrigin = Target, Aim, RP
+
+    if DriveMarker and DriveMarker.Parent then
+        DriveMarker.Position = Aim + Vector3.new(0, 1, 0)
+        DriveHL.Adornee = Target
+        if DriveAtt0.Parent ~= Root then DriveAtt0.Parent = Root end
+        return
+    end
+
+    DriveMarker = Instance.new("Part")
+    DriveMarker.Name = "AbysallDriveWaypoint"
+    DriveMarker.Size = Vector3.new(1.5, 1.5, 1.5)
+    DriveMarker.Shape = Enum.PartType.Ball
+    DriveMarker.Material = Enum.Material.Neon
+    DriveMarker.Color = Color3.fromRGB(0, 255, 100)
+    DriveMarker.Anchored = true
+    DriveMarker.CanCollide = false
+    DriveMarker.CanTouch = false
+    DriveMarker.CanQuery = false
+    DriveMarker.Position = Aim + Vector3.new(0, 1, 0)
+    DriveMarker.Parent = Services.Workspace
 
     DriveHL = Instance.new("Highlight")
     DriveHL.Adornee = Target
     DriveHL.FillColor = Color3.fromRGB(0, 255, 100)
     DriveHL.OutlineColor = Color3.fromRGB(255, 255, 255)
-    DriveHL.FillTransparency = 0.6
-    DriveHL.Parent = Target
+    DriveHL.FillTransparency = 0.85
+    DriveHL.Parent = DriveMarker
 
     DriveTag = Instance.new("BillboardGui")
     DriveTag.Size = UDim2.new(0, 140, 0, 44)
     DriveTag.AlwaysOnTop = true
     DriveTag.StudsOffset = Vector3.new(0, 8, 0)
-    DriveTag.Adornee = Target
-    DriveTag.Parent = Target
+    DriveTag.Adornee = DriveMarker
+    DriveTag.Parent = DriveMarker
     local TL = Instance.new("TextLabel")
     TL.Size = UDim2.new(1, 0, 1, 0)
     TL.BackgroundTransparency = 1
@@ -523,17 +651,15 @@ local function DriveShowTarget(Target)
     TL.TextStrokeTransparency = 0
     TL.TextScaled = true
     TL.Font = Enum.Font.GothamBold
-    TL.Text = "HEDEF"
+    TL.Text = "NEXT WAYPOINT"
     TL.Parent = DriveTag
     DriveTagLabel = TL
 
-    local Char = LocalPlayer.Character
-    local Root = Char and Char:FindFirstChild("HumanoidRootPart")
     if Root then
         DriveAtt0 = Instance.new("Attachment")
         DriveAtt0.Parent = Root
         DriveAtt1 = Instance.new("Attachment")
-        DriveAtt1.Parent = Target
+        DriveAtt1.Parent = DriveMarker
         DriveBeam = Instance.new("Beam")
         DriveBeam.Attachment0 = DriveAtt0
         DriveBeam.Attachment1 = DriveAtt1
@@ -545,183 +671,150 @@ local function DriveShowTarget(Target)
     end
 end
 
-local function DriveRay(Origin, Dir, Len, Blacklist)
-    local Params = RaycastParams.new()
-    Params.FilterType = Enum.RaycastFilterType.Exclude
-    Params.FilterDescendantsInstances = Blacklist
-    Params.IgnoreWater = true
-    return Services.Workspace:Raycast(Origin, Dir * Len, Params)
+local function DriveReached(RP, Speed)
+    if not DriveAim or not DriveOrigin then return true end
+    local Delta = DriveFlat(DriveAim - RP)
+    if Delta.Magnitude < math.clamp(4 + Speed * 0.08, 4, 10) then return true end
+    local Along = DriveFlat(DriveAim - DriveOrigin)
+    if Along.Magnitude < 0.1 then return true end
+    local Past = DriveFlat(RP - DriveAim)
+    local Lateral = math.abs(Along.Unit:Cross(Past).Y)
+    return Along:Dot(Past) > 0 and Lateral < 8
+end
+
+local function DriveStep(State, Now)
+    local Char = LocalPlayer.Character
+    local Root = Char and Char:FindFirstChild("HumanoidRootPart")
+    if not Root or Root.CFrame.UpVector.Y < 0 then
+        DriveReleaseAll()
+        DriveClearVis()
+        State.Root = nil
+        return
+    end
+    if State.Root ~= Root then
+        DriveReleaseAll()
+        DriveClearVis()
+        State.Root, State.ProgressPos, State.ProgressAt = Root, Root.Position, Now
+        State.ReverseUntil, State.NextPlan = 0, 0
+    end
+    DriveRefreshStreets()
+    if #DriveStreets == 0 then
+        DriveReleaseAll()
+        DriveClearVis()
+        if Now - State.WarnAt > 5 then
+            State.WarnAt = Now
+            Library:Notify("Auto Drive: no Street parts found in Workspace.Map.Roads.")
+        end
+        return
+    end
+
+    local RP = Root.Position
+    local Head = DriveFlat(Root.CFrame.LookVector)
+    if Head.Magnitude < 0.01 then DriveReleaseAll() return end
+    Head = Head.Unit
+    local Speed = DriveFlat(Root.AssemblyLinearVelocity).Magnitude
+    local WheelieOn = ToggleOn("AutoWheelie")
+    local Params = DriveRayParams(Char, Root)
+    local Current = DriveCurrentStreet(RP)
+    local From = DriveClosestPoint(Current, RP) or RP - Vector3.new(0, 3, 0)
+
+    -- Wheelie ortada acilsa bile geri vites hemen iptal edilir.
+    if WheelieOn then State.ReverseUntil = 0 end
+    if Now < State.ReverseUntil then
+        local Back = From - Head * 10
+        if Current and DriveRoadSegment(From, Back, Current, Current)
+            and not DriveBlockedBy(From, Back, Params) then
+            DriveKey("W", false)
+            DriveKey("S", true)
+            DriveKey("A", false)
+            DriveKey("D", false)
+            return
+        end
+        State.ReverseUntil = 0
+    end
+    DriveKey("S", false)
+    if DriveFlat(RP - State.ProgressPos).Magnitude > 4 then
+        State.ProgressPos, State.ProgressAt = RP, Now
+    elseif Now - State.ProgressAt > 3 then
+        DriveAvoidPoint(DriveAim)
+        DriveClearVis()
+        DriveReleaseAll()
+        State.ProgressPos, State.ProgressAt, State.NextPlan = RP, Now, 0
+        if not WheelieOn then State.ReverseUntil = Now + 0.7 end
+        return
+    end
+
+    local NeedsPlan = not DriveTarget or not DriveTarget.Parent or DriveReached(RP, Speed)
+    if not NeedsPlan and Now >= State.CheckAt then
+        State.CheckAt = Now + 0.2
+        if not DriveRoadSegment(From, DriveAim, Current, DriveTarget)
+            or DriveBlockedBy(From, DriveAim, Params) then
+            DriveAvoidPoint(DriveAim)
+            NeedsPlan = true
+        end
+    end
+    if NeedsPlan then
+        if Now < State.NextPlan then DriveReleaseAll() return end
+        State.NextPlan = Now + 0.2
+        local Target, Aim = DrivePickTarget(RP, Head, Speed, Params)
+        DriveShowTarget(Target, Aim, RP, Root)
+        if not Aim then
+            DriveReleaseAll()
+            if Now - State.WarnAt > 5 then
+                State.WarnAt = Now
+                Library:Notify("Auto Drive: no clear road waypoint. Reposition the scooter; retrying.")
+            end
+            return
+        end
+    end
+    if not DriveAim then DriveReleaseAll() return end
+
+    -- Hedef degisince eski DX/DZ kullanilmaz; yeni nokta icin yeniden hesapla.
+    local Delta = DriveFlat(DriveAim - RP)
+    if Delta.Magnitude < 0.1 then DriveReleaseAll() return end
+    local Dir = Delta.Unit
+    local Angle = math.atan2(Head:Cross(Dir).Y, Head:Dot(Dir))
+    -- Donus momentini hesaba kat ve kisa direksiyon darbeleriyle salinimi azalt.
+    local Error = Angle - Root.AssemblyAngularVelocity.Y * 0.2
+    local Duty = math.clamp(math.abs(Error) / 0.6, 0.15, 1)
+    local Steer = math.abs(Error) > 0.06 and (Now % 0.2) < 0.2 * Duty
+    DriveKey("A", Steer and Error > 0)
+    DriveKey("D", Steer and Error < 0)
+    DriveKey("W", not WheelieOn and (math.abs(Angle) < 0.6 or (Now % 0.4) < 0.12))
+    if DriveTagLabel then
+        DriveTagLabel.Text = "NEXT: " .. tostring(math.floor(Delta.Magnitude)) .. " studs"
+    end
 end
 
 OnChange("AutoDrive", function(Value)
-    if not Value then
-        DriveId = DriveId + 1
-        DriveReleaseAll()
-        DriveClearVis()
+    DriveId += 1
+    DriveReleaseAll()
+    DriveClearVis()
+    if not Value then return end
+    if not VIM then
+        Library:Notify("Auto Drive requires VirtualInputManager.")
+        Toggles.AutoDrive:SetValue(false)
         return
     end
-    -- AutoWheelie ile birlikte calisabilir: Wheelie aciksa gaz (W) ve geri (S)
-    -- Wheelie'ye birakilir, Auto Drive sadece direksiyon (A/D) yapar.
-DriveId = DriveId + 1
+    DriveVisited, DriveBlocked = {}, {}
+    DriveStreetsAt = -math.huge
     local MyId = DriveId
+    local State = { ReverseUntil = 0, NextPlan = 0, CheckAt = 0, WarnAt = -math.huge }
     task.spawn(function()
-        local NoStreetWarn = 0
-        local StuckT = 0
-        local ReverseT = 0
-        local UprightT = 0
-        while MyId == DriveId and ToggleOn("AutoDrive") do
-            local Char = LocalPlayer.Character
-            local Root = Char and Char:FindFirstChild("HumanoidRootPart")
-            if not Root then
-                DriveReleaseAll()
-                task.wait(0.5)
-            else
-                DriveRefreshStreets()
-                if #DriveStreets == 0 then
-                    if tick() - NoStreetWarn > 5 then
-                        NoStreetWarn = tick()
-                        Library:Notify("Auto Drive: Street bulunamadi (Map.Roads yok).")
-                    end
-                    DriveReleaseAll()
-                    task.wait(1)
-                else
-                    local RP = Root.Position
-                    local WheelieOn = Toggles.AutoWheelie and ToggleOn("AutoWheelie") or false
-
-                    -- Devrilme kontrolu: arac yan yatmis / havada ise once duzelt.
-                    local UpY = Root.CFrame.UpVector.Y
-                    if UpY < 0.45 then
-                        UprightT = UprightT + 0.1
-                        if UprightT > 0.8 then
-                            UprightT = 0
-                            -- Space ile ziplama genelde araci dogru kaldirir.
-                            pcall(function() VIM:SendKeyEvent(true, Enum.KeyCode.Space, false, game) end)
-                            task.wait(0.15)
-                            pcall(function() VIM:SendKeyEvent(false, Enum.KeyCode.Space, false, game) end)
-                        end
-                    else
-                        UprightT = 0
-                    end
-
-                    -- Geri viste miyiz?
-                    if ReverseT > 0 then
-                        ReverseT = ReverseT - 0.1
-                        task.wait(0.1)
-                    else
-                        if not DriveTarget or not DriveTarget.Parent then
-                            DriveShowTarget(DrivePickTarget(RP))
-                        end
-                        if DriveTarget and (not DriveBeam or not DriveBeam.Parent) then
-                            local T = DriveTarget
-                            DriveShowTarget(T)
-                        end
-                        local T = DriveTarget
-                        if T and T.Parent then
-                            local HX, HZ = Root.CFrame.LookVector.X, Root.CFrame.LookVector.Z
-                            local Head = Vector3.new(HX, 0, HZ)
-                            if Head.Magnitude < 0.01 then Head = Vector3.new(0, 0, -1) else Head = Head.Unit end
-                            local DX, DZ = T.Position.X - RP.X, T.Position.Z - RP.Z
-                            local Dist = math.sqrt(DX * DX + DZ * DZ)
-                            if DriveTagLabel then
-                                DriveTagLabel.Text = "HEDEF: " .. tostring(math.floor(Dist)) .. "m"
-                            end
-
-                            -- Varis: 80 stud icine girince ziyaret edildi say, siradakine gec.
-                            if Dist < 80 then
-                                DriveVisited[T] = true
-                                DriveShowTarget(DrivePickTarget(RP))
-                                T = DriveTarget
-                            end
-
-                            if T and T.Parent then
-                                local DirX, DirZ = DX / math.max(Dist, 0.01), DZ / math.max(Dist, 0.01)
-                                local CrossY = Head.Z * DirX - Head.X * DirZ
-                                local Dot = Head.X * DirX + Head.Z * DirZ
-                                local Ang = math.atan2(CrossY, Dot)
-
-                                -- Engel taramasi: on + sol/sag 30 derece.
-                                local BL = { Char }
-                                local Hum = Char:FindFirstChildOfClass("Humanoid")
-                                if Hum and Hum.SeatPart then
-                                    table.insert(BL, Hum.SeatPart.Parent or Hum.SeatPart)
-                                end
-                                local Up3 = RP + Vector3.new(0, 3, 0)
-                                local Hit = DriveRay(Up3, Head, 45, BL)
-                                local Steer = nil
-                                if Hit and Hit.Instance then
-                                    local IH = Hit.Instance
-                                    local IsRoad = IH.Name == "Street" or (DriveRoads and IH:IsDescendantOf(DriveRoads))
-                                    if not IsRoad then
-                                        local function SideDist(Off)
-                                            local C, S = math.cos(Off), math.sin(Off)
-                                            local SX = Head.X * C + Head.Z * S
-                                            local SZ = -Head.X * S + Head.Z * C
-                                            local H2 = DriveRay(Up3, Vector3.new(SX, 0, SZ), 45, BL)
-                                            if H2 and H2.Position then
-                                                local OX, OZ = H2.Position.X - RP.X, H2.Position.Z - RP.Z
-                                                return math.sqrt(OX * OX + OZ * OZ)
-                                            end
-                                            return 45
-                                        end
-                                        local L = SideDist(0.5)
-                                        local R = SideDist(-0.5)
-                                        Steer = (L >= R) and "A" or "D"
-                                    end
-                                end
-
-                                -- Takilma: hiz 3'un altinda 3sn kalirsa 1.2sn geri git.
-                                local Speed = Root.AssemblyLinearVelocity.Magnitude
-                                if Speed < 3 then StuckT = StuckT + 0.1 else StuckT = 0 end
-                                if StuckT > 3 then
-                                    StuckT = 0
-                                    -- Bu hedefe bir daha deneme: engelli listesine at, yenisine gec.
-                                    if DriveTarget then
-                                        DriveBlocked[DriveTarget] = true
-                                    end
-                                    DriveVisited = {}
-                                    DriveShowTarget(DrivePickTarget(RP))
-                                    if WheelieOn then
-                                        -- Wheelie gazı yönetiyor: sadece direksiyonu bırak, geri vitese girme.
-                                        DriveKey("A", false)
-                                        DriveKey("D", false)
-                                    else
-                                        DriveKey("W", false)
-                                        DriveKey("A", false)
-                                        DriveKey("D", false)
-                                        DriveKey("S", true)
-                                        ReverseT = 1.2
-                                    end
-                                else
-                                    if not WheelieOn then
-                                        DriveKey("W", true)
-                                        DriveKey("S", false)
-                                    else
-                                        DriveKey("W", false)
-                                        DriveKey("S", false)
-                                    end
-                                    if Steer then
-                                        DriveKey("A", Steer == "A")
-                                        DriveKey("D", Steer == "D")
-                                    elseif Ang < -0.15 then
-                                        DriveKey("D", true)
-                                        DriveKey("A", false)
-                                    elseif Ang > 0.15 then
-                                        DriveKey("A", true)
-                                        DriveKey("D", false)
-                                    else
-                                        DriveKey("A", false)
-                                        DriveKey("D", false)
-                                    end
-                                end
-                            end
-                        end
-                        task.wait(0.1)
-                    end
-                end
+        local Ok, Err = pcall(function()
+            while not InputUnloaded and MyId == DriveId and ToggleOn("AutoDrive") do
+                DriveStep(State, os.clock())
+                task.wait(0.05)
             end
-        end
+        end)
+        if MyId ~= DriveId then return end
         DriveReleaseAll()
         DriveClearVis()
+        if not Ok then
+            warn("[Abysall-AutoDrive] " .. tostring(Err))
+            Library:Notify("Auto Drive stopped: see F9 [Abysall-AutoDrive].")
+            Toggles.AutoDrive:SetValue(false)
+        end
     end)
 end)
 
@@ -776,6 +869,7 @@ TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
 end))
 
 Library:OnUnload(function()
+    InputUnloaded = true
     WheelieRun = WheelieRun + 1
     DriveId = DriveId + 1
     pcall(WheelieReleaseAll)
