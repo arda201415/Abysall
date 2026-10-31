@@ -27,6 +27,15 @@ return function(Context)
     local Connections, Streamed = {}, {}
     local StreamBusy, StreamPending, Scheduled = false, false, false
 
+    function Controller:IsDupeDoor(Object)
+        if not Object or not Object.Parent then return false end
+        if Object.Name ~= "DoorFake" and Object.Name ~= "FakeDoor" then return false end
+        -- Decorative/boarded doors reuse these names. A real Dupe door has
+        -- its own physical Hidden trigger; the name alone is not sufficient.
+        local Hidden = Object:FindFirstChild("Hidden")
+        return Hidden ~= nil and Hidden:IsA("BasePart")
+    end
+
     local function HasPathName(Object, Root, Name)
         local Parent = Object
         while Parent and Parent ~= Root do
@@ -46,9 +55,12 @@ return function(Context)
                 Roots[Parent] = true
                 if IsOn(Rule.Toggle) then
                     if Rule.FakeDoor then
-                        if IsPart and HasPathName(Object, Parent, "Hidden") then Desired.CanTouch = false end
-                        if IsPrompt and Object.Name == "UnlockPrompt" and HasPathName(Object, Parent, "Lock") then
-                            Desired.Enabled = false
+                        if Controller:IsDupeDoor(Parent) then
+                            if IsPart and HasPathName(Object, Parent, "Hidden") then Desired.CanTouch = false end
+                            if IsPrompt and Object.Name == "UnlockPrompt"
+                                and (HasPathName(Object, Parent, "Lock") or HasPathName(Object, Parent, "LockPart")) then
+                                Desired.Enabled = false
+                            end
                         end
                     elseif Rule.Collision then
                         if IsPart and HasPathName(Object, Parent, "Collision") then
@@ -112,6 +124,12 @@ return function(Context)
 
     function Controller:Observe(Object)
         if not self.Active then return end
+        -- A streamed trigger can arrive after its lock/prompt. Revisit that
+        -- door immediately so all of its protection becomes ready together.
+        if Object.Name == "Hidden" and Object.Parent
+            and (Object.Parent.Name == "DoorFake" or Object.Parent.Name == "FakeDoor") then
+            Object = Object.Parent
+        end
         if Rules[Object.Name] then
             Roots[Object] = true
             self:Apply(Object)

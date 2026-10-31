@@ -3054,14 +3054,44 @@ local NodeEntities = {
 	Rush = true, Ambush = true, Eyes = true, Blitz = true, Lookman = true, ["A-60"] = true, ["A-120"] = true, Sally = true, ["Jeff The Killer"] = true, Monument = true, Honcho = true, Bash = true, Ransom = true, Scribbles = true, Drone = true, Alma = true, Fih = true, ["AR0xMBUSH"] = true, ["RNIUSHCG=="] = true
 }
 
+Functions.EntityLabel = function(Object)
+	local Label = EntityESPLabels[Object.Name]
+	if not Label and Entities[Object.Name] then Label = Entities[Object.Name].Alias end
+	if Label == "Dupe" and not RoomProtection:IsDupeDoor(Object) then return nil end
+	return Label
+end
+
+Functions.RefreshDupeESP = function(Object)
+	if not Object.Parent then return end
+	if not table.find(Objects.Entities, Object) then table.insert(Objects.Entities, Object) end
+	RoomProtection:Observe(Object)
+	if RoomProtection:IsDupeDoor(Object) and ToggleOn("EntityESPToggle") and Options.EntityESPOptions.Value.Dupe then
+		Functions.AddESP({ Object = Object, Text = "Dupe", Color = Options.EntityESPColor.Value }, true)
+	else
+		Functions.RemoveESP(Object)
+	end
+end
+
+local DupeDoorWatchers = setmetatable({}, { __mode = "k" })
+Functions.TrackDupeDoor = function(Object)
+	if not DupeDoorWatchers[Object] then
+		local function Refresh(Child)
+			if RoomProtection.Active and Child.Name == "Hidden" then Functions.RefreshDupeESP(Object) end
+		end
+		local Added = Object.ChildAdded:Connect(Refresh)
+		local Removed = Object.ChildRemoved:Connect(Refresh)
+		DupeDoorWatchers[Object] = true
+		table.insert(Connections, Added)
+		table.insert(Connections, Removed)
+	end
+	Functions.RefreshDupeESP(Object)
+end
+
 local LiveEntitiesSeen = setmetatable({}, { __mode = "k" })
 local LiveEntitiesFolder, LiveEntitiesConn = nil, nil
 
 local function LiveEntityLabel(Object)
-	local Known = EntityESPLabels[Object.Name]
-	if Known then return Known end
-	local Data = Entities[Object.Name]
-	if Data then return Data.Alias end
+	if EntityESPLabels[Object.Name] or Entities[Object.Name] then return Functions.EntityLabel(Object) end
 	return Object.Name
 end
 
@@ -3081,9 +3111,11 @@ local function HookLiveEntity(Object)
 	if LiveEntitiesSeen[Object] then return end
 	if not (Object:IsA("Model") or Object:IsA("BasePart")) then return end
 	if TrackedLiveEntityModelAncestor(Object) then return end
+	local Label = LiveEntityLabel(Object)
+	if not Label then return end
 
 	local Added = pcall(function()
-		Functions.AddESP({ Object = Object, Text = LiveEntityLabel(Object), Color = Options.LiveEntitiesESPColor.Value }, false)
+		Functions.AddESP({ Object = Object, Text = Label, Color = Options.LiveEntitiesESPColor.Value }, false)
 	end)
 	if not Added then return end
 	LiveEntitiesSeen[Object] = true
@@ -3256,8 +3288,7 @@ end)
 OnChange("EntityESPToggle", function(Value)
 	for _, Object in Objects.Entities do
 		if Value then
-			local Label = EntityESPLabels[Object.Name]
-			if not Label and Entities[Object.Name] then Label = Entities[Object.Name].Alias end
+			local Label = Functions.EntityLabel(Object)
 			if Label and Options.EntityESPOptions.Value[Label] then
 				Functions.AddESP({ Object = Object, Text = Label, Color = Options.EntityESPColor.Value }, NodeEntities[Label] ~= true)
 			else
@@ -3272,8 +3303,7 @@ end)
 Options.EntityESPOptions:OnChanged(function(Value)
 	for _, Object in Objects.Entities do
 		if ToggleOn("EntityESPToggle") then
-			local Label = EntityESPLabels[Object.Name]
-			if not Label and Entities[Object.Name] then Label = Entities[Object.Name].Alias end
+			local Label = Functions.EntityLabel(Object)
 			if Label and Options.EntityESPOptions.Value[Label] then
 				Functions.AddESP({ Object = Object, Text = Label, Color = Options.EntityESPColor.Value }, NodeEntities[Label] ~= true)
 			else
@@ -5325,10 +5355,7 @@ Functions.HandleObject = function(Object)
 		table.insert(Objects.EventTriggers, Object)
 	elseif Name == "DoorFake" or Name == "FakeDoor" then
 		if Object.Parent then
-			if ToggleOn("EntityESPToggle") and Options.EntityESPOptions.Value["Dupe"] then
-				Functions.AddESP({ Object = Object, Text = "Dupe", Color = Options.EntityESPColor.Value }, true)
-			end
-			table.insert(Objects.Entities, Object)
+			Functions.TrackDupeDoor(Object)
 		end
 	elseif Name == "SideroomSpace" then
 		table.insert(Objects.Entities, Object)
@@ -6902,6 +6929,10 @@ end)
 local RusherAliases = { Rush=true, Ambush=true, Eyes=true, Lookman=true, Blitz=true, ["A-60"]=true, ["A-120"]=true, AR0xMBUSH=true, ["RNIUSHCG=="]=true, ["Custom Entity"]=true, CustomEntity=true }
 
 local function ProcessEntitySpawn(Entity)
+	if Entity.Name == "DoorFake" or Entity.Name == "FakeDoor" then
+		Functions.TrackDupeDoor(Entity)
+		return
+	end
 	local EntityData = Entities[Entity.Name]
 	if not EntityData then
 		-- Bilinmeyen workspace modeli: sessiz gecme, F9'a dus (throttle'li).
