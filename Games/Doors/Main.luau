@@ -1910,6 +1910,16 @@ Groupboxes.Exploits_Bypass:AddToggle("BypassJeff",          { Text = "Bypass Jef
 Groupboxes.Exploits_Bypass:AddToggle("BypassCreak",         { Text = "Bypass Creak",            Default = false, Tooltip = "Disables touch on Creak's parts and reuses the Eyes view spoof while Creak is active. Camera is not moved." })
 Groupboxes.Exploits_Bypass:AddToggle("BypassDrone",         { Text = "Bypass Drone",            Default = false, Tooltip = "Deletes the 'WalkedInto' remote inside 'Drones' models so touching them doesn't knock you down (stays deleted until rejoin)." })
 
+local ProtectionSource = Abysall.FetchModules({
+	RoomProtection = "https://raw.githubusercontent.com/arda201415/Abysall/refs/heads/main/Games/Doors/RoomProtection.luau",
+}, "Preparing room protection", 0.9, 0.9).RoomProtection
+local RoomProtection = Abysall.RunModule(ProtectionSource, "Doors/RoomProtection")({
+	Workspace = Services.Workspace, Rooms = CurrentRooms, Player = LocalPlayer,
+	LatestRoom = LatestRoom, IsOn = ToggleOn,
+})
+Abysall.RoomProtection = RoomProtection
+Connections.RoomProtection = RoomProtection
+
 local CreakModels = setmetatable({}, { __mode = "k" })
 local CreakTouchState = setmetatable({}, { __mode = "k" })
 
@@ -2033,25 +2043,8 @@ local function SetCreakConnections(Enabled)
 	end)
 end
 
-OnChange("BypassGiggle", function(Value)
-	for _, Object in Objects.Entities do
-		if Object.Name == "GiggleCeiling" then
-			local Hitbox = Object:WaitForChild("Hitbox", 5)
-			if Hitbox then Hitbox.CanTouch = not Value end
-		end
-	end
-end)
-OnChange("BypassDupe", function(Value)
-	for _, Object in Objects.Entities do
-		if Object.Name == "DoorFake" or Object.Name == "FakeDoor" then
-			local Hidden = Object:WaitForChild("Hidden", 5)
-			if Hidden then Hidden.CanTouch = not Value end
-			if Object:FindFirstChild("Lock") then
-				Object.Lock.UnlockPrompt.Enabled = not Value
-			end
-		end
-	end
-end)
+OnChange("BypassGiggle", function() RoomProtection:Refresh() end)
+OnChange("BypassDupe", function() RoomProtection:Refresh() end)
 OnChange("BypassEyes", function(Value)
 	if Value and Globals.IsEyes then
 		if Floor == "Fools" or Floor == "OldHotel" then
@@ -2070,79 +2063,25 @@ OnChange("BypassLookman", function(Value)
 		end
 	end
 end)
-OnChange("BypassGloombatEggs", function(Value)
-	for _, Object in Objects.Entities do
-		for _, Part in Object:GetDescendants() do
-			if Part:IsA("BasePart") then
-				Part.CanTouch = not Value
-			end
-		end
-	end
-end)
+OnChange("BypassGloombatEggs", function() RoomProtection:Refresh() end)
 OnChange("BypassSeekObstructions", function(Value)
-	for _, Object in Objects.SeekObstructions do
-		Object.CanTouch = not Value
-		if Object.Name == "SeekFloodline" then
-			Object.CanCollide = Value
-		end
-	end
+	RoomProtection:Refresh()
 	for _, Object in Objects.SeekBridges do
 		Object.CanCollide = Value
 		Object.Transparency = Value and 0 or 1
 	end
 end)
-OnChange("BypassVacuum", function(Value)
-	for _, Object in Objects.Entities do
-		if Object.Name == "SideroomSpace" then
-			local Collision = Object:WaitForChild("Collision", 5)
-			if Collision then
-				Collision.CanCollide = Value
-				Collision.CanTouch = not Value
-			end
-		end
-	end
-end)
-OnChange("BypassKillbricks", function(Value)
-	for _, Object in Objects.Obstructions do
-		if Object.Name == "Lava" then Object.CanTouch = not Value end
-	end
-end)
-OnChange("BypassSeekingWall", function(Value)
-	for _, Object in Objects.Obstructions do
-		if Object.Name == "ScaryWall" then
-			for _, Part in Object:GetDescendants() do
-				if Part:IsA("BasePart") then
-					Part.CanTouch = not Value
-					Part.CanCollide = not Value
-				end
-			end
-		end
-	end
-end)
-OnChange("BypassSnare", function(Value)
-	for _, Object in Objects.Entities do
-		if Object.Name == "Snare" then
-			for _, Part in Object:GetDescendants() do
-				if Part:IsA("BasePart") then Part.CanTouch = not Value end
-			end
-		end
-	end
-end)
-OnChange("BypassBanana", function(Value)
-	for _, Object in Objects.Entities do
-		if Object.Name == "BananaPeel" then Object.CanTouch = not Value end
-	end
-end)
+OnChange("BypassVacuum", function() RoomProtection:Refresh() end)
+OnChange("BypassKillbricks", function() RoomProtection:Refresh() end)
+OnChange("BypassSeekingWall", function() RoomProtection:Refresh() end)
+OnChange("BypassSnare", function() RoomProtection:Refresh() end)
+OnChange("BypassBanana", function() RoomProtection:Refresh() end)
 OnChange("BypassJeff", function(Value)
+	RoomProtection:Refresh()
+	if not Value then return end
 	for _, Object in Objects.Entities do
 		if Object.Name == "JeffTheKiller" then
-			for _, Part in Object:GetDescendants() do
-				if Part:IsA("BasePart") then
-					Part.CanCollide = not Value
-					Part.CanTouch = not Value
-				end
-			end
-			local Humanoid = Object:WaitForChild("Humanoid", 5)
+			local Humanoid = Object:FindFirstChildOfClass("Humanoid")
 			if Humanoid then Humanoid.Health = 0 end
 		end
 	end
@@ -4863,6 +4802,8 @@ Functions.HandleHidingTransparency = function(Model)
 end
 
 Functions.HandleObject = function(Object)
+	if not Object.Parent then return end
+	RoomProtection:Observe(Object)
 	-- Oda atamasi: eskiden her oda icin task.wait() vardi, 50+ odada obje
 	-- basina 50 frame -> kuyruk saatlerce birikiyordu. Tek geciste bak.
 	if not Object:GetAttribute("ParentRoom") then
@@ -5288,29 +5229,8 @@ Functions.HandleObject = function(Object)
 		Functions.HandleHidingTransparency(Object)
 		table.insert(Objects.HidingSpots, Object)
 	elseif Name == "Lava" then
-		if ToggleOn("BypassKillbricks") then Object.CanTouch = false end
 		table.insert(Objects.Obstructions, Object)
 	elseif Name == "ScaryWall" then
-		for _, Part in Object:GetDescendants() do
-			if Part:IsA("BasePart") then
-				Part.CanTouch = not ToggleOn("BypassSeekingWall")
-				Part.CanCollide = not ToggleOn("BypassSeekingWall")
-
-                local Connection1 = Part:GetPropertyChangedSignal("CanTouch"):Connect(function()
-                    if Part.CanTouch == ToggleOn("BypassSeekingWall") then
-                        Part.CanTouch = not ToggleOn("BypassSeekingWall")
-                    end
-                end)
-                local Connection2 = Part:GetPropertyChangedSignal("CanCollide"):Connect(function()
-                    if Part.CanCollide == ToggleOn("BypassSeekingWall") then
-                        Part.CanCollide = not ToggleOn("BypassSeekingWall")
-                    end
-                end)
-
-                table.insert(Connections, Connection1)
-                table.insert(Connections, Connection2)
-            end
-		end
 		table.insert(Objects.Obstructions, Object)
 	elseif Name == "ChestBox" or Name == "ChestBoxLocked" then
 		if ToggleOn("ChestESPToggle") then Functions.AddESP({ Object = Object, Text = Object:GetAttribute("Locked") and "Locked Chest" or "Chest", Color = Options.ChestESPColor.Value }, true) end
@@ -5361,27 +5281,11 @@ Functions.HandleObject = function(Object)
 		table.insert(Objects.Currency, Object)
 	elseif Name == "GiggleCeiling" then
 		if ToggleOn("EntityESPToggle") and Options.EntityESPOptions.Value["Giggle"] then Functions.AddESP({ Object = Object, Text = "Giggle", Color = Options.EntityESPColor.Value }, true) end
-		if ToggleOn("BypassGiggle") then
-			local Hitbox = Object:WaitForChild("Hitbox", 5)
-			if Hitbox then Hitbox.CanTouch = false end
-		end
 		table.insert(Objects.Entities, Object)
 	elseif Name == "GloomPile" then
-		if ToggleOn("BypassGloombatEggs") then
-			for _, Part in Object:GetDescendants() do
-				if Part:IsA("BasePart") then Part.CanTouch = false
-				end
-			end
-		end
-		local Connection = Object.DescendantAdded:Connect(function(Part)
-			if Part:IsA("BasePart") then Part.CanTouch = false end
-		end)
-
 		if ToggleOn("EntityESPToggle") and Options.EntityESPOptions.Value["Gloombat Eggs"] then
 			Functions.AddESP({ Object = Object, Text = "Gloombat Eggs", Color = Options.EntityESPColor.Value })
 		end
-
-		table.insert(Connections, Connection)
 		table.insert(Objects.Entities, Object)
 	elseif Name == "TriggerEventCollision" and Functions.CheckCompatability({"firetouchinterest"}) then
 		if (Floor == "Fools" or Floor == "OldHotel") and ToggleOn("RemoveSeekTrigger") then
@@ -5400,36 +5304,16 @@ Functions.HandleObject = function(Object)
 		end
 		table.insert(Objects.EventTriggers, Object)
 	elseif Name == "DoorFake" or Name == "FakeDoor" then
-		if Object.Parent and Object:FindFirstChild("Hidden") then
-			if ToggleOn("BypassDupe") then
-				local Hidden = Object:WaitForChild("Hidden", 5)
-				if Hidden then Hidden.CanTouch = false end
-				local Lock = Object:FindFirstChild("Lock")
-				if Lock and Lock:FindFirstChild("UnlockPrompt") then Lock.UnlockPrompt.Enabled = false end
-			end
+		if Object.Parent then
 			if ToggleOn("EntityESPToggle") and Options.EntityESPOptions.Value["Dupe"] then
 				Functions.AddESP({ Object = Object, Text = "Dupe", Color = Options.EntityESPColor.Value }, true)
 			end
 			table.insert(Objects.Entities, Object)
 		end
 	elseif Name == "SideroomSpace" then
-		if ToggleOn("BypassVacuum") then
-			local Collision = Object:WaitForChild("Collision", 5)
-			if Collision then
-				Collision.CanCollide = true
-				Collision.CanTouch = false
-			end
-		end
 		table.insert(Objects.Entities, Object)
 	elseif Name == "Snare" then
 		if ToggleOn("EntityESPToggle") and Options.EntityESPOptions.Value["Snare"] then Functions.AddESP({ Object = Object, Text = "Snare", Color = Options.EntityESPColor.Value }, true) end
-		for _, Part in Object:GetDescendants() do
-			if Part:IsA("BasePart") then Part.CanTouch = not ToggleOn("BypassSnare") end
-		end
-		local Connection = Object.DescendantAdded:Connect(function(Part)
-			if Part:IsA("BasePart") then Part.CanTouch = not ToggleOn("BypassSnare") end
-		end)
-		table.insert(Connections, Connection)
 		table.insert(Objects.Entities, Object)
 
 		if Object:FindFirstChild("Snare") then
@@ -5448,18 +5332,10 @@ Functions.HandleObject = function(Object)
 	elseif Name == "Seek_Arm" or Name == "ChandelierObstruction" then
 		for _, Part in Object:GetDescendants() do
 			if Part:IsA("BasePart") then
-				Part.CanTouch = not ToggleOn("BypassSeekObstructions")
 				table.insert(Objects.SeekObstructions, Part)
 			end
 		end
 	elseif Name == "SeekFloodline" then
-		Object.CanCollide = ToggleOn("BypassSeekObstructions")
-		local FloodConn = Object:GetPropertyChangedSignal("CanCollide"):Connect(function()
-			if Object.CanCollide ~= ToggleOn("BypassSeekObstructions") then
-				Object.CanCollide = ToggleOn("BypassSeekObstructions")
-			end
-		end)
-		Object.Destroying:Once(function() FloodConn:Disconnect() end)
 		table.insert(Objects.SeekObstructions, Object)
 	elseif Object:GetAttribute("RawName") and Object:GetAttribute("RawName"):find("Halt") or Object:GetAttribute("Shade") == true then
 		if ToggleOn("NotifyEntities") and Options.EntityList.Value["Halt"] then
@@ -5476,14 +5352,10 @@ Functions.HandleObject = function(Object)
 				HaltLogConn:Disconnect()
 			end
 		end)
-	elseif Name == "BananaPeel" then
-		if ToggleOn("BypassBanana") then Object.CanTouch = false end
+	elseif Name == "BananaPeel" or Name == "NannerPeel" then
 		table.insert(Objects.Entities, Object)
 	elseif Name == "JeffTheKiller" then
 		if ToggleOn("BypassJeff") then
-			for _, Part in Object:GetDescendants() do
-				if Part:IsA("BasePart") then Part.CanCollide = false Part.CanTouch = false end
-			end
 			local Humanoid = Object:WaitForChild("Humanoid", 5)
 			if Humanoid then Humanoid.Health = 0 end
 		end
@@ -7197,28 +7069,6 @@ Library:OnUnload(function()
 
 	-- Kalan temizlik: tek bir hata geri kalanini bosmasin
 	pcall(function()
-	for _, Object in Objects.Entities do
-		if Object.Name == "Snare" or Object.Name == "GiggleCeiling" then
-			local Hitbox = Object:FindFirstChild("Hitbox")
-			if Hitbox then Hitbox.CanTouch = true end
-		end
-		if Object.Name == "GloomPile" then
-			for _, Part in Object:GetDescendants() do
-				if Part:IsA("BasePart") then Part.CanTouch = true end
-			end
-		end
-		if Object.Name == "FakeDoor" or Object.Name == "DoorFake" then
-			local Hidden = Object:FindFirstChild("Hidden")
-			if Hidden then Hidden.CanTouch = true end
-			local Lock = Object:FindFirstChild("Lock")
-			if Lock and Lock:FindFirstChild("UnlockPrompt") then Lock.UnlockPrompt.Enabled = true end
-		end
-		if Object.Name == "SideroomSpace" then
-			local Coll = Object:FindFirstChild("Collision")
-			if Coll then Coll.CanCollide = false Coll.CanTouch = true end
-		end
-	end
-
 	for Model in pairs(CreakModels) do
 		SetCreakTouch(Model, false)
 		CreakModels[Model] = nil

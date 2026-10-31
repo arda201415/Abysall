@@ -1,6 +1,7 @@
 if Abysall then
     pcall(function()
         if Abysall.LoadingScreen then Abysall.LoadingScreen:Destroy() end
+        if Abysall.RoomProtection then Abysall.RoomProtection:Destroy() end
     end)
     -- Onceki calistirma yarida kesilmis olabilir; sessizce donmek yerine temizle
     warn("[Abysall] onceki oturum bulundu, temizleniyor")
@@ -310,7 +311,9 @@ local function Bootstrap()
     local Current = Session.CurrentGame
     local GamePath = Session.GameRegistry:ScriptPath(Current, game.PlaceId)
     local GameUrl = BaseUrl .. GamePath
-    Session.PrefetchModules({ Game = GameUrl })
+    local GameDownloads = { Game = GameUrl }
+    for _, Path in ipairs(Current.Dependencies or {}) do GameDownloads[Path] = BaseUrl .. Path end
+    Session.PrefetchModules(GameDownloads)
     Session.ReportProgress("Starting interface", Session.UILibrary, 0.5)
     Session.Interface = Session.RunModule(Core.Interface, "Interface")
 
@@ -342,6 +345,7 @@ if Ok then
 else
     Loading:Fail(Err)
     warn("[Abysall] " .. Loading.FailedStage .. ": " .. tostring(Err))
+    pcall(function() if Session.RoomProtection then Session.RoomProtection:Destroy() end end)
     pcall(function()
         local Library = Session.Interface and Session.Interface.Library
         if Library and type(Library.Unload) == "function" then Library:Unload() end

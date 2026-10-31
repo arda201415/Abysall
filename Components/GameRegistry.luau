@@ -6,8 +6,9 @@ local Registry = {
         {
             Id = "Doors", Name = "DOORS", GameIds = { 2440500124 },
             PlaceScripts = { [6516141723] = "Lobby" },
+            Dependencies = { "Games/Doors/RoomProtection.luau" },
             Updated = "2026-10-31", Coverage = "Lobby and in-game floors",
-            Features = { "Entity alerts", "Player, item and entity ESP", "Puzzle helpers", "Rooms automation" },
+            Features = { "Entity alerts", "Player, item and entity ESP", "Early contact protection", "Puzzle helpers", "Rooms automation" },
         },
         {
             Id = "MurderDuels", Name = "Murder Duels", PlaceIds = { 120851538706364, 120783481568445 },

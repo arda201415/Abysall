@@ -54,9 +54,8 @@ local ApplyAddons = RunModule(InterfaceSources.Addons, "Addons")
 Interface.ApplySupportedGamesTab = RunModule(InterfaceSources.SupportedGamesTab, "SupportedGamesTab")
 
 function Interface.ApplyInfoTab(Window)
-  Report("Building menu", "Info and supported games", 0.9)
-  ApplyInfo(Window)
-  Interface.ApplySupportedGamesTab(Window)
+  Report("Building menu", "Home and supported games", 0.9)
+  return ApplyInfo(Window)
 end
 
 function Interface.ApplySettingsTab(Window)

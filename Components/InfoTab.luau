@@ -26,7 +26,8 @@ return function(Window)
     local Options = Library.Options
 
     local LocalPlayer = Services.Players.LocalPlayer
-    local InfoTab = Window:AddTab("Info", "user")
+    local InfoTab = Window:AddTab("Home", "house")
+    Abysall.Interface.ApplySupportedGamesTab(InfoTab)
 
     local User = InfoTab:AddLeftGroupbox("User Info")
 

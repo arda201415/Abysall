@@ -1,8 +1,8 @@
-return function(Window)
+-- Render the catalog inside the existing Home page.
+return function(Tab)
     local Registry = Abysall.GameRegistry
     local Current = Abysall.CurrentGame
     local Library = Abysall.Interface.Library
-    local Tab = Window:AddTab("Games", "gamepad-2")
     local Overview = Tab:AddLeftGroupbox("Supported Games")
     local Count = 0
     local Names, ByName = {}, {}
@@ -14,6 +14,7 @@ return function(Window)
     table.sort(Names)
 
     Overview:AddLabel(Count .. " game modules + Universal", true)
+    Overview:AddLabel(table.concat(Names, ", "), true)
     Overview:AddLabel("Active: " .. Current.Name, true)
     Overview:AddLabel(Current.Fallback
         and "This experience uses the Universal tools."
