@@ -50,7 +50,7 @@ local function CreateLoadingScreen()
         if Elapsed then Elapsed.Text = string.format("%.1fs elapsed", tick() - self.StartedAt) end
         if Timer then Timer:Disconnect(); Timer = nil end
         if Fill then
-            Fill.BackgroundColor3 = Color3.fromRGB(242, 99, 112)
+            Fill.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
             Hint.Visible = false
             Close.Visible = true
             Copy.Visible = type(setclipboard or toclipboard) == "function"
@@ -84,17 +84,17 @@ local function CreateLoadingScreen()
             Gui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui", 5)
         end
         local Backdrop = Create("Frame", Gui, {
-            Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.fromRGB(5, 8, 14),
-            BackgroundTransparency = 0.3, BorderSizePixel = 0, Active = true,
+            Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.fromRGB(14, 14, 14),
+            BackgroundTransparency = 0.2, BorderSizePixel = 0, Active = true,
         })
         local Card = Create("Frame", Backdrop, {
             AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
-            Size = UDim2.new(1, -32, 0, 288), BackgroundColor3 = Color3.fromRGB(18, 23, 34),
+            Size = UDim2.new(1, -32, 0, 288), BackgroundColor3 = Color3.fromRGB(28, 28, 28),
             BorderSizePixel = 0,
         })
         Create("UISizeConstraint", Card, { MaxSize = Vector2.new(440, 288) })
-        Create("UICorner", Card, { CornerRadius = UDim.new(0, 12) })
-        Create("UIStroke", Card, { Color = Color3.fromRGB(44, 55, 76), Thickness = 1 })
+        Create("UICorner", Card, { CornerRadius = UDim.new(0, 6) })
+        Create("UIStroke", Card, { Color = Color3.fromRGB(50, 50, 50), Thickness = 1 })
         local function Label(Name, Text, Y, Height, Size, Color)
             return Create("TextLabel", Card, {
                 Name = Name, Text = Text, Position = UDim2.fromOffset(24, Y),
@@ -104,33 +104,34 @@ local function CreateLoadingScreen()
                 TextWrapped = true,
             })
         end
-        Label("Brand", "ABYSALL HUB", 24, 18, 12, Color3.fromRGB(93, 161, 255))
-        StageText = Label("Stage", "Starting", 55, 30, 22, Color3.fromRGB(239, 244, 255))
-        DetailText = Label("Detail", "Preparing your menu...", 96, 76, 14, Color3.fromRGB(159, 174, 198))
+        Label("Brand", "ABYSALL HUB", 24, 18, 12, Color3.fromRGB(0, 85, 255))
+        StageText = Label("Stage", "Starting", 55, 30, 22, Color3.fromRGB(255, 255, 255))
+        DetailText = Label("Detail", "Preparing your menu...", 96, 76, 14, Color3.fromRGB(175, 175, 175))
         DetailText.TextTruncate = Enum.TextTruncate.AtEnd
         DetailText.ClipsDescendants = true
         local Track = Create("Frame", Card, {
-            Position = UDim2.fromOffset(24, 184), Size = UDim2.new(1, -48, 0, 6),
-            BackgroundColor3 = Color3.fromRGB(36, 45, 62), BorderSizePixel = 0,
+            Position = UDim2.fromOffset(24, 184), Size = UDim2.new(1, -48, 0, 4),
+            BackgroundColor3 = Color3.fromRGB(50, 50, 50), BorderSizePixel = 0,
         })
-        Create("UICorner", Track, { CornerRadius = UDim.new(0, 3) })
+        Create("UICorner", Track, { CornerRadius = UDim.new(0, 2) })
         Fill = Create("Frame", Track, {
             Name = "Progress", Size = UDim2.fromScale(0, 1), BorderSizePixel = 0,
-            BackgroundColor3 = Color3.fromRGB(70, 143, 255),
+            BackgroundColor3 = Color3.fromRGB(0, 85, 255),
         })
-        Create("UICorner", Fill, { CornerRadius = UDim.new(0, 3) })
-        Elapsed = Label("Elapsed", "0.0s elapsed", 202, 18, 12, Color3.fromRGB(133, 149, 175))
-        Percent = Label("Percent", "0%", 202, 18, 12, Color3.fromRGB(159, 174, 198))
+        Create("UICorner", Fill, { CornerRadius = UDim.new(0, 2) })
+        Elapsed = Label("Elapsed", "0.0s elapsed", 202, 18, 12, Color3.fromRGB(120, 120, 120))
+        Percent = Label("Percent", "0%", 202, 18, 12, Color3.fromRGB(175, 175, 175))
         Percent.TextXAlignment = Enum.TextXAlignment.Right
-        Hint = Label("Hint", "Your menu will open automatically.", 245, 18, 12, Color3.fromRGB(133, 149, 175))
+        Hint = Label("Hint", "Your menu will open automatically.", 245, 18, 12, Color3.fromRGB(120, 120, 120))
         local function Button(Text, X)
             local Object = Create("TextButton", Card, {
                 Text = Text, Position = UDim2.new(X, X == 0 and 24 or 4, 0, 236),
-                Size = UDim2.new(0.5, -28, 0, 32), Visible = false, BorderSizePixel = 0,
-                BackgroundColor3 = Color3.fromRGB(36, 48, 68), TextColor3 = Color3.fromRGB(239, 244, 255),
+                Size = UDim2.new(0.5, -28, 0, 30), Visible = false, BorderSizePixel = 0,
+                BackgroundColor3 = Color3.fromRGB(35, 35, 35), TextColor3 = Color3.fromRGB(255, 255, 255),
                 Font = Enum.Font.Gotham, TextSize = 13,
             })
-            Create("UICorner", Object, { CornerRadius = UDim.new(0, 6) })
+            Create("UICorner", Object, { CornerRadius = UDim.new(0, 4) })
+            Create("UIStroke", Object, { Color = Color3.fromRGB(50, 50, 50), Thickness = 1 })
             return Object
         end
         Close, Copy = Button("Close", 0), Button("Copy error", 0.5)
