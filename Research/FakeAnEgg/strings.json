@@ -1,0 +1,6023 @@
+[
+  {
+    "index": 0,
+    "kind": "string",
+    "value": "task",
+    "range": [
+      140,
+      212
+    ]
+  },
+  {
+    "index": 1,
+    "kind": "string",
+    "value": "spawn",
+    "range": [
+      249,
+      329
+    ]
+  },
+  {
+    "index": 4,
+    "kind": "string",
+    "value": "▼",
+    "range": [
+      617,
+      678
+    ]
+  },
+  {
+    "index": 5,
+    "kind": "string",
+    "value": "Text",
+    "range": [
+      710,
+      782
+    ]
+  },
+  {
+    "index": 6,
+    "kind": "string",
+    "value": "Visible",
+    "range": [
+      1000,
+      1090
+    ]
+  },
+  {
+    "index": 9,
+    "kind": "string",
+    "value": "▲",
+    "range": [
+      1310,
+      1371
+    ]
+  },
+  {
+    "index": 11,
+    "kind": "string",
+    "value": "game",
+    "range": [
+      1577,
+      1647
+    ]
+  },
+  {
+    "index": 12,
+    "kind": "string",
+    "value": "Players",
+    "range": [
+      1674,
+      1766
+    ]
+  },
+  {
+    "index": 13,
+    "kind": "string",
+    "value": "game",
+    "range": [
+      1846,
+      1916
+    ]
+  },
+  {
+    "index": 14,
+    "kind": "string",
+    "value": "Workspace",
+    "range": [
+      1940,
+      2045
+    ]
+  },
+  {
+    "index": 15,
+    "kind": "string",
+    "value": "game",
+    "range": [
+      2167,
+      2237
+    ]
+  },
+  {
+    "index": 16,
+    "kind": "string",
+    "value": "ReplicatedStorage",
+    "range": [
+      2264,
+      2432
+    ]
+  },
+  {
+    "index": 17,
+    "kind": "string",
+    "value": "game",
+    "range": [
+      2554,
+      2624
+    ]
+  },
+  {
+    "index": 18,
+    "kind": "string",
+    "value": "UserInputService",
+    "range": [
+      2648,
+      2805
+    ]
+  },
+  {
+    "index": 19,
+    "kind": "string",
+    "value": "LocalPlayer",
+    "range": [
+      2919,
+      3041
+    ]
+  },
+  {
+    "index": 20,
+    "kind": "string",
+    "value": "Pets",
+    "range": [
+      3720,
+      3790
+    ]
+  },
+  {
+    "index": 22,
+    "kind": "string",
+    "value": "Position",
+    "range": [
+      4142,
+      4240
+    ]
+  },
+  {
+    "index": 23,
+    "kind": "string",
+    "value": "Position",
+    "range": [
+      4345,
+      4443
+    ]
+  },
+  {
+    "index": 24,
+    "kind": "string",
+    "value": "Changed",
+    "range": [
+      4530,
+      4620
+    ]
+  },
+  {
+    "index": 26,
+    "kind": "string",
+    "value": "Enum",
+    "range": [
+      4886,
+      4956
+    ]
+  },
+  {
+    "index": 27,
+    "kind": "string",
+    "value": "UserInputType",
+    "range": [
+      5003,
+      5141
+    ]
+  },
+  {
+    "index": 28,
+    "kind": "string",
+    "value": "UserInputType",
+    "range": [
+      5173,
+      5312
+    ]
+  },
+  {
+    "index": 29,
+    "kind": "string",
+    "value": "MouseButton1",
+    "range": [
+      5343,
+      5473
+    ]
+  },
+  {
+    "index": 32,
+    "kind": "string",
+    "value": "Enum",
+    "range": [
+      5674,
+      5744
+    ]
+  },
+  {
+    "index": 33,
+    "kind": "string",
+    "value": "UserInputType",
+    "range": [
+      5792,
+      5931
+    ]
+  },
+  {
+    "index": 34,
+    "kind": "string",
+    "value": "UserInputType",
+    "range": [
+      5962,
+      6100
+    ]
+  },
+  {
+    "index": 35,
+    "kind": "string",
+    "value": "Touch",
+    "range": [
+      6146,
+      6224
+    ]
+  },
+  {
+    "index": 36,
+    "kind": "string",
+    "value": "task",
+    "range": [
+      6385,
+      6457
+    ]
+  },
+  {
+    "index": 37,
+    "kind": "string",
+    "value": "spawn",
+    "range": [
+      6494,
+      6574
+    ]
+  },
+  {
+    "index": 41,
+    "kind": "string",
+    "value": "Position",
+    "range": [
+      7090,
+      7187
+    ]
+  },
+  {
+    "index": 42,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      7266,
+      7346
+    ]
+  },
+  {
+    "index": 43,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      7457,
+      7519
+    ]
+  },
+  {
+    "index": 44,
+    "kind": "string",
+    "value": "Scale",
+    "range": [
+      7566,
+      7646
+    ]
+  },
+  {
+    "index": 45,
+    "kind": "string",
+    "value": "Offset",
+    "range": [
+      7703,
+      7789
+    ]
+  },
+  {
+    "index": 46,
+    "kind": "string",
+    "value": "Scale",
+    "range": [
+      7852,
+      7932
+    ]
+  },
+  {
+    "index": 48,
+    "kind": "string",
+    "value": "Offset",
+    "range": [
+      8050,
+      8138
+    ]
+  },
+  {
+    "index": 49,
+    "kind": "string",
+    "value": "Position",
+    "range": [
+      8206,
+      8303
+    ]
+  },
+  {
+    "index": 50,
+    "kind": "string",
+    "value": "Enum",
+    "range": [
+      8353,
+      8425
+    ]
+  },
+  {
+    "index": 51,
+    "kind": "string",
+    "value": "UserInputType",
+    "range": [
+      8455,
+      8594
+    ]
+  },
+  {
+    "index": 52,
+    "kind": "string",
+    "value": "UserInputType",
+    "range": [
+      8626,
+      8765
+    ]
+  },
+  {
+    "index": 54,
+    "kind": "string",
+    "value": "Touch",
+    "range": [
+      8859,
+      8936
+    ]
+  },
+  {
+    "index": 55,
+    "kind": "string",
+    "value": "UserInputType",
+    "range": [
+      9006,
+      9144
+    ]
+  },
+  {
+    "index": 56,
+    "kind": "string",
+    "value": "Enum",
+    "range": [
+      9179,
+      9251
+    ]
+  },
+  {
+    "index": 57,
+    "kind": "string",
+    "value": "UserInputType",
+    "range": [
+      9283,
+      9422
+    ]
+  },
+  {
+    "index": 58,
+    "kind": "string",
+    "value": "MouseMovement",
+    "range": [
+      9453,
+      9591
+    ]
+  },
+  {
+    "index": 64,
+    "kind": "string",
+    "value": "GamingSpiritOnTop",
+    "range": [
+      10224,
+      10390
+    ]
+  },
+  {
+    "index": 65,
+    "kind": "string",
+    "value": "pcall",
+    "range": [
+      10477,
+      10557
+    ]
+  },
+  {
+    "index": 68,
+    "kind": "string",
+    "value": "%s+",
+    "range": [
+      10741,
+      10803
+    ]
+  },
+  {
+    "index": 71,
+    "kind": "string",
+    "value": "Enum",
+    "range": [
+      11183,
+      11253
+    ]
+  },
+  {
+    "index": 72,
+    "kind": "string",
+    "value": "UserInputState",
+    "range": [
+      11283,
+      11430
+    ]
+  },
+  {
+    "index": 73,
+    "kind": "string",
+    "value": "UserInputState",
+    "range": [
+      11462,
+      11609
+    ]
+  },
+  {
+    "index": 74,
+    "kind": "string",
+    "value": "End",
+    "range": [
+      11639,
+      11700
+    ]
+  },
+  {
+    "index": 80,
+    "kind": "string",
+    "value": "Character",
+    "range": [
+      15343,
+      15449
+    ]
+  },
+  {
+    "index": 81,
+    "kind": "string",
+    "value": "HumanoidRootPart",
+    "range": [
+      15486,
+      15646
+    ]
+  },
+  {
+    "index": 82,
+    "kind": "string",
+    "value": "Vector3",
+    "range": [
+      15681,
+      15773
+    ]
+  },
+  {
+    "index": 84,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      15873,
+      15935
+    ]
+  },
+  {
+    "index": 85,
+    "kind": "string",
+    "value": "CFrame",
+    "range": [
+      15998,
+      16084
+    ]
+  },
+  {
+    "index": 87,
+    "kind": "string",
+    "value": "table",
+    "range": [
+      16352,
+      16430
+    ]
+  },
+  {
+    "index": 88,
+    "kind": "string",
+    "value": "insert",
+    "range": [
+      16468,
+      16553
+    ]
+  },
+  {
+    "index": 90,
+    "kind": "string",
+    "value": "string",
+    "range": [
+      16714,
+      16800
+    ]
+  },
+  {
+    "index": 91,
+    "kind": "string",
+    "value": "lower",
+    "range": [
+      16839,
+      16917
+    ]
+  },
+  {
+    "index": 92,
+    "kind": "string",
+    "value": "string",
+    "range": [
+      16964,
+      17050
+    ]
+  },
+  {
+    "index": 93,
+    "kind": "string",
+    "value": "lower",
+    "range": [
+      17087,
+      17167
+    ]
+  },
+  {
+    "index": 95,
+    "kind": "string",
+    "value": "Model",
+    "range": [
+      17465,
+      17543
+    ]
+  },
+  {
+    "index": 96,
+    "kind": "string",
+    "value": "Model",
+    "range": [
+      17621,
+      17699
+    ]
+  },
+  {
+    "index": 98,
+    "kind": "string",
+    "value": "HoldDuration",
+    "range": [
+      17904,
+      18035
+    ]
+  },
+  {
+    "index": 99,
+    "kind": "string",
+    "value": "pcall",
+    "range": [
+      18094,
+      18174
+    ]
+  },
+  {
+    "index": 100,
+    "kind": "string",
+    "value": "task",
+    "range": [
+      18219,
+      18291
+    ]
+  },
+  {
+    "index": 101,
+    "kind": "string",
+    "value": "wait",
+    "range": [
+      18328,
+      18400
+    ]
+  },
+  {
+    "index": 102,
+    "kind": "string",
+    "value": "pcall",
+    "range": [
+      18468,
+      18547
+    ]
+  },
+  {
+    "index": 104,
+    "kind": "string",
+    "value": "TextButton",
+    "range": [
+      18698,
+      18818
+    ]
+  },
+  {
+    "index": 106,
+    "kind": "string",
+    "value": "Text",
+    "range": [
+      18928,
+      19000
+    ]
+  },
+  {
+    "index": 107,
+    "kind": "string",
+    "value": "InfoGui",
+    "range": [
+      19075,
+      19167
+    ]
+  },
+  {
+    "index": 112,
+    "kind": "string",
+    "value": "ipairs",
+    "range": [
+      19686,
+      19771
+    ]
+  },
+  {
+    "index": 114,
+    "kind": "string",
+    "value": "Value",
+    "range": [
+      20030,
+      20109
+    ]
+  },
+  {
+    "index": 115,
+    "kind": "string",
+    "value": "tostring",
+    "range": [
+      20144,
+      20244
+    ]
+  },
+  {
+    "index": 117,
+    "kind": "string",
+    "value": "StringValue",
+    "range": [
+      20373,
+      20497
+    ]
+  },
+  {
+    "index": 118,
+    "kind": "string",
+    "value": "Creator",
+    "range": [
+      20632,
+      20721
+    ]
+  },
+  {
+    "index": 119,
+    "kind": "string",
+    "value": "BasePart",
+    "range": [
+      20907,
+      21005
+    ]
+  },
+  {
+    "index": 122,
+    "kind": "string",
+    "value": "HumanoidRootPart",
+    "range": [
+      21324,
+      21482
+    ]
+  },
+  {
+    "index": 123,
+    "kind": "string",
+    "value": "Name",
+    "range": [
+      21575,
+      21645
+    ]
+  },
+  {
+    "index": 124,
+    "kind": "string",
+    "value": "ClientEggs",
+    "range": [
+      21704,
+      21822
+    ]
+  },
+  {
+    "index": 127,
+    "kind": "string",
+    "value": "TextLabel",
+    "range": [
+      22171,
+      22279
+    ]
+  },
+  {
+    "index": 129,
+    "kind": "string",
+    "value": "Frame",
+    "range": [
+      22519,
+      22597
+    ]
+  },
+  {
+    "index": 130,
+    "kind": "string",
+    "value": "Character",
+    "range": [
+      22741,
+      22847
+    ]
+  },
+  {
+    "index": 131,
+    "kind": "string",
+    "value": "HumanoidRootPart",
+    "range": [
+      22874,
+      23034
+    ]
+  },
+  {
+    "index": 133,
+    "kind": "string",
+    "value": "ipairs",
+    "range": [
+      23258,
+      23343
+    ]
+  },
+  {
+    "index": 139,
+    "kind": "string",
+    "value": "Character",
+    "range": [
+      24041,
+      24147
+    ]
+  },
+  {
+    "index": 141,
+    "kind": "string",
+    "value": "CharRarity",
+    "range": [
+      24341,
+      24459
+    ]
+  },
+  {
+    "index": 142,
+    "kind": "string",
+    "value": "Owner",
+    "range": [
+      24579,
+      24656
+    ]
+  },
+  {
+    "index": 144,
+    "kind": "string",
+    "value": "Character",
+    "range": [
+      24829,
+      24935
+    ]
+  },
+  {
+    "index": 147,
+    "kind": "string",
+    "value": "Name",
+    "range": [
+      25137,
+      25207
+    ]
+  },
+  {
+    "index": 149,
+    "kind": "string",
+    "value": "CharacterAdded",
+    "range": [
+      25416,
+      25562
+    ]
+  },
+  {
+    "index": 150,
+    "kind": "string",
+    "value": "Collect",
+    "range": [
+      25665,
+      25754
+    ]
+  },
+  {
+    "index": 152,
+    "kind": "string",
+    "value": "CFrame",
+    "range": [
+      25992,
+      26078
+    ]
+  },
+  {
+    "index": 153,
+    "kind": "string",
+    "value": "ipairs",
+    "range": [
+      26125,
+      26210
+    ]
+  },
+  {
+    "index": 155,
+    "kind": "string",
+    "value": "math",
+    "range": [
+      26482,
+      26552
+    ]
+  },
+  {
+    "index": 156,
+    "kind": "string",
+    "value": "random",
+    "range": [
+      26592,
+      26679
+    ]
+  },
+  {
+    "index": 157,
+    "kind": "string",
+    "value": "Vector3",
+    "range": [
+      26790,
+      26881
+    ]
+  },
+  {
+    "index": 158,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      26924,
+      26986
+    ]
+  },
+  {
+    "index": 159,
+    "kind": "string",
+    "value": "CFrame",
+    "range": [
+      27053,
+      27139
+    ]
+  },
+  {
+    "index": 160,
+    "kind": "string",
+    "value": "task",
+    "range": [
+      27180,
+      27252
+    ]
+  },
+  {
+    "index": 161,
+    "kind": "string",
+    "value": "wait",
+    "range": [
+      27295,
+      27367
+    ]
+  },
+  {
+    "index": 162,
+    "kind": "string",
+    "value": "ProximityPrompt",
+    "range": [
+      27456,
+      27608
+    ]
+  },
+  {
+    "index": 166,
+    "kind": "string",
+    "value": "ObjectValue",
+    "range": [
+      28020,
+      28144
+    ]
+  },
+  {
+    "index": 169,
+    "kind": "string",
+    "value": "task",
+    "range": [
+      28503,
+      28575
+    ]
+  },
+  {
+    "index": 170,
+    "kind": "string",
+    "value": "wait",
+    "range": [
+      28615,
+      28684
+    ]
+  },
+  {
+    "index": 171,
+    "kind": "string",
+    "value": "Bases",
+    "range": [
+      28757,
+      28835
+    ]
+  },
+  {
+    "index": 175,
+    "kind": "string",
+    "value": "fireproximityprompt",
+    "range": [
+      29249,
+      29433
+    ]
+  },
+  {
+    "index": 176,
+    "kind": "string",
+    "value": "tostring",
+    "range": [
+      29562,
+      29662
+    ]
+  },
+  {
+    "index": 180,
+    "kind": "string",
+    "value": "Color3",
+    "range": [
+      30972,
+      31058
+    ]
+  },
+  {
+    "index": 181,
+    "kind": "string",
+    "value": "fromRGB",
+    "range": [
+      31099,
+      31191
+    ]
+  },
+  {
+    "index": 183,
+    "kind": "string",
+    "value": "BackgroundColor3",
+    "range": [
+      31319,
+      31477
+    ]
+  },
+  {
+    "index": 185,
+    "kind": "string",
+    "value": "Color3",
+    "range": [
+      31703,
+      31788
+    ]
+  },
+  {
+    "index": 186,
+    "kind": "string",
+    "value": "fromRGB",
+    "range": [
+      31868,
+      31959
+    ]
+  },
+  {
+    "index": 187,
+    "kind": "string",
+    "value": "BackgroundColor3",
+    "range": [
+      32017,
+      32175
+    ]
+  },
+  {
+    "index": 188,
+    "kind": "string",
+    "value": "InputBegan",
+    "range": [
+      32796,
+      32913
+    ]
+  },
+  {
+    "index": 189,
+    "kind": "string",
+    "value": "InputChanged",
+    "range": [
+      33047,
+      33178
+    ]
+  },
+  {
+    "index": 191,
+    "kind": "string",
+    "value": "MouseButton1Click",
+    "range": [
+      33647,
+      33813
+    ]
+  },
+  {
+    "index": 192,
+    "kind": "string",
+    "value": "Instance",
+    "range": [
+      33914,
+      34012
+    ]
+  },
+  {
+    "index": 193,
+    "kind": "string",
+    "value": "TextButton",
+    "range": [
+      34045,
+      34165
+    ]
+  },
+  {
+    "index": 194,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      34192,
+      34254
+    ]
+  },
+  {
+    "index": 195,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      34302,
+      34381
+    ]
+  },
+  {
+    "index": 196,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      34434,
+      34496
+    ]
+  },
+  {
+    "index": 197,
+    "kind": "string",
+    "value": "Size",
+    "range": [
+      34557,
+      34627
+    ]
+  },
+  {
+    "index": 198,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      34667,
+      34746
+    ]
+  },
+  {
+    "index": 199,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      34781,
+      34843
+    ]
+  },
+  {
+    "index": 200,
+    "kind": "string",
+    "value": "Position",
+    "range": [
+      34917,
+      35014
+    ]
+  },
+  {
+    "index": 201,
+    "kind": "string",
+    "value": "BackgroundTransparency",
+    "range": [
+      35051,
+      35257
+    ]
+  },
+  {
+    "index": 202,
+    "kind": "string",
+    "value": "Text",
+    "range": [
+      35297,
+      35369
+    ]
+  },
+  {
+    "index": 203,
+    "kind": "string",
+    "value": "Parent",
+    "range": [
+      35399,
+      35484
+    ]
+  },
+  {
+    "index": 204,
+    "kind": "string",
+    "value": "MouseButton1Click",
+    "range": [
+      35527,
+      35693
+    ]
+  },
+  {
+    "index": 205,
+    "kind": "string",
+    "value": "AUTO HATCH",
+    "range": [
+      35792,
+      35910
+    ]
+  },
+  {
+    "index": 206,
+    "kind": "string",
+    "value": "AUTO REBIRTH",
+    "range": [
+      35997,
+      36129
+    ]
+  },
+  {
+    "index": 207,
+    "kind": "string",
+    "value": "SELL ALL",
+    "range": [
+      36208,
+      36308
+    ]
+  },
+  {
+    "index": 208,
+    "kind": "string",
+    "value": "CoreGui",
+    "range": [
+      36371,
+      36463
+    ]
+  },
+  {
+    "index": 209,
+    "kind": "string",
+    "value": "game",
+    "range": [
+      36494,
+      36564
+    ]
+  },
+  {
+    "index": 210,
+    "kind": "string",
+    "value": "FakeAnEggGui",
+    "range": [
+      36644,
+      36776
+    ]
+  },
+  {
+    "index": 213,
+    "kind": "string",
+    "value": "Instance",
+    "range": [
+      36988,
+      37086
+    ]
+  },
+  {
+    "index": 214,
+    "kind": "string",
+    "value": "ScreenGui",
+    "range": [
+      37117,
+      37223
+    ]
+  },
+  {
+    "index": 215,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      37250,
+      37312
+    ]
+  },
+  {
+    "index": 216,
+    "kind": "string",
+    "value": "FakeAnEggGui",
+    "range": [
+      37353,
+      37485
+    ]
+  },
+  {
+    "index": 217,
+    "kind": "string",
+    "value": "Name",
+    "range": [
+      37510,
+      37580
+    ]
+  },
+  {
+    "index": 218,
+    "kind": "string",
+    "value": "ResetOnSpawn",
+    "range": [
+      37622,
+      37753
+    ]
+  },
+  {
+    "index": 219,
+    "kind": "string",
+    "value": "Parent",
+    "range": [
+      37783,
+      37868
+    ]
+  },
+  {
+    "index": 220,
+    "kind": "string",
+    "value": "Instance",
+    "range": [
+      37907,
+      38005
+    ]
+  },
+  {
+    "index": 221,
+    "kind": "string",
+    "value": "Frame",
+    "range": [
+      38038,
+      38118
+    ]
+  },
+  {
+    "index": 222,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      38145,
+      38207
+    ]
+  },
+  {
+    "index": 223,
+    "kind": "string",
+    "value": "MainFrame",
+    "range": [
+      38290,
+      38398
+    ]
+  },
+  {
+    "index": 224,
+    "kind": "string",
+    "value": "Name",
+    "range": [
+      38441,
+      38511
+    ]
+  },
+  {
+    "index": 225,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      38551,
+      38630
+    ]
+  },
+  {
+    "index": 226,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      38669,
+      38731
+    ]
+  },
+  {
+    "index": 227,
+    "kind": "string",
+    "value": "Size",
+    "range": [
+      38826,
+      38896
+    ]
+  },
+  {
+    "index": 228,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      38936,
+      39015
+    ]
+  },
+  {
+    "index": 229,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      39076,
+      39138
+    ]
+  },
+  {
+    "index": 230,
+    "kind": "string",
+    "value": "Position",
+    "range": [
+      39220,
+      39317
+    ]
+  },
+  {
+    "index": 231,
+    "kind": "string",
+    "value": "Color3",
+    "range": [
+      39356,
+      39442
+    ]
+  },
+  {
+    "index": 232,
+    "kind": "string",
+    "value": "fromRGB",
+    "range": [
+      39483,
+      39574
+    ]
+  },
+  {
+    "index": 233,
+    "kind": "string",
+    "value": "BackgroundColor3",
+    "range": [
+      39653,
+      39811
+    ]
+  },
+  {
+    "index": 234,
+    "kind": "string",
+    "value": "BorderSizePixel",
+    "range": [
+      39868,
+      40020
+    ]
+  },
+  {
+    "index": 235,
+    "kind": "string",
+    "value": "Active",
+    "range": [
+      40080,
+      40168
+    ]
+  },
+  {
+    "index": 236,
+    "kind": "string",
+    "value": "Draggable",
+    "range": [
+      40219,
+      40327
+    ]
+  },
+  {
+    "index": 237,
+    "kind": "string",
+    "value": "Parent",
+    "range": [
+      40375,
+      40460
+    ]
+  },
+  {
+    "index": 238,
+    "kind": "string",
+    "value": "Instance",
+    "range": [
+      40499,
+      40597
+    ]
+  },
+  {
+    "index": 239,
+    "kind": "string",
+    "value": "UICorner",
+    "range": [
+      40628,
+      40726
+    ]
+  },
+  {
+    "index": 240,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      40753,
+      40815
+    ]
+  },
+  {
+    "index": 241,
+    "kind": "string",
+    "value": "UDim",
+    "range": [
+      40862,
+      40932
+    ]
+  },
+  {
+    "index": 242,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      40971,
+      41033
+    ]
+  },
+  {
+    "index": 243,
+    "kind": "string",
+    "value": "CornerRadius",
+    "range": [
+      41086,
+      41218
+    ]
+  },
+  {
+    "index": 244,
+    "kind": "string",
+    "value": "Parent",
+    "range": [
+      41248,
+      41333
+    ]
+  },
+  {
+    "index": 245,
+    "kind": "string",
+    "value": "Instance",
+    "range": [
+      41390,
+      41488
+    ]
+  },
+  {
+    "index": 246,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      41523,
+      41585
+    ]
+  },
+  {
+    "index": 247,
+    "kind": "string",
+    "value": "TextLabel",
+    "range": [
+      41612,
+      41720
+    ]
+  },
+  {
+    "index": 248,
+    "kind": "string",
+    "value": "TitleLabel",
+    "range": [
+      41759,
+      41879
+    ]
+  },
+  {
+    "index": 249,
+    "kind": "string",
+    "value": "Name",
+    "range": [
+      41904,
+      41974
+    ]
+  },
+  {
+    "index": 250,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      42014,
+      42093
+    ]
+  },
+  {
+    "index": 251,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      42142,
+      42204
+    ]
+  },
+  {
+    "index": 252,
+    "kind": "string",
+    "value": "Size",
+    "range": [
+      42270,
+      42340
+    ]
+  },
+  {
+    "index": 253,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      42380,
+      42459
+    ]
+  },
+  {
+    "index": 254,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      42506,
+      42568
+    ]
+  },
+  {
+    "index": 255,
+    "kind": "string",
+    "value": "Position",
+    "range": [
+      42632,
+      42729
+    ]
+  },
+  {
+    "index": 256,
+    "kind": "string",
+    "value": "BackgroundTransparency",
+    "range": [
+      42766,
+      42972
+    ]
+  },
+  {
+    "index": 257,
+    "kind": "string",
+    "value": "FAKE AN EGG",
+    "range": [
+      43002,
+      43123
+    ]
+  },
+  {
+    "index": 258,
+    "kind": "string",
+    "value": "Text",
+    "range": [
+      43150,
+      43222
+    ]
+  },
+  {
+    "index": 259,
+    "kind": "string",
+    "value": "Color3",
+    "range": [
+      43261,
+      43347
+    ]
+  },
+  {
+    "index": 260,
+    "kind": "string",
+    "value": "fromRGB",
+    "range": [
+      43383,
+      43474
+    ]
+  },
+  {
+    "index": 261,
+    "kind": "string",
+    "value": "TextColor3",
+    "range": [
+      43539,
+      43657
+    ]
+  },
+  {
+    "index": 262,
+    "kind": "string",
+    "value": "TextSize",
+    "range": [
+      43695,
+      43793
+    ]
+  },
+  {
+    "index": 263,
+    "kind": "string",
+    "value": "Enum",
+    "range": [
+      43832,
+      43902
+    ]
+  },
+  {
+    "index": 264,
+    "kind": "string",
+    "value": "Font",
+    "range": [
+      43934,
+      44005
+    ]
+  },
+  {
+    "index": 265,
+    "kind": "string",
+    "value": "LuckiestGuy",
+    "range": [
+      44038,
+      44162
+    ]
+  },
+  {
+    "index": 266,
+    "kind": "string",
+    "value": "Font",
+    "range": [
+      44190,
+      44261
+    ]
+  },
+  {
+    "index": 267,
+    "kind": "string",
+    "value": "TextXAlignment",
+    "range": [
+      44295,
+      44440
+    ]
+  },
+  {
+    "index": 268,
+    "kind": "string",
+    "value": "Left",
+    "range": [
+      44471,
+      44541
+    ]
+  },
+  {
+    "index": 269,
+    "kind": "string",
+    "value": "TextXAlignment",
+    "range": [
+      44567,
+      44712
+    ]
+  },
+  {
+    "index": 270,
+    "kind": "string",
+    "value": "Parent",
+    "range": [
+      44742,
+      44827
+    ]
+  },
+  {
+    "index": 271,
+    "kind": "string",
+    "value": "Instance",
+    "range": [
+      44884,
+      44982
+    ]
+  },
+  {
+    "index": 272,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      45017,
+      45079
+    ]
+  },
+  {
+    "index": 273,
+    "kind": "string",
+    "value": "TextButton",
+    "range": [
+      45106,
+      45226
+    ]
+  },
+  {
+    "index": 274,
+    "kind": "string",
+    "value": "MinimizeBtn",
+    "range": [
+      45307,
+      45431
+    ]
+  },
+  {
+    "index": 275,
+    "kind": "string",
+    "value": "Name",
+    "range": [
+      45474,
+      45544
+    ]
+  },
+  {
+    "index": 276,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      45584,
+      45663
+    ]
+  },
+  {
+    "index": 277,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      45707,
+      45769
+    ]
+  },
+  {
+    "index": 278,
+    "kind": "string",
+    "value": "Size",
+    "range": [
+      45856,
+      45926
+    ]
+  },
+  {
+    "index": 279,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      45966,
+      46045
+    ]
+  },
+  {
+    "index": 280,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      46088,
+      46150
+    ]
+  },
+  {
+    "index": 281,
+    "kind": "string",
+    "value": "Position",
+    "range": [
+      46238,
+      46335
+    ]
+  },
+  {
+    "index": 282,
+    "kind": "string",
+    "value": "BackgroundTransparency",
+    "range": [
+      46390,
+      46596
+    ]
+  },
+  {
+    "index": 283,
+    "kind": "string",
+    "value": "Text",
+    "range": [
+      46658,
+      46730
+    ]
+  },
+  {
+    "index": 284,
+    "kind": "string",
+    "value": "Color3",
+    "range": [
+      46769,
+      46855
+    ]
+  },
+  {
+    "index": 285,
+    "kind": "string",
+    "value": "fromRGB",
+    "range": [
+      46891,
+      46982
+    ]
+  },
+  {
+    "index": 286,
+    "kind": "string",
+    "value": "TextColor3",
+    "range": [
+      47067,
+      47185
+    ]
+  },
+  {
+    "index": 287,
+    "kind": "string",
+    "value": "TextSize",
+    "range": [
+      47241,
+      47339
+    ]
+  },
+  {
+    "index": 288,
+    "kind": "string",
+    "value": "Enum",
+    "range": [
+      47378,
+      47448
+    ]
+  },
+  {
+    "index": 289,
+    "kind": "string",
+    "value": "Font",
+    "range": [
+      47480,
+      47551
+    ]
+  },
+  {
+    "index": 290,
+    "kind": "string",
+    "value": "LuckiestGuy",
+    "range": [
+      47584,
+      47708
+    ]
+  },
+  {
+    "index": 291,
+    "kind": "string",
+    "value": "Font",
+    "range": [
+      47754,
+      47825
+    ]
+  },
+  {
+    "index": 292,
+    "kind": "string",
+    "value": "Parent",
+    "range": [
+      47873,
+      47958
+    ]
+  },
+  {
+    "index": 293,
+    "kind": "string",
+    "value": "Instance",
+    "range": [
+      48015,
+      48113
+    ]
+  },
+  {
+    "index": 294,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      48148,
+      48210
+    ]
+  },
+  {
+    "index": 295,
+    "kind": "string",
+    "value": "ScrollingFrame",
+    "range": [
+      48237,
+      48385
+    ]
+  },
+  {
+    "index": 296,
+    "kind": "string",
+    "value": "ScrollContainer",
+    "range": [
+      48464,
+      48614
+    ]
+  },
+  {
+    "index": 297,
+    "kind": "string",
+    "value": "Name",
+    "range": [
+      48657,
+      48727
+    ]
+  },
+  {
+    "index": 298,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      48767,
+      48846
+    ]
+  },
+  {
+    "index": 299,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      48901,
+      48963
+    ]
+  },
+  {
+    "index": 300,
+    "kind": "string",
+    "value": "Size",
+    "range": [
+      49045,
+      49115
+    ]
+  },
+  {
+    "index": 301,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      49155,
+      49234
+    ]
+  },
+  {
+    "index": 302,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      49277,
+      49339
+    ]
+  },
+  {
+    "index": 303,
+    "kind": "string",
+    "value": "Position",
+    "range": [
+      49426,
+      49523
+    ]
+  },
+  {
+    "index": 304,
+    "kind": "string",
+    "value": "BackgroundTransparency",
+    "range": [
+      49578,
+      49784
+    ]
+  },
+  {
+    "index": 305,
+    "kind": "string",
+    "value": "BorderSizePixel",
+    "range": [
+      49841,
+      49993
+    ]
+  },
+  {
+    "index": 306,
+    "kind": "string",
+    "value": "ScrollBarThickness",
+    "range": [
+      50050,
+      50230
+    ]
+  },
+  {
+    "index": 307,
+    "kind": "string",
+    "value": "Enum",
+    "range": [
+      50269,
+      50339
+    ]
+  },
+  {
+    "index": 308,
+    "kind": "string",
+    "value": "AutomaticSize",
+    "range": [
+      50370,
+      50508
+    ]
+  },
+  {
+    "index": 309,
+    "kind": "string",
+    "value": "AutomaticCanvasSize",
+    "range": [
+      50564,
+      50747
+    ]
+  },
+  {
+    "index": 310,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      50787,
+      50866
+    ]
+  },
+  {
+    "index": 311,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      50901,
+      50963
+    ]
+  },
+  {
+    "index": 312,
+    "kind": "string",
+    "value": "CanvasSize",
+    "range": [
+      51056,
+      51174
+    ]
+  },
+  {
+    "index": 313,
+    "kind": "string",
+    "value": "Parent",
+    "range": [
+      51222,
+      51307
+    ]
+  },
+  {
+    "index": 314,
+    "kind": "string",
+    "value": "Instance",
+    "range": [
+      51364,
+      51462
+    ]
+  },
+  {
+    "index": 315,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      51497,
+      51559
+    ]
+  },
+  {
+    "index": 316,
+    "kind": "string",
+    "value": "UIListLayout",
+    "range": [
+      51586,
+      51718
+    ]
+  },
+  {
+    "index": 317,
+    "kind": "string",
+    "value": "Parent",
+    "range": [
+      51754,
+      51839
+    ]
+  },
+  {
+    "index": 318,
+    "kind": "string",
+    "value": "Enum",
+    "range": [
+      51896,
+      51966
+    ]
+  },
+  {
+    "index": 319,
+    "kind": "string",
+    "value": "SortOrder",
+    "range": [
+      51999,
+      52107
+    ]
+  },
+  {
+    "index": 320,
+    "kind": "string",
+    "value": "LayoutOrder",
+    "range": [
+      52137,
+      52258
+    ]
+  },
+  {
+    "index": 321,
+    "kind": "string",
+    "value": "SortOrder",
+    "range": [
+      52287,
+      52395
+    ]
+  },
+  {
+    "index": 322,
+    "kind": "string",
+    "value": "UDim",
+    "range": [
+      52434,
+      52504
+    ]
+  },
+  {
+    "index": 323,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      52547,
+      52609
+    ]
+  },
+  {
+    "index": 324,
+    "kind": "string",
+    "value": "Padding",
+    "range": [
+      52657,
+      52747
+    ]
+  },
+  {
+    "index": 325,
+    "kind": "string",
+    "value": "Instance",
+    "range": [
+      52786,
+      52884
+    ]
+  },
+  {
+    "index": 326,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      52919,
+      52981
+    ]
+  },
+  {
+    "index": 327,
+    "kind": "string",
+    "value": "TextLabel",
+    "range": [
+      53008,
+      53116
+    ]
+  },
+  {
+    "index": 328,
+    "kind": "string",
+    "value": "FooterLabel",
+    "range": [
+      53194,
+      53315
+    ]
+  },
+  {
+    "index": 329,
+    "kind": "string",
+    "value": "Name",
+    "range": [
+      53358,
+      53428
+    ]
+  },
+  {
+    "index": 330,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      53468,
+      53547
+    ]
+  },
+  {
+    "index": 331,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      53592,
+      53654
+    ]
+  },
+  {
+    "index": 332,
+    "kind": "string",
+    "value": "Size",
+    "range": [
+      53742,
+      53812
+    ]
+  },
+  {
+    "index": 333,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      53852,
+      53931
+    ]
+  },
+  {
+    "index": 334,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      53966,
+      54028
+    ]
+  },
+  {
+    "index": 335,
+    "kind": "string",
+    "value": "Position",
+    "range": [
+      54124,
+      54221
+    ]
+  },
+  {
+    "index": 336,
+    "kind": "string",
+    "value": "BackgroundTransparency",
+    "range": [
+      54276,
+      54482
+    ]
+  },
+  {
+    "index": 337,
+    "kind": "string",
+    "value": "YOUTUBE: SPIRITUAL GAMING",
+    "range": [
+      54514,
+      54741
+    ]
+  },
+  {
+    "index": 338,
+    "kind": "string",
+    "value": "Text",
+    "range": [
+      54786,
+      54858
+    ]
+  },
+  {
+    "index": 339,
+    "kind": "string",
+    "value": "Color3",
+    "range": [
+      54897,
+      54983
+    ]
+  },
+  {
+    "index": 340,
+    "kind": "string",
+    "value": "fromRGB",
+    "range": [
+      55019,
+      55110
+    ]
+  },
+  {
+    "index": 341,
+    "kind": "string",
+    "value": "TextColor3",
+    "range": [
+      55195,
+      55313
+    ]
+  },
+  {
+    "index": 342,
+    "kind": "string",
+    "value": "TextSize",
+    "range": [
+      55369,
+      55467
+    ]
+  },
+  {
+    "index": 343,
+    "kind": "string",
+    "value": "Enum",
+    "range": [
+      55506,
+      55576
+    ]
+  },
+  {
+    "index": 344,
+    "kind": "string",
+    "value": "Font",
+    "range": [
+      55608,
+      55679
+    ]
+  },
+  {
+    "index": 345,
+    "kind": "string",
+    "value": "LuckiestGuy",
+    "range": [
+      55712,
+      55836
+    ]
+  },
+  {
+    "index": 346,
+    "kind": "string",
+    "value": "Font",
+    "range": [
+      55882,
+      55953
+    ]
+  },
+  {
+    "index": 347,
+    "kind": "string",
+    "value": "Parent",
+    "range": [
+      56001,
+      56086
+    ]
+  },
+  {
+    "index": 348,
+    "kind": "string",
+    "value": "MouseButton1Click",
+    "range": [
+      56385,
+      56551
+    ]
+  },
+  {
+    "index": 349,
+    "kind": "string",
+    "value": "Instance",
+    "range": [
+      56652,
+      56750
+    ]
+  },
+  {
+    "index": 350,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      56785,
+      56847
+    ]
+  },
+  {
+    "index": 351,
+    "kind": "string",
+    "value": "Frame",
+    "range": [
+      56874,
+      56954
+    ]
+  },
+  {
+    "index": 352,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      57000,
+      57079
+    ]
+  },
+  {
+    "index": 353,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      57141,
+      57203
+    ]
+  },
+  {
+    "index": 354,
+    "kind": "string",
+    "value": "Size",
+    "range": [
+      57258,
+      57328
+    ]
+  },
+  {
+    "index": 355,
+    "kind": "string",
+    "value": "BackgroundTransparency",
+    "range": [
+      57365,
+      57571
+    ]
+  },
+  {
+    "index": 356,
+    "kind": "string",
+    "value": "LayoutOrder",
+    "range": [
+      57601,
+      57722
+    ]
+  },
+  {
+    "index": 357,
+    "kind": "string",
+    "value": "Parent",
+    "range": [
+      57752,
+      57837
+    ]
+  },
+  {
+    "index": 358,
+    "kind": "string",
+    "value": "Instance",
+    "range": [
+      57894,
+      57992
+    ]
+  },
+  {
+    "index": 359,
+    "kind": "string",
+    "value": "TextLabel",
+    "range": [
+      58025,
+      58133
+    ]
+  },
+  {
+    "index": 360,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      58160,
+      58222
+    ]
+  },
+  {
+    "index": 361,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      58270,
+      58349
+    ]
+  },
+  {
+    "index": 362,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      58400,
+      58462
+    ]
+  },
+  {
+    "index": 363,
+    "kind": "string",
+    "value": "Size",
+    "range": [
+      58525,
+      58595
+    ]
+  },
+  {
+    "index": 364,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      58635,
+      58714
+    ]
+  },
+  {
+    "index": 365,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      58757,
+      58819
+    ]
+  },
+  {
+    "index": 366,
+    "kind": "string",
+    "value": "Position",
+    "range": [
+      58887,
+      58984
+    ]
+  },
+  {
+    "index": 367,
+    "kind": "string",
+    "value": "BackgroundTransparency",
+    "range": [
+      59021,
+      59227
+    ]
+  },
+  {
+    "index": 368,
+    "kind": "string",
+    "value": "AUTO STEAL",
+    "range": [
+      59258,
+      59376
+    ]
+  },
+  {
+    "index": 369,
+    "kind": "string",
+    "value": "Text",
+    "range": [
+      59403,
+      59475
+    ]
+  },
+  {
+    "index": 370,
+    "kind": "string",
+    "value": "Color3",
+    "range": [
+      59514,
+      59600
+    ]
+  },
+  {
+    "index": 371,
+    "kind": "string",
+    "value": "fromRGB",
+    "range": [
+      59642,
+      59733
+    ]
+  },
+  {
+    "index": 372,
+    "kind": "string",
+    "value": "TextColor3",
+    "range": [
+      59792,
+      59910
+    ]
+  },
+  {
+    "index": 373,
+    "kind": "string",
+    "value": "TextSize",
+    "range": [
+      59948,
+      60046
+    ]
+  },
+  {
+    "index": 374,
+    "kind": "string",
+    "value": "Enum",
+    "range": [
+      60085,
+      60155
+    ]
+  },
+  {
+    "index": 375,
+    "kind": "string",
+    "value": "Font",
+    "range": [
+      60187,
+      60258
+    ]
+  },
+  {
+    "index": 376,
+    "kind": "string",
+    "value": "LuckiestGuy",
+    "range": [
+      60291,
+      60415
+    ]
+  },
+  {
+    "index": 377,
+    "kind": "string",
+    "value": "Font",
+    "range": [
+      60443,
+      60514
+    ]
+  },
+  {
+    "index": 378,
+    "kind": "string",
+    "value": "TextXAlignment",
+    "range": [
+      60548,
+      60693
+    ]
+  },
+  {
+    "index": 379,
+    "kind": "string",
+    "value": "Left",
+    "range": [
+      60724,
+      60794
+    ]
+  },
+  {
+    "index": 380,
+    "kind": "string",
+    "value": "TextXAlignment",
+    "range": [
+      60820,
+      60965
+    ]
+  },
+  {
+    "index": 381,
+    "kind": "string",
+    "value": "Parent",
+    "range": [
+      60995,
+      61080
+    ]
+  },
+  {
+    "index": 382,
+    "kind": "string",
+    "value": "Instance",
+    "range": [
+      61119,
+      61217
+    ]
+  },
+  {
+    "index": 383,
+    "kind": "string",
+    "value": "TextButton",
+    "range": [
+      61250,
+      61370
+    ]
+  },
+  {
+    "index": 384,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      61397,
+      61459
+    ]
+  },
+  {
+    "index": 385,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      61549,
+      61628
+    ]
+  },
+  {
+    "index": 386,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      61667,
+      61729
+    ]
+  },
+  {
+    "index": 387,
+    "kind": "string",
+    "value": "Size",
+    "range": [
+      61821,
+      61891
+    ]
+  },
+  {
+    "index": 388,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      61931,
+      62010
+    ]
+  },
+  {
+    "index": 389,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      62057,
+      62119
+    ]
+  },
+  {
+    "index": 390,
+    "kind": "string",
+    "value": "Position",
+    "range": [
+      62204,
+      62301
+    ]
+  },
+  {
+    "index": 391,
+    "kind": "string",
+    "value": "Color3",
+    "range": [
+      62340,
+      62426
+    ]
+  },
+  {
+    "index": 392,
+    "kind": "string",
+    "value": "fromRGB",
+    "range": [
+      62467,
+      62558
+    ]
+  },
+  {
+    "index": 393,
+    "kind": "string",
+    "value": "BackgroundColor3",
+    "range": [
+      62637,
+      62795
+    ]
+  },
+  {
+    "index": 394,
+    "kind": "string",
+    "value": "▲",
+    "range": [
+      62825,
+      62886
+    ]
+  },
+  {
+    "index": 395,
+    "kind": "string",
+    "value": "Text",
+    "range": [
+      62931,
+      63003
+    ]
+  },
+  {
+    "index": 396,
+    "kind": "string",
+    "value": "Color3",
+    "range": [
+      63042,
+      63128
+    ]
+  },
+  {
+    "index": 397,
+    "kind": "string",
+    "value": "fromRGB",
+    "range": [
+      63164,
+      63255
+    ]
+  },
+  {
+    "index": 398,
+    "kind": "string",
+    "value": "TextColor3",
+    "range": [
+      63340,
+      63458
+    ]
+  },
+  {
+    "index": 399,
+    "kind": "string",
+    "value": "TextSize",
+    "range": [
+      63514,
+      63612
+    ]
+  },
+  {
+    "index": 400,
+    "kind": "string",
+    "value": "Enum",
+    "range": [
+      63651,
+      63721
+    ]
+  },
+  {
+    "index": 401,
+    "kind": "string",
+    "value": "Font",
+    "range": [
+      63753,
+      63824
+    ]
+  },
+  {
+    "index": 402,
+    "kind": "string",
+    "value": "LuckiestGuy",
+    "range": [
+      63857,
+      63981
+    ]
+  },
+  {
+    "index": 403,
+    "kind": "string",
+    "value": "Font",
+    "range": [
+      64027,
+      64098
+    ]
+  },
+  {
+    "index": 404,
+    "kind": "string",
+    "value": "Parent",
+    "range": [
+      64146,
+      64231
+    ]
+  },
+  {
+    "index": 405,
+    "kind": "string",
+    "value": "Instance",
+    "range": [
+      64270,
+      64368
+    ]
+  },
+  {
+    "index": 406,
+    "kind": "string",
+    "value": "UICorner",
+    "range": [
+      64399,
+      64497
+    ]
+  },
+  {
+    "index": 407,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      64524,
+      64586
+    ]
+  },
+  {
+    "index": 408,
+    "kind": "string",
+    "value": "UDim",
+    "range": [
+      64633,
+      64703
+    ]
+  },
+  {
+    "index": 409,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      64746,
+      64808
+    ]
+  },
+  {
+    "index": 410,
+    "kind": "string",
+    "value": "CornerRadius",
+    "range": [
+      64857,
+      64989
+    ]
+  },
+  {
+    "index": 411,
+    "kind": "string",
+    "value": "Parent",
+    "range": [
+      65019,
+      65104
+    ]
+  },
+  {
+    "index": 412,
+    "kind": "string",
+    "value": "Instance",
+    "range": [
+      65161,
+      65259
+    ]
+  },
+  {
+    "index": 413,
+    "kind": "string",
+    "value": "Frame",
+    "range": [
+      65292,
+      65372
+    ]
+  },
+  {
+    "index": 414,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      65399,
+      65461
+    ]
+  },
+  {
+    "index": 415,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      65551,
+      65630
+    ]
+  },
+  {
+    "index": 416,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      65677,
+      65739
+    ]
+  },
+  {
+    "index": 417,
+    "kind": "string",
+    "value": "Size",
+    "range": [
+      65822,
+      65892
+    ]
+  },
+  {
+    "index": 418,
+    "kind": "string",
+    "value": "BackgroundTransparency",
+    "range": [
+      65947,
+      66153
+    ]
+  },
+  {
+    "index": 419,
+    "kind": "string",
+    "value": "Visible",
+    "range": [
+      66212,
+      66302
+    ]
+  },
+  {
+    "index": 420,
+    "kind": "string",
+    "value": "LayoutOrder",
+    "range": [
+      66356,
+      66477
+    ]
+  },
+  {
+    "index": 421,
+    "kind": "string",
+    "value": "Parent",
+    "range": [
+      66525,
+      66610
+    ]
+  },
+  {
+    "index": 422,
+    "kind": "string",
+    "value": "Instance",
+    "range": [
+      66667,
+      66765
+    ]
+  },
+  {
+    "index": 423,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      66800,
+      66862
+    ]
+  },
+  {
+    "index": 424,
+    "kind": "string",
+    "value": "UIListLayout",
+    "range": [
+      66889,
+      67021
+    ]
+  },
+  {
+    "index": 425,
+    "kind": "string",
+    "value": "Parent",
+    "range": [
+      67117,
+      67202
+    ]
+  },
+  {
+    "index": 426,
+    "kind": "string",
+    "value": "Enum",
+    "range": [
+      67259,
+      67329
+    ]
+  },
+  {
+    "index": 427,
+    "kind": "string",
+    "value": "SortOrder",
+    "range": [
+      67362,
+      67470
+    ]
+  },
+  {
+    "index": 428,
+    "kind": "string",
+    "value": "LayoutOrder",
+    "range": [
+      67500,
+      67621
+    ]
+  },
+  {
+    "index": 429,
+    "kind": "string",
+    "value": "SortOrder",
+    "range": [
+      67668,
+      67776
+    ]
+  },
+  {
+    "index": 430,
+    "kind": "string",
+    "value": "UDim",
+    "range": [
+      67815,
+      67885
+    ]
+  },
+  {
+    "index": 431,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      67932,
+      67994
+    ]
+  },
+  {
+    "index": 432,
+    "kind": "string",
+    "value": "Padding",
+    "range": [
+      68055,
+      68145
+    ]
+  },
+  {
+    "index": 433,
+    "kind": "string",
+    "value": "AbsoluteContentSize",
+    "range": [
+      68257,
+      68441
+    ]
+  },
+  {
+    "index": 434,
+    "kind": "string",
+    "value": "Rare",
+    "range": [
+      68585,
+      68656
+    ]
+  },
+  {
+    "index": 435,
+    "kind": "string",
+    "value": "Divine",
+    "range": [
+      68687,
+      68775
+    ]
+  },
+  {
+    "index": 436,
+    "kind": "string",
+    "value": "Uncommon",
+    "range": [
+      68800,
+      68900
+    ]
+  },
+  {
+    "index": 437,
+    "kind": "string",
+    "value": "Celestial",
+    "range": [
+      68923,
+      69029
+    ]
+  },
+  {
+    "index": 438,
+    "kind": "string",
+    "value": "Exotic",
+    "range": [
+      69054,
+      69142
+    ]
+  },
+  {
+    "index": 439,
+    "kind": "string",
+    "value": "Admin",
+    "range": [
+      69167,
+      69247
+    ]
+  },
+  {
+    "index": 440,
+    "kind": "string",
+    "value": "Secret",
+    "range": [
+      69270,
+      69356
+    ]
+  },
+  {
+    "index": 441,
+    "kind": "string",
+    "value": "Epic",
+    "range": [
+      69378,
+      69447
+    ]
+  },
+  {
+    "index": 442,
+    "kind": "string",
+    "value": "Common",
+    "range": [
+      69472,
+      69560
+    ]
+  },
+  {
+    "index": 443,
+    "kind": "string",
+    "value": "Mythic",
+    "range": [
+      69585,
+      69673
+    ]
+  },
+  {
+    "index": 444,
+    "kind": "string",
+    "value": "Legendary",
+    "range": [
+      69696,
+      69802
+    ]
+  },
+  {
+    "index": 445,
+    "kind": "string",
+    "value": "ipairs",
+    "range": [
+      69996,
+      70081
+    ]
+  },
+  {
+    "index": 447,
+    "kind": "string",
+    "value": "Instance",
+    "range": [
+      70345,
+      70443
+    ]
+  },
+  {
+    "index": 448,
+    "kind": "string",
+    "value": "Frame",
+    "range": [
+      70476,
+      70556
+    ]
+  },
+  {
+    "index": 449,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      70583,
+      70645
+    ]
+  },
+  {
+    "index": 450,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      70693,
+      70772
+    ]
+  },
+  {
+    "index": 451,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      70828,
+      70890
+    ]
+  },
+  {
+    "index": 452,
+    "kind": "string",
+    "value": "Size",
+    "range": [
+      70951,
+      71021
+    ]
+  },
+  {
+    "index": 453,
+    "kind": "string",
+    "value": "BackgroundTransparency",
+    "range": [
+      71058,
+      71264
+    ]
+  },
+  {
+    "index": 454,
+    "kind": "string",
+    "value": "LayoutOrder",
+    "range": [
+      71294,
+      71415
+    ]
+  },
+  {
+    "index": 455,
+    "kind": "string",
+    "value": "Parent",
+    "range": [
+      71445,
+      71530
+    ]
+  },
+  {
+    "index": 456,
+    "kind": "string",
+    "value": "Instance",
+    "range": [
+      71587,
+      71685
+    ]
+  },
+  {
+    "index": 457,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      71720,
+      71782
+    ]
+  },
+  {
+    "index": 458,
+    "kind": "string",
+    "value": "TextLabel",
+    "range": [
+      71809,
+      71917
+    ]
+  },
+  {
+    "index": 459,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      71963,
+      72042
+    ]
+  },
+  {
+    "index": 460,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      72095,
+      72157
+    ]
+  },
+  {
+    "index": 461,
+    "kind": "string",
+    "value": "Size",
+    "range": [
+      72218,
+      72288
+    ]
+  },
+  {
+    "index": 462,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      72328,
+      72407
+    ]
+  },
+  {
+    "index": 463,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      72455,
+      72517
+    ]
+  },
+  {
+    "index": 464,
+    "kind": "string",
+    "value": "Position",
+    "range": [
+      72581,
+      72678
+    ]
+  },
+  {
+    "index": 465,
+    "kind": "string",
+    "value": "BackgroundTransparency",
+    "range": [
+      72715,
+      72921
+    ]
+  },
+  {
+    "index": 466,
+    "kind": "string",
+    "value": "string",
+    "range": [
+      72960,
+      73046
+    ]
+  },
+  {
+    "index": 467,
+    "kind": "string",
+    "value": "upper",
+    "range": [
+      73081,
+      73159
+    ]
+  },
+  {
+    "index": 468,
+    "kind": "string",
+    "value": "Text",
+    "range": [
+      73222,
+      73294
+    ]
+  },
+  {
+    "index": 469,
+    "kind": "string",
+    "value": "Color3",
+    "range": [
+      73333,
+      73419
+    ]
+  },
+  {
+    "index": 470,
+    "kind": "string",
+    "value": "fromRGB",
+    "range": [
+      73461,
+      73552
+    ]
+  },
+  {
+    "index": 471,
+    "kind": "string",
+    "value": "TextColor3",
+    "range": [
+      73611,
+      73729
+    ]
+  },
+  {
+    "index": 472,
+    "kind": "string",
+    "value": "TextSize",
+    "range": [
+      73767,
+      73865
+    ]
+  },
+  {
+    "index": 474,
+    "kind": "string",
+    "value": "Enum",
+    "range": [
+      73955,
+      74025
+    ]
+  },
+  {
+    "index": 475,
+    "kind": "string",
+    "value": "Font",
+    "range": [
+      74057,
+      74128
+    ]
+  },
+  {
+    "index": 476,
+    "kind": "string",
+    "value": "LuckiestGuy",
+    "range": [
+      74161,
+      74285
+    ]
+  },
+  {
+    "index": 477,
+    "kind": "string",
+    "value": "Font",
+    "range": [
+      74313,
+      74384
+    ]
+  },
+  {
+    "index": 478,
+    "kind": "string",
+    "value": "TextXAlignment",
+    "range": [
+      74418,
+      74563
+    ]
+  },
+  {
+    "index": 479,
+    "kind": "string",
+    "value": "Left",
+    "range": [
+      74594,
+      74664
+    ]
+  },
+  {
+    "index": 480,
+    "kind": "string",
+    "value": "TextXAlignment",
+    "range": [
+      74690,
+      74835
+    ]
+  },
+  {
+    "index": 481,
+    "kind": "string",
+    "value": "Parent",
+    "range": [
+      74865,
+      74950
+    ]
+  },
+  {
+    "index": 482,
+    "kind": "string",
+    "value": "Instance",
+    "range": [
+      74989,
+      75087
+    ]
+  },
+  {
+    "index": 483,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      75122,
+      75184
+    ]
+  },
+  {
+    "index": 484,
+    "kind": "string",
+    "value": "TextButton",
+    "range": [
+      75211,
+      75331
+    ]
+  },
+  {
+    "index": 485,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      75419,
+      75498
+    ]
+  },
+  {
+    "index": 486,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      75542,
+      75604
+    ]
+  },
+  {
+    "index": 487,
+    "kind": "string",
+    "value": "Size",
+    "range": [
+      75691,
+      75761
+    ]
+  },
+  {
+    "index": 488,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      75801,
+      75880
+    ]
+  },
+  {
+    "index": 489,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      75927,
+      75989
+    ]
+  },
+  {
+    "index": 490,
+    "kind": "string",
+    "value": "Position",
+    "range": [
+      76074,
+      76171
+    ]
+  },
+  {
+    "index": 491,
+    "kind": "string",
+    "value": "Color3",
+    "range": [
+      76210,
+      76296
+    ]
+  },
+  {
+    "index": 492,
+    "kind": "string",
+    "value": "fromRGB",
+    "range": [
+      76347,
+      76438
+    ]
+  },
+  {
+    "index": 493,
+    "kind": "string",
+    "value": "BackgroundColor3",
+    "range": [
+      76509,
+      76667
+    ]
+  },
+  {
+    "index": 494,
+    "kind": "string",
+    "value": "Text",
+    "range": [
+      76725,
+      76797
+    ]
+  },
+  {
+    "index": 495,
+    "kind": "string",
+    "value": "Parent",
+    "range": [
+      76845,
+      76930
+    ]
+  },
+  {
+    "index": 496,
+    "kind": "string",
+    "value": "Instance",
+    "range": [
+      76969,
+      77067
+    ]
+  },
+  {
+    "index": 497,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      77102,
+      77164
+    ]
+  },
+  {
+    "index": 498,
+    "kind": "string",
+    "value": "UICorner",
+    "range": [
+      77189,
+      77287
+    ]
+  },
+  {
+    "index": 499,
+    "kind": "string",
+    "value": "UDim",
+    "range": [
+      77332,
+      77402
+    ]
+  },
+  {
+    "index": 500,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      77441,
+      77503
+    ]
+  },
+  {
+    "index": 501,
+    "kind": "string",
+    "value": "CornerRadius",
+    "range": [
+      77556,
+      77688
+    ]
+  },
+  {
+    "index": 502,
+    "kind": "string",
+    "value": "Parent",
+    "range": [
+      77718,
+      77803
+    ]
+  },
+  {
+    "index": 503,
+    "kind": "string",
+    "value": "MouseButton1Click",
+    "range": [
+      77878,
+      78044
+    ]
+  },
+  {
+    "index": 504,
+    "kind": "string",
+    "value": "FakeAnEggGui",
+    "range": [
+      78160,
+      78292
+    ]
+  },
+  {
+    "index": 509,
+    "kind": "string",
+    "value": "Visible",
+    "range": [
+      78983,
+      79075
+    ]
+  },
+  {
+    "index": 511,
+    "kind": "string",
+    "value": "Visible",
+    "range": [
+      79217,
+      79309
+    ]
+  },
+  {
+    "index": 512,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      79387,
+      79466
+    ]
+  },
+  {
+    "index": 513,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      79509,
+      79571
+    ]
+  },
+  {
+    "index": 514,
+    "kind": "string",
+    "value": "Size",
+    "range": [
+      79644,
+      79714
+    ]
+  },
+  {
+    "index": 515,
+    "kind": "string",
+    "value": "Text",
+    "range": [
+      79796,
+      79868
+    ]
+  },
+  {
+    "index": 516,
+    "kind": "string",
+    "value": "Visible",
+    "range": [
+      79952,
+      80042
+    ]
+  },
+  {
+    "index": 517,
+    "kind": "string",
+    "value": "Visible",
+    "range": [
+      80111,
+      80203
+    ]
+  },
+  {
+    "index": 518,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      80282,
+      80362
+    ]
+  },
+  {
+    "index": 519,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      80427,
+      80489
+    ]
+  },
+  {
+    "index": 520,
+    "kind": "string",
+    "value": "Size",
+    "range": [
+      80554,
+      80623
+    ]
+  },
+  {
+    "index": 521,
+    "kind": "string",
+    "value": "Text",
+    "range": [
+      80705,
+      80777
+    ]
+  },
+  {
+    "index": 522,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      82155,
+      82235
+    ]
+  },
+  {
+    "index": 523,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      82308,
+      82370
+    ]
+  },
+  {
+    "index": 524,
+    "kind": "string",
+    "value": "AbsoluteContentSize",
+    "range": [
+      82455,
+      82639
+    ]
+  },
+  {
+    "index": 525,
+    "kind": "string",
+    "value": "Size",
+    "range": [
+      82700,
+      82770
+    ]
+  },
+  {
+    "index": 526,
+    "kind": "string",
+    "value": "Instance",
+    "range": [
+      82953,
+      83051
+    ]
+  },
+  {
+    "index": 527,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      83086,
+      83148
+    ]
+  },
+  {
+    "index": 528,
+    "kind": "string",
+    "value": "Frame",
+    "range": [
+      83175,
+      83255
+    ]
+  },
+  {
+    "index": 529,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      83301,
+      83380
+    ]
+  },
+  {
+    "index": 530,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      83437,
+      83499
+    ]
+  },
+  {
+    "index": 531,
+    "kind": "string",
+    "value": "Size",
+    "range": [
+      83558,
+      83627
+    ]
+  },
+  {
+    "index": 532,
+    "kind": "string",
+    "value": "BackgroundTransparency",
+    "range": [
+      83666,
+      83874
+    ]
+  },
+  {
+    "index": 533,
+    "kind": "string",
+    "value": "LayoutOrder",
+    "range": [
+      83907,
+      84031
+    ]
+  },
+  {
+    "index": 534,
+    "kind": "string",
+    "value": "Parent",
+    "range": [
+      84097,
+      84182
+    ]
+  },
+  {
+    "index": 535,
+    "kind": "string",
+    "value": "Instance",
+    "range": [
+      84221,
+      84319
+    ]
+  },
+  {
+    "index": 536,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      84354,
+      84416
+    ]
+  },
+  {
+    "index": 537,
+    "kind": "string",
+    "value": "TextLabel",
+    "range": [
+      84443,
+      84551
+    ]
+  },
+  {
+    "index": 538,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      84598,
+      84678
+    ]
+  },
+  {
+    "index": 539,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      84731,
+      84793
+    ]
+  },
+  {
+    "index": 540,
+    "kind": "string",
+    "value": "Size",
+    "range": [
+      84853,
+      84922
+    ]
+  },
+  {
+    "index": 541,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      84963,
+      85043
+    ]
+  },
+  {
+    "index": 542,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      85086,
+      85148
+    ]
+  },
+  {
+    "index": 543,
+    "kind": "string",
+    "value": "Position",
+    "range": [
+      85217,
+      85315
+    ]
+  },
+  {
+    "index": 544,
+    "kind": "string",
+    "value": "BackgroundTransparency",
+    "range": [
+      85352,
+      85558
+    ]
+  },
+  {
+    "index": 545,
+    "kind": "string",
+    "value": "Text",
+    "range": [
+      85589,
+      85659
+    ]
+  },
+  {
+    "index": 546,
+    "kind": "string",
+    "value": "Color3",
+    "range": [
+      85698,
+      85784
+    ]
+  },
+  {
+    "index": 547,
+    "kind": "string",
+    "value": "fromRGB",
+    "range": [
+      85827,
+      85919
+    ]
+  },
+  {
+    "index": 548,
+    "kind": "string",
+    "value": "TextColor3",
+    "range": [
+      85982,
+      86102
+    ]
+  },
+  {
+    "index": 549,
+    "kind": "string",
+    "value": "TextSize",
+    "range": [
+      86140,
+      86238
+    ]
+  },
+  {
+    "index": 550,
+    "kind": "string",
+    "value": "Enum",
+    "range": [
+      86279,
+      86351
+    ]
+  },
+  {
+    "index": 551,
+    "kind": "string",
+    "value": "Font",
+    "range": [
+      86381,
+      86450
+    ]
+  },
+  {
+    "index": 552,
+    "kind": "string",
+    "value": "LuckiestGuy",
+    "range": [
+      86481,
+      86603
+    ]
+  },
+  {
+    "index": 553,
+    "kind": "string",
+    "value": "Font",
+    "range": [
+      86629,
+      86698
+    ]
+  },
+  {
+    "index": 554,
+    "kind": "string",
+    "value": "TextXAlignment",
+    "range": [
+      86734,
+      86881
+    ]
+  },
+  {
+    "index": 555,
+    "kind": "string",
+    "value": "Left",
+    "range": [
+      86912,
+      86982
+    ]
+  },
+  {
+    "index": 556,
+    "kind": "string",
+    "value": "TextXAlignment",
+    "range": [
+      87008,
+      87153
+    ]
+  },
+  {
+    "index": 557,
+    "kind": "string",
+    "value": "Parent",
+    "range": [
+      87186,
+      87274
+    ]
+  },
+  {
+    "index": 558,
+    "kind": "string",
+    "value": "Instance",
+    "range": [
+      87313,
+      87411
+    ]
+  },
+  {
+    "index": 559,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      87446,
+      87508
+    ]
+  },
+  {
+    "index": 560,
+    "kind": "string",
+    "value": "TextButton",
+    "range": [
+      87535,
+      87655
+    ]
+  },
+  {
+    "index": 561,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      87743,
+      87822
+    ]
+  },
+  {
+    "index": 562,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      87870,
+      87932
+    ]
+  },
+  {
+    "index": 563,
+    "kind": "string",
+    "value": "Size",
+    "range": [
+      88015,
+      88085
+    ]
+  },
+  {
+    "index": 564,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      88125,
+      88204
+    ]
+  },
+  {
+    "index": 565,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      88247,
+      88309
+    ]
+  },
+  {
+    "index": 566,
+    "kind": "string",
+    "value": "Position",
+    "range": [
+      88398,
+      88495
+    ]
+  },
+  {
+    "index": 567,
+    "kind": "string",
+    "value": "Color3",
+    "range": [
+      88533,
+      88618
+    ]
+  },
+  {
+    "index": 568,
+    "kind": "string",
+    "value": "fromRGB",
+    "range": [
+      88670,
+      88762
+    ]
+  },
+  {
+    "index": 569,
+    "kind": "string",
+    "value": "BackgroundColor3",
+    "range": [
+      88832,
+      88989
+    ]
+  },
+  {
+    "index": 570,
+    "kind": "string",
+    "value": "Text",
+    "range": [
+      89047,
+      89119
+    ]
+  },
+  {
+    "index": 571,
+    "kind": "string",
+    "value": "Parent",
+    "range": [
+      89167,
+      89252
+    ]
+  },
+  {
+    "index": 572,
+    "kind": "string",
+    "value": "Instance",
+    "range": [
+      89291,
+      89389
+    ]
+  },
+  {
+    "index": 573,
+    "kind": "string",
+    "value": "UICorner",
+    "range": [
+      89420,
+      89518
+    ]
+  },
+  {
+    "index": 574,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      89545,
+      89607
+    ]
+  },
+  {
+    "index": 575,
+    "kind": "string",
+    "value": "UDim",
+    "range": [
+      89654,
+      89724
+    ]
+  },
+  {
+    "index": 576,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      89771,
+      89833
+    ]
+  },
+  {
+    "index": 577,
+    "kind": "string",
+    "value": "CornerRadius",
+    "range": [
+      89878,
+      90010
+    ]
+  },
+  {
+    "index": 578,
+    "kind": "string",
+    "value": "Parent",
+    "range": [
+      90043,
+      90131
+    ]
+  },
+  {
+    "index": 579,
+    "kind": "string",
+    "value": "MouseButton1Click",
+    "range": [
+      90258,
+      90424
+    ]
+  },
+  {
+    "index": 583,
+    "kind": "string",
+    "value": "pcall",
+    "range": [
+      90925,
+      91005
+    ]
+  },
+  {
+    "index": 584,
+    "kind": "string",
+    "value": "task",
+    "range": [
+      91050,
+      91122
+    ]
+  },
+  {
+    "index": 585,
+    "kind": "string",
+    "value": "wait",
+    "range": [
+      91176,
+      91245
+    ]
+  },
+  {
+    "index": 588,
+    "kind": "string",
+    "value": "RemoteEvents",
+    "range": [
+      91501,
+      91633
+    ]
+  },
+  {
+    "index": 592,
+    "kind": "string",
+    "value": "OpenBlockEvent",
+    "range": [
+      92243,
+      92390
+    ]
+  },
+  {
+    "index": 593,
+    "kind": "string",
+    "value": "RemoteEvents",
+    "range": [
+      92419,
+      92551
+    ]
+  },
+  {
+    "index": 594,
+    "kind": "string",
+    "value": "task",
+    "range": [
+      92672,
+      92744
+    ]
+  },
+  {
+    "index": 595,
+    "kind": "string",
+    "value": "wait",
+    "range": [
+      92784,
+      92853
+    ]
+  },
+  {
+    "index": 600,
+    "kind": "string",
+    "value": "Instance",
+    "range": [
+      94438,
+      94536
+    ]
+  },
+  {
+    "index": 601,
+    "kind": "string",
+    "value": "ScreenGui",
+    "range": [
+      94583,
+      94689
+    ]
+  },
+  {
+    "index": 602,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      94716,
+      94778
+    ]
+  },
+  {
+    "index": 603,
+    "kind": "string",
+    "value": "Instance",
+    "range": [
+      94893,
+      94991
+    ]
+  },
+  {
+    "index": 604,
+    "kind": "string",
+    "value": "Frame",
+    "range": [
+      95050,
+      95130
+    ]
+  },
+  {
+    "index": 605,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      95157,
+      95219
+    ]
+  },
+  {
+    "index": 606,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      95271,
+      95350
+    ]
+  },
+  {
+    "index": 607,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      95393,
+      95455
+    ]
+  },
+  {
+    "index": 608,
+    "kind": "string",
+    "value": "Size",
+    "range": [
+      95528,
+      95598
+    ]
+  },
+  {
+    "index": 609,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      95638,
+      95717
+    ]
+  },
+  {
+    "index": 610,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      95770,
+      95832
+    ]
+  },
+  {
+    "index": 611,
+    "kind": "string",
+    "value": "Position",
+    "range": [
+      95899,
+      95996
+    ]
+  },
+  {
+    "index": 612,
+    "kind": "string",
+    "value": "Color3",
+    "range": [
+      96035,
+      96121
+    ]
+  },
+  {
+    "index": 613,
+    "kind": "string",
+    "value": "fromRGB",
+    "range": [
+      96157,
+      96248
+    ]
+  },
+  {
+    "index": 614,
+    "kind": "string",
+    "value": "BackgroundColor3",
+    "range": [
+      96314,
+      96472
+    ]
+  },
+  {
+    "index": 615,
+    "kind": "string",
+    "value": "Active",
+    "range": [
+      96514,
+      96602
+    ]
+  },
+  {
+    "index": 616,
+    "kind": "string",
+    "value": "Instance",
+    "range": [
+      96641,
+      96739
+    ]
+  },
+  {
+    "index": 617,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      96778,
+      96840
+    ]
+  },
+  {
+    "index": 618,
+    "kind": "string",
+    "value": "UICorner",
+    "range": [
+      96869,
+      96967
+    ]
+  },
+  {
+    "index": 619,
+    "kind": "string",
+    "value": "Instance",
+    "range": [
+      97034,
+      97132
+    ]
+  },
+  {
+    "index": 620,
+    "kind": "string",
+    "value": "TextLabel",
+    "range": [
+      97173,
+      97281
+    ]
+  },
+  {
+    "index": 621,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      97308,
+      97370
+    ]
+  },
+  {
+    "index": 622,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      97422,
+      97501
+    ]
+  },
+  {
+    "index": 623,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      97548,
+      97610
+    ]
+  },
+  {
+    "index": 624,
+    "kind": "string",
+    "value": "Size",
+    "range": [
+      97676,
+      97746
+    ]
+  },
+  {
+    "index": 625,
+    "kind": "string",
+    "value": "Gaming Spirit Key",
+    "range": [
+      97778,
+      97945
+    ]
+  },
+  {
+    "index": 626,
+    "kind": "string",
+    "value": "Text",
+    "range": [
+      97972,
+      98044
+    ]
+  },
+  {
+    "index": 627,
+    "kind": "string",
+    "value": "Color3",
+    "range": [
+      98083,
+      98169
+    ]
+  },
+  {
+    "index": 628,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      98208,
+      98270
+    ]
+  },
+  {
+    "index": 629,
+    "kind": "string",
+    "value": "TextColor3",
+    "range": [
+      98329,
+      98447
+    ]
+  },
+  {
+    "index": 630,
+    "kind": "string",
+    "value": "BackgroundTransparency",
+    "range": [
+      98484,
+      98690
+    ]
+  },
+  {
+    "index": 631,
+    "kind": "string",
+    "value": "Enum",
+    "range": [
+      98729,
+      98799
+    ]
+  },
+  {
+    "index": 632,
+    "kind": "string",
+    "value": "Font",
+    "range": [
+      98831,
+      98902
+    ]
+  },
+  {
+    "index": 633,
+    "kind": "string",
+    "value": "GothamBold",
+    "range": [
+      98935,
+      99055
+    ]
+  },
+  {
+    "index": 634,
+    "kind": "string",
+    "value": "Font",
+    "range": [
+      99083,
+      99154
+    ]
+  },
+  {
+    "index": 635,
+    "kind": "string",
+    "value": "Instance",
+    "range": [
+      99193,
+      99291
+    ]
+  },
+  {
+    "index": 636,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      99330,
+      99392
+    ]
+  },
+  {
+    "index": 637,
+    "kind": "string",
+    "value": "TextBox",
+    "range": [
+      99418,
+      99509
+    ]
+  },
+  {
+    "index": 638,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      99606,
+      99686
+    ]
+  },
+  {
+    "index": 639,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      99725,
+      99787
+    ]
+  },
+  {
+    "index": 640,
+    "kind": "string",
+    "value": "Size",
+    "range": [
+      99881,
+      99951
+    ]
+  },
+  {
+    "index": 641,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      99992,
+      100072
+    ]
+  },
+  {
+    "index": 642,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      100135,
+      100197
+    ]
+  },
+  {
+    "index": 643,
+    "kind": "string",
+    "value": "Position",
+    "range": [
+      100273,
+      100371
+    ]
+  },
+  {
+    "index": 644,
+    "kind": "string",
+    "value": "Enter Key...",
+    "range": [
+      100404,
+      100536
+    ]
+  },
+  {
+    "index": 645,
+    "kind": "string",
+    "value": "PlaceholderText",
+    "range": [
+      100581,
+      100733
+    ]
+  },
+  {
+    "index": 646,
+    "kind": "string",
+    "value": "Color3",
+    "range": [
+      100771,
+      100856
+    ]
+  },
+  {
+    "index": 647,
+    "kind": "string",
+    "value": "fromRGB",
+    "range": [
+      100893,
+      100985
+    ]
+  },
+  {
+    "index": 648,
+    "kind": "string",
+    "value": "BackgroundColor3",
+    "range": [
+      101069,
+      101227
+    ]
+  },
+  {
+    "index": 649,
+    "kind": "string",
+    "value": "Color3",
+    "range": [
+      101266,
+      101352
+    ]
+  },
+  {
+    "index": 650,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      101387,
+      101449
+    ]
+  },
+  {
+    "index": 651,
+    "kind": "string",
+    "value": "TextColor3",
+    "range": [
+      101532,
+      101652
+    ]
+  },
+  {
+    "index": 652,
+    "kind": "string",
+    "value": "Instance",
+    "range": [
+      101691,
+      101789
+    ]
+  },
+  {
+    "index": 653,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      101828,
+      101890
+    ]
+  },
+  {
+    "index": 654,
+    "kind": "string",
+    "value": "UICorner",
+    "range": [
+      101916,
+      102015
+    ]
+  },
+  {
+    "index": 655,
+    "kind": "string",
+    "value": "Instance",
+    "range": [
+      102082,
+      102180
+    ]
+  },
+  {
+    "index": 656,
+    "kind": "string",
+    "value": "TextButton",
+    "range": [
+      102215,
+      102333
+    ]
+  },
+  {
+    "index": 657,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      102364,
+      102426
+    ]
+  },
+  {
+    "index": 658,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      102479,
+      102559
+    ]
+  },
+  {
+    "index": 659,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      102598,
+      102660
+    ]
+  },
+  {
+    "index": 660,
+    "kind": "string",
+    "value": "Size",
+    "range": [
+      102735,
+      102804
+    ]
+  },
+  {
+    "index": 661,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      102845,
+      102925
+    ]
+  },
+  {
+    "index": 662,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      102986,
+      103048
+    ]
+  },
+  {
+    "index": 663,
+    "kind": "string",
+    "value": "Position",
+    "range": [
+      103109,
+      103207
+    ]
+  },
+  {
+    "index": 664,
+    "kind": "string",
+    "value": "Verify",
+    "range": [
+      103239,
+      103326
+    ]
+  },
+  {
+    "index": 665,
+    "kind": "string",
+    "value": "Text",
+    "range": [
+      103353,
+      103425
+    ]
+  },
+  {
+    "index": 666,
+    "kind": "string",
+    "value": "Color3",
+    "range": [
+      103464,
+      103550
+    ]
+  },
+  {
+    "index": 667,
+    "kind": "string",
+    "value": "fromRGB",
+    "range": [
+      103607,
+      103699
+    ]
+  },
+  {
+    "index": 668,
+    "kind": "string",
+    "value": "BackgroundColor3",
+    "range": [
+      103751,
+      103909
+    ]
+  },
+  {
+    "index": 669,
+    "kind": "string",
+    "value": "Color3",
+    "range": [
+      103947,
+      104032
+    ]
+  },
+  {
+    "index": 670,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      104067,
+      104129
+    ]
+  },
+  {
+    "index": 671,
+    "kind": "string",
+    "value": "TextColor3",
+    "range": [
+      104194,
+      104312
+    ]
+  },
+  {
+    "index": 672,
+    "kind": "string",
+    "value": "Instance",
+    "range": [
+      104351,
+      104449
+    ]
+  },
+  {
+    "index": 673,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      104492,
+      104554
+    ]
+  },
+  {
+    "index": 674,
+    "kind": "string",
+    "value": "UICorner",
+    "range": [
+      104579,
+      104677
+    ]
+  },
+  {
+    "index": 675,
+    "kind": "string",
+    "value": "Instance",
+    "range": [
+      104722,
+      104820
+    ]
+  },
+  {
+    "index": 676,
+    "kind": "string",
+    "value": "TextButton",
+    "range": [
+      104861,
+      104981
+    ]
+  },
+  {
+    "index": 677,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      105008,
+      105070
+    ]
+  },
+  {
+    "index": 678,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      105164,
+      105243
+    ]
+  },
+  {
+    "index": 679,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      105282,
+      105344
+    ]
+  },
+  {
+    "index": 680,
+    "kind": "string",
+    "value": "Size",
+    "range": [
+      105438,
+      105508
+    ]
+  },
+  {
+    "index": 681,
+    "kind": "string",
+    "value": "UDim2",
+    "range": [
+      105549,
+      105629
+    ]
+  },
+  {
+    "index": 682,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      105683,
+      105745
+    ]
+  },
+  {
+    "index": 683,
+    "kind": "string",
+    "value": "Position",
+    "range": [
+      105831,
+      105929
+    ]
+  },
+  {
+    "index": 684,
+    "kind": "string",
+    "value": "Get Key Link",
+    "range": [
+      105960,
+      106090
+    ]
+  },
+  {
+    "index": 685,
+    "kind": "string",
+    "value": "Text",
+    "range": [
+      106135,
+      106207
+    ]
+  },
+  {
+    "index": 686,
+    "kind": "string",
+    "value": "Color3",
+    "range": [
+      106246,
+      106332
+    ]
+  },
+  {
+    "index": 687,
+    "kind": "string",
+    "value": "fromRGB",
+    "range": [
+      106381,
+      106472
+    ]
+  },
+  {
+    "index": 688,
+    "kind": "string",
+    "value": "BackgroundColor3",
+    "range": [
+      106549,
+      106707
+    ]
+  },
+  {
+    "index": 689,
+    "kind": "string",
+    "value": "Color3",
+    "range": [
+      106745,
+      106830
+    ]
+  },
+  {
+    "index": 690,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      106869,
+      106931
+    ]
+  },
+  {
+    "index": 691,
+    "kind": "string",
+    "value": "TextColor3",
+    "range": [
+      107012,
+      107132
+    ]
+  },
+  {
+    "index": 692,
+    "kind": "string",
+    "value": "Instance",
+    "range": [
+      107171,
+      107269
+    ]
+  },
+  {
+    "index": 693,
+    "kind": "string",
+    "value": "UICorner",
+    "range": [
+      107304,
+      107402
+    ]
+  },
+  {
+    "index": 694,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      107451,
+      107513
+    ]
+  },
+  {
+    "index": 695,
+    "kind": "string",
+    "value": "MouseButton1Click",
+    "range": [
+      107580,
+      107748
+    ]
+  },
+  {
+    "index": 696,
+    "kind": "string",
+    "value": "MouseButton1Click",
+    "range": [
+      107859,
+      108025
+    ]
+  },
+  {
+    "index": 697,
+    "kind": "string",
+    "value": "os",
+    "range": [
+      108108,
+      108166
+    ]
+  },
+  {
+    "index": 698,
+    "kind": "string",
+    "value": "time",
+    "range": [
+      108212,
+      108281
+    ]
+  },
+  {
+    "index": 699,
+    "kind": "string",
+    "value": "PlayerGui",
+    "range": [
+      108451,
+      108557
+    ]
+  },
+  {
+    "index": 705,
+    "kind": "string",
+    "value": "FakeAnEgg_KeySystem.txt",
+    "range": [
+      109099,
+      109309
+    ]
+  },
+  {
+    "index": 706,
+    "kind": "string",
+    "value": "readfile",
+    "range": [
+      109340,
+      109438
+    ]
+  },
+  {
+    "index": 707,
+    "kind": "string",
+    "value": "tonumber",
+    "range": [
+      109471,
+      109569
+    ]
+  },
+  {
+    "index": 709,
+    "kind": "string",
+    "value": "isfile",
+    "range": [
+      109795,
+      109883
+    ]
+  },
+  {
+    "index": 713,
+    "kind": "string",
+    "value": "readfile",
+    "range": [
+      110166,
+      110264
+    ]
+  },
+  {
+    "index": 714,
+    "kind": "string",
+    "value": "CoreGui",
+    "range": [
+      110302,
+      110394
+    ]
+  },
+  {
+    "index": 715,
+    "kind": "string",
+    "value": "game",
+    "range": [
+      110425,
+      110495
+    ]
+  },
+  {
+    "index": 716,
+    "kind": "string",
+    "value": "pcall",
+    "range": [
+      110621,
+      110701
+    ]
+  },
+  {
+    "index": 718,
+    "kind": "string",
+    "value": "isfile",
+    "range": [
+      110890,
+      110978
+    ]
+  },
+  {
+    "index": 719,
+    "kind": "string",
+    "value": "FakeAnEgg_KeySystem.txt",
+    "range": [
+      111003,
+      111213
+    ]
+  },
+  {
+    "index": 723,
+    "kind": "string",
+    "value": "Color3",
+    "range": [
+      114416,
+      114501
+    ]
+  },
+  {
+    "index": 724,
+    "kind": "string",
+    "value": "fromRGB",
+    "range": [
+      114547,
+      114638
+    ]
+  },
+  {
+    "index": 725,
+    "kind": "string",
+    "value": "BackgroundColor3",
+    "range": [
+      114696,
+      114854
+    ]
+  },
+  {
+    "index": 728,
+    "kind": "string",
+    "value": "Color3",
+    "range": [
+      115224,
+      115309
+    ]
+  },
+  {
+    "index": 729,
+    "kind": "string",
+    "value": "fromRGB",
+    "range": [
+      115354,
+      115445
+    ]
+  },
+  {
+    "index": 730,
+    "kind": "string",
+    "value": "BackgroundColor3",
+    "range": [
+      115519,
+      115677
+    ]
+  },
+  {
+    "index": 731,
+    "kind": "string",
+    "value": "task",
+    "range": [
+      115925,
+      115997
+    ]
+  },
+  {
+    "index": 732,
+    "kind": "string",
+    "value": "spawn",
+    "range": [
+      116058,
+      116138
+    ]
+  },
+  {
+    "index": 734,
+    "kind": "string",
+    "value": "writefile",
+    "range": [
+      116381,
+      116487
+    ]
+  },
+  {
+    "index": 736,
+    "kind": "string",
+    "value": "Text",
+    "range": [
+      116671,
+      116741
+    ]
+  },
+  {
+    "index": 739,
+    "kind": "string",
+    "value": "Text",
+    "range": [
+      117148,
+      117220
+    ]
+  },
+  {
+    "index": 741,
+    "kind": "string",
+    "value": "WRONG KEY!",
+    "range": [
+      117314,
+      117434
+    ]
+  },
+  {
+    "index": 742,
+    "kind": "string",
+    "value": "PlaceholderText",
+    "range": [
+      117460,
+      117611
+    ]
+  },
+  {
+    "index": 743,
+    "kind": "string",
+    "value": "tostring",
+    "range": [
+      117669,
+      117769
+    ]
+  },
+  {
+    "index": 744,
+    "kind": "string",
+    "value": "writefile",
+    "range": [
+      117802,
+      117908
+    ]
+  },
+  {
+    "index": 745,
+    "kind": "string",
+    "value": "FakeAnEgg_KeySystem.txt",
+    "range": [
+      117935,
+      118147
+    ]
+  },
+  {
+    "index": 746,
+    "kind": "string",
+    "value": "os",
+    "range": [
+      118178,
+      118236
+    ]
+  },
+  {
+    "index": 747,
+    "kind": "string",
+    "value": "time",
+    "range": [
+      118282,
+      118353
+    ]
+  },
+  {
+    "index": 752,
+    "kind": "string",
+    "value": "pcall",
+    "range": [
+      119556,
+      119636
+    ]
+  },
+  {
+    "index": 753,
+    "kind": "string",
+    "value": "task",
+    "range": [
+      119681,
+      119753
+    ]
+  },
+  {
+    "index": 754,
+    "kind": "string",
+    "value": "wait",
+    "range": [
+      119793,
+      119862
+    ]
+  },
+  {
+    "index": 755,
+    "kind": "string",
+    "value": "task",
+    "range": [
+      120589,
+      120661
+    ]
+  },
+  {
+    "index": 756,
+    "kind": "string",
+    "value": "spawn",
+    "range": [
+      120742,
+      120822
+    ]
+  },
+  {
+    "index": 758,
+    "kind": "string",
+    "value": "task",
+    "range": [
+      121064,
+      121136
+    ]
+  },
+  {
+    "index": 759,
+    "kind": "string",
+    "value": "wait",
+    "range": [
+      121177,
+      121249
+    ]
+  },
+  {
+    "index": 761,
+    "kind": "string",
+    "value": "RemoteEvents",
+    "range": [
+      121578,
+      121708
+    ]
+  },
+  {
+    "index": 762,
+    "kind": "string",
+    "value": "RebirthEvent",
+    "range": [
+      121735,
+      121867
+    ]
+  },
+  {
+    "index": 764,
+    "kind": "string",
+    "value": "pcall",
+    "range": [
+      122036,
+      122115
+    ]
+  },
+  {
+    "index": 767,
+    "kind": "string",
+    "value": "RemoteEvents",
+    "range": [
+      122425,
+      122555
+    ]
+  },
+  {
+    "index": 770,
+    "kind": "string",
+    "value": "fireproximityprompt",
+    "range": [
+      124250,
+      124434
+    ]
+  },
+  {
+    "index": 772,
+    "kind": "string",
+    "value": "task",
+    "range": [
+      125255,
+      125327
+    ]
+  },
+  {
+    "index": 773,
+    "kind": "string",
+    "value": "wait",
+    "range": [
+      125364,
+      125436
+    ]
+  },
+  {
+    "index": 774,
+    "kind": "string",
+    "value": "Get Key Link",
+    "range": [
+      125513,
+      125643
+    ]
+  },
+  {
+    "index": 775,
+    "kind": "string",
+    "value": "Text",
+    "range": [
+      125668,
+      125738
+    ]
+  },
+  {
+    "index": 776,
+    "kind": "string",
+    "value": "setclipboard",
+    "range": [
+      125841,
+      125973
+    ]
+  },
+  {
+    "index": 777,
+    "kind": "string",
+    "value": "https://lootdest.org/s?LqaMr3vF",
+    "range": [
+      125998,
+      126268
+    ]
+  },
+  {
+    "index": 778,
+    "kind": "string",
+    "value": "Link Copied!",
+    "range": [
+      126305,
+      126435
+    ]
+  },
+  {
+    "index": 779,
+    "kind": "string",
+    "value": "Text",
+    "range": [
+      126494,
+      126564
+    ]
+  },
+  {
+    "index": 780,
+    "kind": "string",
+    "value": "setclipboard",
+    "range": [
+      126610,
+      126742
+    ]
+  },
+  {
+    "index": 784,
+    "kind": "string",
+    "value": "Clipboard not supported",
+    "range": [
+      127040,
+      127252
+    ]
+  },
+  {
+    "index": 785,
+    "kind": "string",
+    "value": "Text",
+    "range": [
+      127277,
+      127347
+    ]
+  },
+  {
+    "index": 786,
+    "kind": "string",
+    "value": "Instance",
+    "range": [
+      127826,
+      127924
+    ]
+  },
+  {
+    "index": 787,
+    "kind": "string",
+    "value": "ScreenGui",
+    "range": [
+      127955,
+      128061
+    ]
+  },
+  {
+    "index": 788,
+    "kind": "string",
+    "value": "new",
+    "range": [
+      128088,
+      128150
+    ]
+  },
+  {
+    "index": 789,
+    "kind": "string",
+    "value": "Parent",
+    "range": [
+      128224,
+      128309
+    ]
+  },
+  {
+    "index": 793,
+    "kind": "string",
+    "value": "RemoteEvents",
+    "range": [
+      128870,
+      129000
+    ]
+  },
+  {
+    "index": 796,
+    "kind": "string",
+    "value": "task",
+    "range": [
+      129220,
+      129292
+    ]
+  },
+  {
+    "index": 797,
+    "kind": "string",
+    "value": "wait",
+    "range": [
+      129333,
+      129405
+    ]
+  },
+  {
+    "index": 800,
+    "kind": "string",
+    "value": "pcall",
+    "range": [
+      129631,
+      129711
+    ]
+  },
+  {
+    "index": 801,
+    "kind": "string",
+    "value": "SellAllEvent",
+    "range": [
+      129857,
+      129989
+    ]
+  },
+  {
+    "index": 802,
+    "kind": "string",
+    "value": "RemoteEvents",
+    "range": [
+      130016,
+      130146
+    ]
+  },
+  {
+    "index": 803,
+    "kind": "string",
+    "value": "game",
+    "range": [
+      130327,
+      130397
+    ]
+  },
+  {
+    "index": 804,
+    "kind": "string",
+    "value": "https://pastebin.com/raw/3Yk4R5xS",
+    "range": [
+      130421,
+      130706
+    ]
+  }
+]
