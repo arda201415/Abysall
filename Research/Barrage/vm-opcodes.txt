@@ -1,0 +1,1909 @@
+OPCODE 0
+b = K[d]
+
+OPCODE 1
+if (W[K[d]] ~= k[d]) then
+  d = F[d]
+end
+
+OPCODE 2
+f = f[h]
+h = k[d]
+
+OPCODE 3
+W[K[d]] = C
+
+OPCODE 4
+f = W
+
+OPCODE 5
+b = F[d]
+N = N[b]
+
+OPCODE 6
+h = X[d]
+N = L
+
+OPCODE 7
+if u then
+  for D, L in u do
+    if not (D >= 1) then
+
+    else
+      L[2] = L
+      L[3] = W[D]
+      L[1] = 3
+      u[D] = nil
+    end
+  end
+end
+f = X[d]
+return W[f](W[(f + 1)])
+
+OPCODE 8
+f = W
+h = X[d]
+N = W
+
+OPCODE 9
+h = f
+N = 2
+h = h[N]
+
+OPCODE 10
+W[X[d]] = (j[d] * W[K[d]])
+
+OPCODE 11
+W[F[d]] = Z[33](X[d])
+
+OPCODE 12
+h = K[d]
+f = f[h]
+h = f
+
+OPCODE 13
+W[X[d]] = J[o]
+
+OPCODE 14
+N = j[d]
+
+OPCODE 15
+N = W
+b = F[d]
+N = N[b]
+
+OPCODE 16
+f = {...}
+for D = 1, F[d] do
+  W[D] = f[D]
+end
+
+OPCODE 17
+b = X[d]
+N = N[b]
+b = l[d]
+
+OPCODE 18
+f = L
+
+OPCODE 19
+f = 1
+M = M[f]
+
+OPCODE 20
+W[F[d]] = nil
+
+OPCODE 21
+N = k[d]
+
+OPCODE 22
+if u then
+  for D, i in u do
+    if (D >= 1) then
+      i[2] = i
+      i[3] = W[D]
+      i[1] = 3
+      u[D] = nil
+    end
+  end
+end
+return 
+
+OPCODE 23
+W[F[d]][W[K[d]]] = k[d]
+
+OPCODE 24
+if not not (W[X[d]] < W[F[d]]) then
+
+else
+  d = K[d]
+end
+
+OPCODE 25
+W[X[d]] = L[K[d]]
+
+OPCODE 26
+f = F[d]
+W[f] = W[f](W[(f + 1)])
+P = f
+
+OPCODE 27
+f = X[d]
+W[f](W[(f + 1)], W[(f + 2)])
+P = (f - 1)
+
+OPCODE 28
+f = L[K[d]]
+f[2][f[1]] = W[X[d]]
+
+OPCODE 29
+f = l[d]
+h[N] = f
+
+OPCODE 30
+f = X[d]
+h = W[K[d]]
+W[(f + 1)] = h
+W[f] = h[j[d]]
+
+OPCODE 31
+f = F[d]
+h = X[d]
+N = W[f]
+Z[18](W, (f + 1), P, (h + 1), N)
+
+OPCODE 32
+N = (N - b)
+
+OPCODE 33
+f = F[d]
+W[f] = W[f](W[(f + 1)], W[(f + 2)])
+P = f
+
+OPCODE 34
+L[F[d]][l[d]] = W[X[d]]
+
+OPCODE 35
+if u then
+  for D, i in u do
+    if (D >= 1) then
+      i[2] = i
+      i[3] = W[D]
+      i[1] = 3
+      u[D] = nil
+    end
+  end
+end
+return Z[28](P, W, X[d])
+
+OPCODE 36
+W[K[d]] = (W[F[d]] >= W[X[d]])
+
+OPCODE 37
+f = F[d]
+h = ((H - S) - 1)
+if (h < 0) then
+  h = - 1
+end
+N = 0
+for D = f, (f + h) do
+  W[D] = J[(o + N)]
+  N = (N + 1)
+end
+P = (f + h)
+
+OPCODE 38
+f = W
+h = F[d]
+
+OPCODE 39
+W[X[d]] = Z[36]
+
+OPCODE 40
+h = X[d]
+N = L
+
+OPCODE 41
+N = N[f]
+f = W
+b = X[d]
+
+OPCODE 42
+f[h] = N
+
+OPCODE 43
+N = k[d]
+f[h] = N
+
+OPCODE 44
+W[K[d]] = - W[X[d]]
+
+OPCODE 45
+f = L
+h = F[d]
+f = f[h]
+
+OPCODE 46
+if not (W[K[d]] <= W[X[d]]) then
+  d = F[d]
+end
+
+OPCODE 47
+if not (W[X[d]] < W[K[d]]) then
+
+else
+  d = F[d]
+end
+
+OPCODE 48
+b = b[M]
+
+OPCODE 49
+if not W[X[d]] then
+  d = K[d]
+end
+
+OPCODE 50
+h = f
+
+OPCODE 51
+W[K[d]] = (W[X[d]] ~= W[F[d]])
+
+OPCODE 52
+H, J = Z[53](...)
+
+OPCODE 53
+N = W
+b = X[d]
+N = N[b]
+
+OPCODE 54
+f = W
+h = F[d]
+N = W
+
+OPCODE 55
+N = N()
+
+OPCODE 56
+f = X[d]
+P = f
+
+OPCODE 57
+if not u then
+
+else
+  for i, a in u do
+    if not (i >= 1) then
+
+    else
+      a[2] = a
+      a[3] = W[i]
+      a[1] = 3
+      u[i] = nil
+    end
+  end
+end
+f = K[d]
+return W[f](Z[28](P, W, (f + 1)))
+
+OPCODE 58
+f = W
+h = X[d]
+N = W
+
+OPCODE 59
+W[K[d]] = (W[F[d]] .. k[d])
+
+OPCODE 60
+f = W
+h = K[d]
+
+OPCODE 61
+W[F[d]] = (W[X[d]] / W[K[d]])
+
+OPCODE 62
+N = (N / b)
+
+OPCODE 63
+W[K[d]] = k[d]
+
+OPCODE 64
+W[F[d]] = (l[d] ^ W[X[d]])
+
+OPCODE 65
+N = (N * b)
+
+OPCODE 66
+N = f
+
+OPCODE 67
+b = K[d]
+
+OPCODE 68
+N = X[d]
+b = f
+
+OPCODE 69
+W[X[d]] = Z[34]
+
+OPCODE 70
+S = K[d]
+H, J = Z[53](...)
+for i = 1, S do
+  W[i] = J[i]
+end
+o = (S + 1)
+
+OPCODE 71
+f = W
+h = K[d]
+f = f[h]
+
+OPCODE 72
+f = X[d]
+W[f] = W[f](Z[28](P, W, (f + 1)))
+P = f
+
+OPCODE 73
+W[F[d]] = W[X[d]]
+
+OPCODE 74
+N = j[d]
+f[h] = N
+
+OPCODE 75
+W[K[d]] = (W[F[d]] % W[X[d]])
+
+OPCODE 76
+N = i
+
+OPCODE 77
+L[X[d]][l[d]] = j[d]
+
+OPCODE 78
+f = W
+h = K[d]
+
+OPCODE 79
+W[X[d]] = (j[d] .. W[K[d]])
+
+OPCODE 80
+N = W
+
+OPCODE 81
+W[X[d]] = (W[K[d]] // j[d])
+
+OPCODE 82
+if W[K[d]] then
+  d = F[d]
+end
+
+OPCODE 83
+N = (N == b)
+f[h] = N
+
+OPCODE 84
+W[F[d]] = (W[K[d]] ~= k[d])
+
+OPCODE 85
+W[X[d]] = D
+
+OPCODE 86
+W[F[d]] = L[K[d]][k[d]]
+
+OPCODE 87
+f = f[h]
+
+OPCODE 88
+W[F[d]] = (W[K[d]] * W[X[d]])
+
+OPCODE 89
+f = L
+
+OPCODE 90
+b = F[d]
+N = N[b]
+
+OPCODE 91
+N = N[b]
+b = W
+
+OPCODE 92
+f = L[K[d]]
+f[2][f[1]][W[X[d]]] = W[F[d]]
+
+OPCODE 93
+f = f[h]
+f()
+f = P
+
+OPCODE 94
+f = f[b]
+h[N] = f
+
+OPCODE 95
+if (W[X[d]] == l[d]) then
+  d = F[d]
+end
+
+OPCODE 96
+b = l[d]
+N = N[b]
+
+OPCODE 97
+W[F[d]] = Z[37](W[X[d]], W[K[d]])
+
+OPCODE 98
+N = N[f]
+
+OPCODE 99
+if not not (W[X[d]] <= l[d]) then
+
+else
+  d = F[d]
+end
+
+OPCODE 100
+h = X[d]
+N = W
+
+OPCODE 101
+if (W[F[d]] == W[K[d]]) then
+
+else
+  d = X[d]
+end
+
+OPCODE 102
+f = f[h]
+h = W
+
+OPCODE 103
+h = K[d]
+
+OPCODE 104
+g = y[1]
+Y = y[3]
+c = y[2]
+y = y[4]
+
+OPCODE 105
+h = k[d]
+N = W
+
+OPCODE 106
+W[K[d]][W[X[d]]] = W[F[d]]
+
+OPCODE 107
+b = l[d]
+N = (N - b)
+
+OPCODE 108
+W[X[d]] = W[F[d]][W[K[d]]]
+
+OPCODE 109
+N = 2
+
+OPCODE 110
+f = F[d]
+h, N, b = g()
+if h then
+  W[(f + 1)] = N
+  W[(f + 2)] = b
+  d = K[d]
+end
+
+OPCODE 111
+N = 2
+h = h[N]
+
+OPCODE 112
+f = L[F[d]]
+f[2][f[1]] = l[d]
+
+OPCODE 113
+N = N[b]
+f[h] = N
+
+OPCODE 114
+W[F[d]] = (W[X[d]] * l[d])
+
+OPCODE 115
+W[F[d]] = (W[K[d]] % k[d])
+
+OPCODE 116
+W[X[d]] = (W[F[d]] <= W[K[d]])
+
+OPCODE 117
+f = L[X[d]]
+W[F[d]] = f[2][f[1]][l[d]]
+
+OPCODE 118
+W[K[d]][k[d]] = j[d]
+
+OPCODE 119
+b = l[d]
+
+OPCODE 120
+f[h] = N
+
+OPCODE 121
+W[X[d]] = (W[F[d]] + l[d])
+
+OPCODE 122
+W[X[d]] = W
+
+OPCODE 123
+f = nil
+h = nil
+N = nil
+b = 21
+repeat
+  if (b > 15) then
+    if (b >= 112) then
+      h = 0
+      b = (- 3850113 + (Z[3][19](Z[3][20]((b + B), 14), b, b) - b))
+      CONTINUE()
+    else
+      f = - 112
+      b = (- 11 + ((((Z[3][21]((b - b)) - b) == b) and B) or B))
+    end
+  else
+    N = 4503599627370495
+    break
+  end
+until false
+M = nil
+b = 86
+while true do
+  if ((b < 86) and (b > 62)) then
+    N = (N + M)
+    b = (- 86 + (Z[3][22](((((b - b) >= b) and B) or b), b) + b))
+  else
+    if (b < 44) then
+      N = (N ~= M)
+      b = (- 88 + ((((Z[3][20](Z[3][23](B), b) < b) and B) or b) + B))
+      CONTINUE()
+    else
+      if (b > 119) then
+        M = B
+        b = (- 124 + ((((((B < b) and b) or B) + b) + B) - B))
+      elseif ((b < 120) and (b > 106)) then
+        N = (N + M)
+        b = (- 4294479646 + (Z[3][24](Z[3][23](Z[3][20](b, 12))) - b))
+        CONTINUE()
+      elseif ((b > 44) and (b < 62)) then
+        N = C[d]
+        b = (- 4294967048 + (Z[3][24]((Z[3][25](B) - b), B) - B))
+      elseif ((b < 119) and (b > 86)) then
+        M = B
+        b = (- 4294967230 + Z[3][23](Z[3][25](((B + b) - b))))
+        CONTINUE()
+      elseif ((b < 61) and (b > 27)) then
+        M = C[d]
+        b = (- 4294967189 + ((Z[3][23](Z[3][25](B)) + b) - B))
+        CONTINUE()
+      else
+        if ((b > 65) and (b < 106)) then
+          h = (h * N)
+          b = (- 687865709 + (Z[3][26](Z[3][22](Z[3][24](B), B, b), 9) - b))
+          CONTINUE()
+        else
+          if not ((b > 61) and (b < 65)) then
+
+          else
+            if N then
+              N = C[d]
+            end
+            break
+          end
+        end
+      end
+    end
+  end
+end
+b = 79
+while true do
+  if (b == 98) then
+    N = (N ~= M)
+    break
+  else
+    if not N then
+      N = C[d]
+    end
+    M = C[d]
+    b = (- 4294967276 + (Z[3][24](((b - B) - b), B) + b))
+    CONTINUE()
+  end
+end
+if N then
+  N = C[d]
+end
+if not not N then
+
+else
+  N = C[d]
+end
+b = 64
+repeat
+  if (b < 64) then
+    N = (N - M)
+    break
+  else
+    if not (b > 31) then
+
+    else
+      M = C[d]
+      b = (- 156 + ((((((b - b) - B) >= B) and b) or b) + B))
+    end
+  end
+until false
+M = B
+b = 3
+while true do
+  if (b == 45) then
+    if not N then
+
+    else
+      N = C[d]
+    end
+    break
+  else
+    if (b == 6) then
+      M = C[d]
+      N = (N == M)
+      b = (- 7833 + (((Z[3][20](B, b) - B) + B) + b))
+      CONTINUE()
+    else
+      if (b == 3) then
+        N = (N - M)
+        b = (4 + Z[3][22]((Z[3][23]((B - b)) + B), B, B))
+        CONTINUE()
+      end
+    end
+  end
+end
+if not N then
+  N = B
+end
+M = B
+N = (N <= M)
+b = 112
+while true do
+  if (b == 112) then
+    if not N then
+
+    else
+      N = B
+    end
+    b = (113 + (Z[3][21](Z[3][22](Z[3][19](B, b, b))) - B))
+  else
+    if (b == 15) then
+      if not not N then
+
+      else
+        N = B
+      end
+      b = (- 4030445 + Z[3][19]((Z[3][20]((((B >= B) and B) or B), b) + b)))
+    else
+      if (b ~= 34) then
+
+      else
+        h = (h + N)
+        break
+      end
+    end
+  end
+end
+f = (f + h)
+C[d] = f
+f = W
+h = F[d]
+b = 8
+repeat
+  if ((b > 8) and (b < 122)) then
+    N = N(M)
+    b = (193 + (Z[3][24](Z[3][25]((((B >= b) and B) or B))) - b))
+    CONTINUE()
+  else
+    if (b > 71) then
+      f[h] = N
+      break
+    else
+      if (b < 71) then
+        N = Z[33]
+        M = X[d]
+        b = (- 4294967224 + (Z[3][23](((((((B > b) and b) or B) <= b) and b) or b)) + b))
+        CONTINUE()
+      end
+    end
+  end
+until false
+
+OPCODE 124
+f = L[F[d]]
+W[X[d]] = f[2][f[1]][W[K[d]]]
+
+OPCODE 125
+f = false
+g = (g + c)
+if not (c <= 0) then
+  f = (g <= Y)
+else
+  f = (g >= Y)
+end
+if f then
+  W[(F[d] + 3)] = g
+  d = K[d]
+end
+
+OPCODE 126
+W[F[d]] = (W[K[d]] .. W[X[d]])
+
+OPCODE 127
+N = W
+b = X[d]
+N = N[b]
+
+OPCODE 128
+W[F[d]] = F
+
+OPCODE 129
+W[X[d]] = (W[F[d]] // W[K[d]])
+
+OPCODE 130
+W[X[d]] = # W[K[d]]
+
+OPCODE 131
+W[F[d]] = W[X[d]][l[d]]
+
+OPCODE 132
+h[N] = f
+
+OPCODE 133
+b = F[d]
+N = N[b]
+b = W
+
+OPCODE 134
+f = L[K[d]]
+f[2][f[1]][k[d]] = W[F[d]]
+
+OPCODE 135
+h = P
+N = W
+b = P
+
+OPCODE 136
+W[X[d]] = Z[37](W[K[d]], j[d])
+
+OPCODE 137
+for a = F[d], X[d] do
+  W[a] = nil
+end
+
+OPCODE 138
+if (j[d] < W[K[d]]) then
+  d = X[d]
+end
+
+OPCODE 139
+f = F[d]
+W[f](W[(f + 1)])
+P = (f - 1)
+
+OPCODE 140
+f = F[d]
+
+OPCODE 141
+L[X[d]][W[F[d]]] = W[K[d]]
+
+OPCODE 142
+b = k[d]
+
+OPCODE 143
+if not (j[d] <= W[K[d]]) then
+  d = X[d]
+end
+
+OPCODE 144
+f[h] = N
+
+OPCODE 145
+P = K[d]
+W[P] = W[P]()
+
+OPCODE 146
+h = k[d]
+
+OPCODE 147
+W[X[d]] = (W[K[d]] + W[F[d]])
+
+OPCODE 148
+f = W
+h = F[d]
+
+OPCODE 149
+if not not (j[d] < W[X[d]]) then
+
+else
+  d = K[d]
+end
+
+OPCODE 150
+b = F[d]
+N = N[b]
+b = l[d]
+
+OPCODE 151
+W[K[d]] = {}
+
+OPCODE 152
+f = X[d]
+W[f](Z[28](P, W, (f + 1)))
+P = (f - 1)
+
+OPCODE 153
+N = f
+f = 1
+
+OPCODE 154
+f = K[d]
+h = X[d]
+N = F[d]
+if (h ~= 0) then
+  P = ((f + h) - 1)
+end
+b, M = nil
+if (h == 1) then
+  b, M = Z[53](W[f]())
+else
+  b, M = Z[53](W[f](Z[28](P, W, (f + 1))))
+end
+if (N == 1) then
+  P = (f - 1)
+else
+  if (N ~= 0) then
+    b = ((f + N) - 2)
+    P = (b + 1)
+  else
+    b = ((b + f) - 1)
+    P = b
+  end
+  h = 0
+  for a = f, b do
+    h = (h + 1)
+    W[a] = M[h]
+  end
+end
+
+OPCODE 155
+f = W
+h = K[d]
+N = {}
+
+OPCODE 156
+b = l[d]
+N = (N + b)
+
+OPCODE 157
+f = F[d]
+P = ((f + X[d]) - 1)
+W[f] = W[f](Z[28](P, W, (f + 1)))
+P = f
+
+OPCODE 158
+M = X[d]
+
+OPCODE 159
+W[F[d]] = i[l[d]]
+
+OPCODE 160
+b = X[d]
+
+OPCODE 161
+W[F[d]] = X
+
+OPCODE 162
+local a = K[d]
+if u then
+  for m, V in u do
+    if not (m >= a) then
+
+    else
+      V[2] = V
+      V[3] = W[m]
+      V[1] = 3
+      u[m] = nil
+    end
+  end
+end
+
+OPCODE 163
+f = f[b]
+
+OPCODE 164
+W[K[d]] = (W[F[d]] / k[d])
+
+OPCODE 165
+b = F[d]
+N = N[b]
+f[h] = N
+
+OPCODE 166
+W[X[d]] = (W[F[d]] == l[d])
+
+OPCODE 167
+f = W
+h = K[d]
+N = W
+
+OPCODE 168
+f = W
+h = F[d]
+N = i
+
+OPCODE 169
+W[K[d]] = (W[F[d]] >= k[d])
+
+OPCODE 170
+f = L[F[d]]
+f[2][f[1]][k[d]] = l[d]
+
+OPCODE 171
+f = F[d]
+h = X[d]
+for a = f, h do
+  N = W
+  b = a
+  a = nil
+  N[b] = a
+end
+
+OPCODE 172
+P = f
+
+OPCODE 173
+W[F[d]] = Z[12](W[K[d]], k[d])
+
+OPCODE 174
+if not (W[F[d]] < l[d]) then
+  d = X[d]
+end
+
+OPCODE 175
+M = K[d]
+b = b[M]
+
+OPCODE 176
+N = N[b]
+
+OPCODE 177
+d = F[d]
+
+OPCODE 178
+W[F[d]] = (W[X[d]] - l[d])
+
+OPCODE 179
+W[X[d]] = K
+
+OPCODE 180
+y = {[2]=c, [1]=g, [3]=Y, [4]=y}
+f = F[d]
+c = (W[(f + 2)] + 0)
+Y = (W[(f + 1)] + 0)
+g = (W[f] - c)
+d = K[d]
+
+OPCODE 181
+P = X[d]
+W[P]()
+P = (P - 1)
+
+OPCODE 182
+N = W
+b = f
+N = N[b]
+
+OPCODE 183
+W[F[d]] = Z[3][K[d]]
+
+OPCODE 184
+b = Z[18]
+M = W
+I = f
+m = 1
+I = (I + m)
+m = f
+V = K[d]
+m = (m + V)
+V = h
+w = 1
+V = (V + w)
+w = N
+b(M, I, m, V, w)
+
+OPCODE 185
+if u then
+  for a, v in u do
+    if not (a >= 1) then
+
+    else
+      v[2] = v
+      v[3] = W[a]
+      v[1] = 3
+      u[a] = nil
+    end
+  end
+end
+f = K[d]
+return Z[28](((f + F[d]) - 2), W, f)
+
+OPCODE 186
+f = 1
+
+OPCODE 187
+h = X[d]
+
+OPCODE 188
+h = K[d]
+f = f[h]
+
+OPCODE 189
+W[F[d]] = Z[38](W[K[d]], k[d])
+
+OPCODE 190
+if u then
+  for a, v in u do
+    if not (a >= 1) then
+
+    else
+      v[2] = v
+      v[3] = W[a]
+      v[1] = 3
+      u[a] = nil
+    end
+  end
+end
+return W[X[d]]()
+
+OPCODE 191
+f = W
+h = X[d]
+
+OPCODE 192
+h = h[N]
+
+OPCODE 193
+N = f
+f = 1
+
+OPCODE 194
+f = - 4294966786
+h = nil
+N = nil
+b = 50
+repeat
+  if (b == 50) then
+    h = 0
+    b = (- 4293787543 + Z[3][22](Z[3][27](((((b == b) and b) or B) - B), 13)))
+  elseif (b == 52) then
+    h = (h * N)
+    b = (- 49 + (((Z[3][24](Z[3][23]((((b > B) and B) or b)), B) > b) and b) or b))
+  elseif (b == 3) then
+    N = Z[3]
+    break
+  else
+    if (b ~= 105) then
+
+    else
+      N = 4503599627370495
+      b = (- 4294107083 + Z[3][26](((Z[3][23](B) + B) - b), 19))
+    end
+  end
+until false
+M = 19
+I = nil
+b = 31
+while true do
+  if (b == 116) then
+    I = Z[3]
+    break
+  else
+    if (b == 41) then
+      M = M[I]
+      b = (116 + ((((((((b + b) ~= b) and b) or B) == B) and B) or B) - B))
+      CONTINUE()
+    elseif (b == 31) then
+      N = N[M]
+      b = (- 80 + ((((Z[3][21]((B + B)) - b) <= B) and B) or B))
+    else
+      if (b == 114) then
+        M = Z[3]
+        I = 23
+        b = (- 55 + ((Z[3][19]((B - B), B, b) + b) - B))
+        CONTINUE()
+      end
+    end
+  end
+end
+m = 26
+V = nil
+b = 64
+repeat
+  if (b == 31) then
+    V = 27
+    break
+  else
+    if (b == 64) then
+      I = I[m]
+      m = Z[3]
+      b = (289 + ((((((b <= b) and b) or B) - b) - b) - B))
+      CONTINUE()
+    end
+  end
+until false
+m = m[V]
+V = B
+w = B
+V = (V ~= w)
+if not V then
+
+else
+  V = B
+end
+b = 38
+repeat
+  if not (b > 38) then
+    if (b ~= 7) then
+      if not V then
+        V = B
+      end
+      b = (- 4193255346 + Z[3][23](Z[3][27](((B - b) + b), 19)))
+      CONTINUE()
+    else
+      if not V then
+
+      else
+        V = B
+      end
+      if not not V then
+
+      else
+        V = B
+      end
+      b = (- 141 + Z[3][24]((((Z[3][19]((((B <= b) and B) or b), b) <= B) and B) or b), B, b))
+    end
+  elseif (b > 58) then
+    if (b == 77) then
+      w = B
+      b = (189 + ((((((((((B > b) and b) or b) >= B) and B) or B) < b) and B) or b) - B))
+      CONTINUE()
+    else
+      V = (V < w)
+      b = (- 4294967264 + Z[3][23](((Z[3][21](B) + b) - b)))
+    end
+  else
+    w = 10
+    break
+  end
+until false
+m = m(V, w)
+b = 18
+repeat
+  if (b == 18) then
+    V = Z[3]
+    b = (- 145 + (Z[3][21](Z[3][19](Z[3][19](b, b, B))) + B))
+  else
+    if (b == 20) then
+      V = V[w]
+      w = ">i8"
+      break
+    else
+      if (b ~= 73) then
+
+      else
+        w = 28
+        b = (- 53 + (((Z[3][21](((((b <= b) and b) or B) + b)) >= B) and b) or b))
+        CONTINUE()
+      end
+    end
+  end
+until false
+a = "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u001f"
+b = 98
+while true do
+  if (b > 89) then
+    V = V(w, a)
+    I = I(m, V)
+    b = (- 51380135 + Z[3][27](Z[3][24](Z[3][22](Z[3][22](B, b), B, b), b), 19))
+  else
+    if not (b < 98) then
+
+    else
+      m = C[d]
+      break
+    end
+  end
+end
+b = 1
+repeat
+  if (b > 108) then
+    I = C[d]
+    break
+  elseif ((b < 108) and (b > 1)) then
+    M = M(I)
+    b = (102 + Z[3][21]((Z[3][23]((B - B)) + B)))
+    CONTINUE()
+  else
+    if ((b > 91) and (b < 126)) then
+      if not I then
+        I = B
+      end
+      b = (91 + Z[3][29](((((Z[3][24](b, B) - b) >= b) and b) or b), 25))
+      CONTINUE()
+    else
+      if (b < 91) then
+        I = (I >= m)
+        if I then
+          I = B
+        end
+        b = (- 4294967091 + (Z[3][23](Z[3][26]((((b ~= b) and b) or B), b)) + b))
+        CONTINUE()
+      end
+    end
+  end
+until false
+M = (M - I)
+I = B
+m = C[d]
+b = 8
+while true do
+  if (b > 8) then
+    h = (h + N)
+    break
+  else
+    if (b < 71) then
+      N = N(M, I, m)
+      b = (44 + Z[3][21](((Z[3][24](b) + b) + b)))
+    end
+  end
+end
+f = (f + h)
+C[d] = f
+b = 12
+while true do
+  if (b ~= 123) then
+    f = W
+    b = (- 203472773 + Z[3][26]((Z[3][27](Z[3][27](b, b), b) + B), b))
+    CONTINUE()
+  else
+    h = X[d]
+    break
+  end
+end
+N = W
+M = F[d]
+N = N[M]
+b = 8
+repeat
+  if not (b <= 8) then
+    if (b > 71) then
+      f[h] = N
+      break
+    else
+      N = (N + M)
+      b = (122 + Z[3][21](Z[3][23](Z[3][27]((((b ~= b) and b) or B), 16))))
+    end
+  else
+    M = l[d]
+    b = (- 123 + ((((((((B - B) - B) == b) and b) or B) <= b) and B) or B))
+    CONTINUE()
+  end
+until false
+
+OPCODE 195
+W[F[d]] = (k[d] + W[K[d]])
+
+OPCODE 196
+f = F[d]
+h = X[d]
+P = ((f + h) - 1)
+if u then
+  for v, x in u do
+    if (v >= 1) then
+      x[2] = x
+      x[3] = W[v]
+      x[1] = 3
+      u[v] = nil
+    end
+  end
+end
+return W[f](Z[28](P, W, (f + 1)))
+
+OPCODE 197
+y = {[2]=c, [1]=g, [3]=Y, [4]=y}
+P = F[d]
+f = Z[5](function(...)
+  Z[31]()
+  for v, x in ... do
+    Z[31](true, v, x)
+  end
+end)
+f(W[P], W[(P + 1)], W[(P + 2)])
+g = f
+d = X[d]
+
+OPCODE 198
+f = W
+h = P
+
+OPCODE 199
+f = - 189
+h = 0
+N = nil
+b = 99
+while true do
+  if (b > 13) then
+    if (b > 99) then
+      h = (h * N)
+      b = (- 89 + (((Z[3][23](((((K[d] < K[d]) and b) or B) + b)) < X[d]) and K[d]) or b))
+    else
+      N = 4503599627370495
+      b = (38 + Z[3][20](Z[3][22](Z[3][23]((K[d] - X[d])), b, b), K[d]))
+      CONTINUE()
+    end
+  else
+    N = Z[3]
+    break
+  end
+end
+M = nil
+I = nil
+m = nil
+b = 21
+while true do
+  if not (b <= 25) then
+    if (b > 36) then
+      if not (b <= 51) then
+        M = Z[3]
+        b = (- 4294639600 + Z[3][23](Z[3][27](Z[3][27](Z[3][24](K[d]), X[d]), X[d])))
+      else
+        I = I[m]
+        m = C[d]
+        break
+      end
+    else
+      if (b ~= 34) then
+        m = 19
+        b = (- 4294967204 + (Z[3][22]((Z[3][25](X[d]) - b)) - X[d]))
+        CONTINUE()
+      else
+        M = M[I]
+        b = (- 9 + (((((((Z[3][20](b, K[d]) - B) >= b) and b) or B) < B) and b) or K[d]))
+      end
+    end
+  else
+    if (b <= 15) then
+      I = 24
+      b = (- 4293918675 + Z[3][24]((Z[3][26](Z[3][23](X[d]), b) - b), K[d], K[d]))
+    elseif (b == 25) then
+      I = Z[3]
+      b = (210 + ((((((b + X[d]) - b) ~= B) and b) or K[d]) - B))
+      CONTINUE()
+    else
+      M = 20
+      N = N[M]
+      b = (107 + (((Z[3][19](Z[3][19]((((X[d] == b) and X[d]) or b), B), B, b) ~= K[d]) and K[d]) or b))
+      CONTINUE()
+    end
+  end
+end
+V = nil
+b = 97
+repeat
+  if not (b <= 76) then
+    V = X[d]
+    m = (m <= V)
+    b = (- 46 + (Z[3][21](((((B <= B) and X[d]) or X[d]) + b)) + b))
+    CONTINUE()
+  else
+    if not m then
+
+    else
+      m = X[d]
+    end
+    break
+  end
+until false
+if not not m then
+
+else
+  m = K[d]
+end
+b = 40
+while true do
+  if (b == 110) then
+    I = (I - m)
+    break
+  elseif (b == 11) then
+    m = B
+    b = (110 + Z[3][29](((((Z[3][22](b, K[d], b) - B) == b) and b) or K[d]), X[d]))
+    CONTINUE()
+  elseif (b == 103) then
+    m = K[d]
+    b = (26 + Z[3][21](Z[3][19]((Z[3][25](X[d]) - B), X[d], X[d])))
+    CONTINUE()
+  elseif (b == 26) then
+    I = (I - m)
+    b = (- 335544267 + Z[3][20](Z[3][23](((b + B) + b)), b))
+  elseif (b == 49) then
+    m = C[d]
+    b = (- 12452 + Z[3][27]((((((((b ~= b) and B) or b) + X[d]) < b) and b) or b), X[d]))
+  elseif (b == 40) then
+    I = I(m)
+    b = (- 112 + ((((b + X[d]) + X[d]) - b) + B))
+    CONTINUE()
+  else
+    if (b == 92) then
+      I = (I + m)
+      b = (10 + Z[3][25](Z[3][24](((((b < b) and K[d]) or B) + B), b, b)))
+      CONTINUE()
+    end
+  end
+end
+M = M(I)
+b = 71
+while true do
+  if (b == 107) then
+    if not N then
+
+    else
+      N = B
+    end
+    break
+  else
+    if (b == 17) then
+      M = C[d]
+      b = (52 + ((((((((X[d] <= b) and K[d]) or b) + X[d]) + X[d]) < X[d]) and b) or X[d]))
+    elseif (b == 71) then
+      I = X[d]
+      b = (135 + ((((((b <= X[d]) and B) or b) - K[d]) - b) - X[d]))
+      CONTINUE()
+    elseif (b == 122) then
+      N = N(M, I)
+      b = (- 312 + Z[3][22]((Z[3][19]((b - b), X[d], B) + b)))
+      CONTINUE()
+    else
+      if (b == 60) then
+        N = (N > M)
+        b = (95 + (Z[3][22](((X[d] + B) - X[d]), b, b) + X[d]))
+      end
+    end
+  end
+end
+if not N then
+  N = B
+end
+b = 117
+repeat
+  if not (b <= 80) then
+    if (b <= 111) then
+      f = W
+      h = X[d]
+      b = (1 + Z[3][25](Z[3][29]((Z[3][23](B) + X[d]), K[d])))
+    else
+      if (b ~= 121) then
+        h = (h + N)
+        b = (- 16 + Z[3][20](Z[3][22](Z[3][24]((X[d] - K[d]))), K[d]))
+        CONTINUE()
+      else
+        M = W
+        b = (- 195 + (Z[3][29](((B - K[d]) - b), X[d]) + B))
+        CONTINUE()
+      end
+    end
+  else
+    if not (b <= 2) then
+      if (b ~= 4) then
+        f = (f + h)
+        C[d] = f
+        b = (- 83885969 + Z[3][26]((((Z[3][29](Z[3][27](K[d], K[d]), X[d]) < X[d]) and K[d]) or B), X[d]))
+      else
+        I = K[d]
+        break
+      end
+    else
+      N = j[d]
+      b = (106 + Z[3][24]((Z[3][22]((K[d] + X[d])) + b), b))
+      CONTINUE()
+    end
+  end
+until false
+M = M[I]
+N = (N * M)
+f[h] = N
+
+OPCODE 200
+if not (W[K[d]] < k[d]) then
+
+else
+  d = F[d]
+end
+
+OPCODE 201
+W[F[d]] = (W[X[d]] < l[d])
+
+OPCODE 202
+W[F[d]] = (W[X[d]] == W[K[d]])
+
+OPCODE 203
+h = 1
+f = (f - h)
+
+OPCODE 204
+W[F[d]] = (W[X[d]] - W[K[d]])
+
+OPCODE 205
+f = K[d]
+P = f
+
+OPCODE 206
+f = K[d]
+P = ((f + X[d]) - 1)
+W[f](Z[28](P, W, (f + 1)))
+P = (f - 1)
+
+OPCODE 207
+b = b[M]
+h[N] = b
+
+OPCODE 208
+W[K[d]][k[d]] = W[F[d]]
+
+OPCODE 209
+f = l[d]
+h = f[9]
+N = # h
+b = ((N > 0) and {})
+M = Z[54](f, b)
+W[X[d]] = M
+if not b then
+
+else
+  for v = 1, N do
+    M = h[v]
+    f = M[2]
+    I = M[1]
+    if (f == 3) then
+      b[(v - 1)] = L[I]
+    elseif (f == 0) then
+      b[(v - 1)] = W[I]
+    else
+      if (f == 1) then
+        if not u then
+          u = {}
+        end
+        m = u[I]
+        if not not m then
+
+        else
+          m = {[2]=W, [1]=I}
+          u[I] = m
+        end
+        b[(v - 1)] = m
+      end
+    end
+  end
+end
+
+OPCODE 210
+if (W[F[d]] == W[X[d]]) then
+  d = K[d]
+end
+
+OPCODE 211
+N = (N == b)
+
+OPCODE 212
+W[F[d]] = (W[X[d]] > l[d])
+
+OPCODE 213
+Z[3][F[d]] = W[X[d]]
+
+OPCODE 214
+if not (W[X[d]] <= l[d]) then
+
+else
+  d = F[d]
+end
+
+OPCODE 215
+f = - 268427279
+h = 0
+N = nil
+b = nil
+M = 94
+while true do
+  if (M > 64) then
+    N = 4503599627370495
+    M = (- 66 + (Z[3][22](((M + M) - B), B) - M))
+    CONTINUE()
+  elseif (M < 64) then
+    h = (h * N)
+    N = Z[3]
+    b = 19
+    M = (- 151 + (((((Z[3][24](B, M, M) + B) - M) ~= M) and B) or B))
+    CONTINUE()
+  else
+    if not ((M < 94) and (M > 37)) then
+
+    else
+      N = N[b]
+      break
+    end
+  end
+end
+I = nil
+m = nil
+M = 6
+while true do
+  if (M < 26) then
+    b = Z[3]
+    M = (- 178 + ((Z[3][25]((M + M)) + M) + B))
+    CONTINUE()
+  elseif ((M > 40) and (M < 103)) then
+    I = 29
+    M = (- 175 + ((((((M + M) >= B) and M) or M) - M) + B))
+  else
+    if ((M < 45) and (M > 26)) then
+      b = b[I]
+      M = (277 + ((Z[3][29](Z[3][20](B, Z[3][28]("<i8", "\u0011\u0000\u0000\u0000\u0000\u0000\u0000\u0000")), 24) - B) + M))
+      CONTINUE()
+    elseif ((M < 40) and (M > 6)) then
+      I = I[m]
+      break
+    else
+      if (M > 45) then
+        I = Z[3]
+        m = 27
+        M = (- 220125 + Z[3][19](((Z[3][20](B, 10) + M) - B), M))
+      end
+    end
+  end
+end
+V = nil
+w = nil
+M = 75
+while true do
+  if ((M < 75) and (M > 47)) then
+    m = m[V]
+    M = (16 + Z[3][26](((((Z[3][26](M, 2) < B) and B) or M) - M), 29))
+  elseif ((M < 47) and (M > 16)) then
+    V = 23
+    M = (222 + (((Z[3][24](M) + M) - M) - B))
+    CONTINUE()
+  elseif ((M < 53) and (M > 46)) then
+    w = 25
+    break
+  elseif (M < 46) then
+    V = Z[3]
+    M = (- 168 + ((((Z[3][19]((M - M), M, B) + B) == M) and B) or B))
+  else
+    if not (M > 53) then
+
+    else
+      m = Z[3]
+      M = (- 29 + ((((M + M) - M) - M) + M))
+    end
+  end
+end
+M = 68
+while true do
+  if (M == 68) then
+    V = V[w]
+    w = B
+    M = (- 4071620524 + Z[3][26]((Z[3][25](Z[3][25](M)) - B), 12))
+    CONTINUE()
+  elseif (M == 22) then
+    m = m(V)
+    break
+  else
+    if (M == 83) then
+      V = V(w)
+      M = (535 + ((((M - M) - B) - B) - M))
+      CONTINUE()
+    end
+  end
+end
+M = 19
+repeat
+  if (M <= 61) then
+    if (M == 19) then
+      V = 17
+      M = (67 + ((((((M + B) - M) + M) < M) and M) or M))
+    else
+      m = C[d]
+      M = (59 + (((Z[3][23](Z[3][22](Z[3][24](M, B))) == B) and M) or M))
+      CONTINUE()
+    end
+  else
+    if not (M <= 86) then
+      if (M == 120) then
+        I = (I + m)
+        M = (- 96 + ((((Z[3][27]((B - B), 23) + M) == M) and B) or M))
+      else
+        m = 4
+        b = b(I, m)
+        break
+      end
+    else
+      I = I(m, V)
+      M = (- 3221225421 + ((Z[3][24](Z[3][26](M, 3)) - B) + B))
+    end
+  end
+until false
+M = 6
+repeat
+  if (M == 6) then
+    I = B
+    M = (- 176 + ((((((((B + B) <= M) and B) or M) >= B) and B) or M) + B))
+  else
+    if (M == 45) then
+      b = (b - I)
+      break
+    end
+  end
+until false
+I = C[d]
+M = 23
+while true do
+  if (M == 10) then
+    N = (N + b)
+    M = (- 4294967003 + Z[3][23]((Z[3][19]((B - M)) - M)))
+    CONTINUE()
+  elseif (M == 76) then
+    f = (f + h)
+    break
+  elseif (M == 23) then
+    N = N(b, I)
+    b = B
+    M = (- 13 + ((((M + M) - B) + B) - M))
+  else
+    if (M == 97) then
+      h = (h + N)
+      M = (- 139 + ((((Z[3][25]((((M <= B) and M) or M)) - B) > B) and B) or B))
+    end
+  end
+end
+M = 34
+repeat
+  if (M == 34) then
+    C[d] = f
+    M = (- 17383 + Z[3][20](Z[3][24](Z[3][22]((B + M), M, B), M), 9))
+    CONTINUE()
+  else
+    f = W
+    break
+  end
+until false
+h = K[d]
+M = 34
+while true do
+  if (M == 34) then
+    N = W
+    b = F[d]
+    M = (489 + ((((M - B) - B) - M) - M))
+  elseif (M == 25) then
+    N = N[b]
+    M = (11 + ((((((Z[3][22](Z[3][25](B), M, M) <= B) and B) or M) >= B) and M) or B))
+  else
+    if (M == 51) then
+      f[h] = N
+      break
+    else
+      if (M == 36) then
+        b = k[d]
+        N = (N >= b)
+        M = (50 + Z[3][25]((((M - M) - B) - B)))
+      end
+    end
+  end
+end
+
+OPCODE 216
+f = W
+
+OPCODE 217
+N = N[b]
+f[h] = N
+
+OPCODE 218
+f = k[d]
+h = f[9]
+f = # h
+N = ((f > 0) and {})
+if N then
+  for v = 1, f do
+    b = h[v]
+    M = b[2]
+    I = b[1]
+    if (M == 0) then
+      N[(v - 1)] = W[I]
+    else
+      if (M == 1) then
+        if not u then
+          u = {}
+        end
+        b = u[I]
+        if not not b then
+
+        else
+          b = {[2]=W, [1]=I}
+          u[I] = b
+        end
+        N[(v - 1)] = b
+      else
+        if (M ~= 3) then
+
+        else
+          N[(v - 1)] = L[I]
+        end
+      end
+    end
+  end
+end
+f = t[j[d]](N)
+W[K[d]] = f
+
+OPCODE 219
+f = L[K[d]]
+W[X[d]] = f[2][f[1]]
+
+OPCODE 220
+f = W
+h = F[d]
+N = W
+
+OPCODE 221
+f = F[d]
+h = X[d]
+N = W[f]
+Z[18](W, (f + 1), (f + K[d]), (h + 1), N)
+
+OPCODE 222
+W[F[d]] = not W[K[d]]
+
+OPCODE 223
+b = X[d]
+N = N[b]
+
+OPCODE 224
+M = 2
+b = b[M]
+M = f
+
+OPCODE 225
+N = N[f]
+f = W
+b = X[d]
+
+OPCODE 226
+b = l[d]
+N = N[b]
+
+OPCODE 227
+if u then
+  for v, x in u do
+    if not (v >= 1) then
+
+    else
+      x[2] = x
+      x[3] = W[v]
+      x[1] = 3
+      u[v] = nil
+    end
+  end
+end
+return W[K[d]]

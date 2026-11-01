@@ -1,0 +1,2188 @@
+[
+  {
+    "id": 0,
+    "registers": 217,
+    "instructions": 1563,
+    "strings": [
+      "game",
+      "PlaceId",
+      "type",
+      "syn",
+      "writefile",
+      "queueonteleport",
+      "function",
+      "string",
+      "gsub",
+      "_barrageLoaderAt",
+      "http",
+      "request",
+      "table",
+      "bit32",
+      "rrotate",
+      "Join",
+      "shared",
+      "tick",
+      "_barrageUILibrary",
+      "makefolder",
+      "GameId",
+      "loadstring",
+      "char",
+      "_barrageTeleportLaunch",
+      "pcall",
+      "auth",
+      "readfile",
+      "PlayerAdded",
+      "_barrageGameReady",
+      "math",
+      "floor",
+      "os",
+      "queue_on_teleport",
+      "task",
+      "spawn",
+      "delfile",
+      "isfolder",
+      "LocalPlayer",
+      "format",
+      "_barrageAuthGeneration",
+      "clock",
+      "StartedAt",
+      "Active",
+      "tonumber",
+      "rep",
+      "_barrageGameLoaded",
+      "isfile",
+      "fluxus",
+      "_barrageVerified",
+      "_barrageEmbedded",
+      "_destroyed",
+      "http_request",
+      "Run",
+      "o",
+      "_barrageSupportedGames",
+      "buffer",
+      "readu32",
+      "_p9",
+      "_barrageGameRun",
+      "_barragePremium",
+      "_barrageQuickLoad",
+      "warn",
+      "_barrageExitDismissed",
+      "_barrageNonce",
+      "_barrageAutoVerify",
+      "_barrageAutoRejoin",
+      "UserId",
+      "tostring",
+      "_barrageSealedCacheBroken",
+      "a",
+      "barrage_exit_",
+      "Wait",
+      "GetService",
+      "return shared._barrageUISetup\n--[[",
+      "e",
+      "loadstring(game:HttpGet(\"https://barrage.cc/loader\"))(",
+      "w",
+      "Authentication failed to compile: ",
+      "Authentication failed to execute: ",
+      "https://barrage.cc",
+      "^barrage_exit_",
+      "barrage_rawtest_",
+      "unknown error",
+      "BARRAGE/Authentication",
+      "handoff",
+      "authentication",
+      "Connection failed while loading authentication. Please re-execute.",
+      "%.0f",
+      "Players",
+      " ",
+      "]]",
+      "CATALOG",
+      "_barrageRequest",
+      "_barrageKeyRunning",
+      "FAILED",
+      "UniverseId",
+      "ScriptId",
+      "_barrageSelectedScript",
+      "CATALOG_CACHE",
+      "universeId",
+      "premium",
+      "owner",
+      "_barrageCacheRun",
+      "quick_load",
+      "token",
+      "HttpService",
+      "_barrageHeartbeat",
+      "[BARRAGE] Invalid script ID in launcher.",
+      ")",
+      "AUTH_COMPILE",
+      "",
+      "nonce",
+      "version",
+      "auto_verify",
+      "auto_rejoin",
+      ".dat",
+      "AUTHENTICATING",
+      "_barrageWebhook",
+      "_barrageGameSupported"
+    ]
+  },
+  {
+    "id": 1,
+    "registers": 27,
+    "instructions": 122,
+    "strings": [
+      "pcall",
+      "shared._barrageTeleportLaunch = true\n"
+    ]
+  },
+  {
+    "id": 2,
+    "registers": 25,
+    "instructions": 160,
+    "strings": [
+      "game",
+      "GetService",
+      "CoreGui"
+    ]
+  },
+  {
+    "id": 3,
+    "registers": 26,
+    "instructions": 164,
+    "strings": [
+      "delfile",
+      "type",
+      "syn",
+      "table"
+    ]
+  },
+  {
+    "id": 4,
+    "registers": 31,
+    "instructions": 191,
+    "strings": [
+      "pcall"
+    ]
+  },
+  {
+    "id": 5,
+    "registers": 29,
+    "instructions": 183,
+    "strings": [
+      "type",
+      "string",
+      "lower",
+      "Digest",
+      "table",
+      "Format",
+      "c20",
+      "/",
+      "BARRAGE/cache",
+      ".bin",
+      ".lua"
+    ]
+  },
+  {
+    "id": 6,
+    "registers": 36,
+    "instructions": 282,
+    "strings": [
+      "tonumber",
+      "string",
+      "sub",
+      "type"
+    ]
+  },
+  {
+    "id": 7,
+    "registers": 26,
+    "instructions": 185,
+    "strings": [
+      "type",
+      "shared",
+      "_barrageUIStartup",
+      "pcall",
+      "abort",
+      "_barrageUIActiveStartup",
+      "table",
+      "function"
+    ]
+  },
+  {
+    "id": 8,
+    "registers": 34,
+    "instructions": 208,
+    "strings": [
+      "tostring",
+      "string",
+      "lower",
+      "Digest",
+      "token",
+      "https://barrage.cc/ui",
+      "POST",
+      "JSONEncode",
+      "Url",
+      "Method",
+      "Headers",
+      "X-Barrage-Cache-Version",
+      "X-Barrage-If-SHA256",
+      "",
+      "Body",
+      "_BarrageBypassUICache"
+    ]
+  },
+  {
+    "id": 9,
+    "registers": 28,
+    "instructions": 178,
+    "strings": [
+      "task",
+      "spawn",
+      "CachedEntry",
+      "Done"
+    ]
+  },
+  {
+    "id": 10,
+    "registers": 26,
+    "instructions": 168,
+    "strings": [
+      "Response",
+      "Error",
+      "Done"
+    ]
+  },
+  {
+    "id": 11,
+    "registers": 31,
+    "instructions": 230,
+    "strings": [
+      "os",
+      "time",
+      "isfile",
+      "type",
+      "syn",
+      "table",
+      "tonumber",
+      "readfile"
+    ]
+  },
+  {
+    "id": 12,
+    "registers": 19,
+    "instructions": 114,
+    "strings": [
+      "pcall"
+    ]
+  },
+  {
+    "id": 13,
+    "registers": 29,
+    "instructions": 208,
+    "strings": [
+      "writefile",
+      "type",
+      "syn",
+      "table",
+      "os",
+      "time",
+      "tostring"
+    ]
+  },
+  {
+    "id": 14,
+    "registers": 28,
+    "instructions": 158,
+    "strings": [
+      "game",
+      "BARRAGE",
+      "BARRAGE is still loading. Give it a moment.",
+      "SetCore",
+      "GetService",
+      "Title",
+      "Text",
+      "Duration",
+      "SendNotification",
+      "StarterGui"
+    ]
+  },
+  {
+    "id": 15,
+    "registers": 29,
+    "instructions": 204,
+    "strings": [
+      "Entries",
+      "tonumber",
+      "Size",
+      "type",
+      "Format",
+      "Digest",
+      "table",
+      "c20"
+    ]
+  },
+  {
+    "id": 16,
+    "registers": 34,
+    "instructions": 241,
+    "strings": [
+      "tonumber",
+      "Size",
+      "lower",
+      "Digest",
+      "type",
+      "pcall",
+      "string"
+    ]
+  },
+  {
+    "id": 17,
+    "registers": 29,
+    "instructions": 181,
+    "strings": []
+  },
+  {
+    "id": 18,
+    "registers": 33,
+    "instructions": 234,
+    "strings": [
+      "string",
+      "lower",
+      "tostring",
+      "Headers",
+      "type",
+      "table",
+      "next"
+    ]
+  },
+  {
+    "id": 19,
+    "registers": 30,
+    "instructions": 207,
+    "strings": [
+      "next",
+      "type",
+      "Headers",
+      "table",
+      "string",
+      "lower",
+      "tostring"
+    ]
+  },
+  {
+    "id": 20,
+    "registers": 35,
+    "instructions": 218,
+    "strings": [
+      "task",
+      "wait",
+      "math",
+      "random",
+      "max",
+      "min",
+      "tonumber",
+      "Retry-After"
+    ]
+  },
+  {
+    "id": 21,
+    "registers": 32,
+    "instructions": 294,
+    "strings": [
+      "Body",
+      "string",
+      "lower",
+      "tostring",
+      "2",
+      "StatusCode",
+      "table",
+      "next",
+      "type",
+      "Headers",
+      "-- BARRAGE-CACHE-HIT-V2 ",
+      "x-barrage-cache-hit"
+    ]
+  },
+  {
+    "id": 22,
+    "registers": 28,
+    "instructions": 165,
+    "strings": [
+      "type",
+      "string",
+      "pcall"
+    ]
+  },
+  {
+    "id": 23,
+    "registers": 27,
+    "instructions": 206,
+    "strings": [
+      "type",
+      "gethwid",
+      "function",
+      "getexecutorhwid",
+      "getdeviceid"
+    ]
+  },
+  {
+    "id": 24,
+    "registers": 31,
+    "instructions": 189,
+    "strings": [
+      "spawn",
+      "os",
+      "clock",
+      "task",
+      "Join",
+      "Done",
+      "StartedAt"
+    ]
+  },
+  {
+    "id": 25,
+    "registers": 20,
+    "instructions": 110,
+    "strings": [
+      "pcall",
+      "Result",
+      "Done"
+    ]
+  },
+  {
+    "id": 26,
+    "registers": 22,
+    "instructions": 226,
+    "strings": [
+      "os",
+      "clock",
+      "Joined",
+      "math",
+      "max",
+      "task",
+      "wait",
+      "Result",
+      "StartedAt",
+      "owner",
+      "Done",
+      "OWNER_JOIN"
+    ]
+  },
+  {
+    "id": 27,
+    "registers": 23,
+    "instructions": 211,
+    "strings": [
+      "pcall",
+      "Body",
+      "StatusCode",
+      "type",
+      "owner",
+      "JobId",
+      "game",
+      "PlaceId",
+      "token",
+      "https://barrage.cc/session/owner",
+      "POST",
+      "application/json",
+      "JSONEncode",
+      "JSONDecode",
+      "table",
+      "jobId",
+      "placeId",
+      "string",
+      "Url",
+      "Method",
+      "Content-Type",
+      "Headers"
+    ]
+  },
+  {
+    "id": 28,
+    "registers": 30,
+    "instructions": 180,
+    "strings": [
+      "token"
+    ]
+  },
+  {
+    "id": 29,
+    "registers": 30,
+    "instructions": 212,
+    "strings": [
+      "string",
+      "type",
+      "p",
+      "v",
+      "q",
+      "token",
+      "table"
+    ]
+  },
+  {
+    "id": 30,
+    "registers": 28,
+    "instructions": 146,
+    "strings": [
+      "pcall"
+    ]
+  },
+  {
+    "id": 31,
+    "registers": 29,
+    "instructions": 190,
+    "strings": [
+      "OnTeleport",
+      "PlayerAdded",
+      "game",
+      "LocalPlayer",
+      "Connect",
+      "Wait",
+      "GetService",
+      "Players"
+    ]
+  },
+  {
+    "id": 32,
+    "registers": 25,
+    "instructions": 126,
+    "strings": [
+      "shared",
+      "_barrageExitDismissed"
+    ]
+  },
+  {
+    "id": 33,
+    "registers": 68,
+    "instructions": 959,
+    "strings": [
+      "universe_mismatch",
+      "os",
+      "clock",
+      "token",
+      "pcall",
+      "universe_changed",
+      "Body",
+      "StatusCode",
+      "Join",
+      "shared",
+      "_barrageGameReady",
+      "tostring",
+      "_barrageGameRun",
+      "clamp",
+      "type",
+      "string",
+      "task",
+      "spawn",
+      "table",
+      "insert",
+      "Digest",
+      "math",
+      "_barrageReadyProtocol",
+      "wait",
+      "tonumber",
+      "find",
+      "frozen",
+      "LoadStartedAt",
+      "Response",
+      "lower",
+      "BARRAGE couldn't verify your session",
+      "Script server returned HTTP ",
+      "POST",
+      "application/json",
+      "JSONEncode",
+      "Game response rejected: ",
+      "Script request failed: ",
+      "Game execution failed: ",
+      " (",
+      "attempt ",
+      "/script/",
+      "https://barrage.cc",
+      "Game compile failed: ",
+      ". Please re-execute; if it keeps happening, open a ticket.",
+      "Script server refused the saved game list.",
+      "Url",
+      "Method",
+      "Content-Type",
+      "Headers",
+      "network",
+      "handoff",
+      "Your executor timed out compiling this script. Try re-executing, or use another executor.",
+      "Active",
+      "X-Barrage-Bundle-Key",
+      "SCRIPT_EXECUTE",
+      "hwid_mismatch",
+      "ui",
+      "unknown error",
+      "_barrageGameSupported",
+      "auth",
+      "Your session doesn't match this game. Wait for the game to finish loading, then re-execute.",
+      "SCRIPT_CACHE",
+      "X-Barrage-Bundle-SHA256",
+      "",
+      "X-Barrage-Bundle-Size",
+      "execution",
+      "The script download was incomplete.",
+      "game",
+      "bundleDigest",
+      "cache",
+      "the script download was incomplete",
+      "foreign_universe_cap",
+      "Your device ID changed since you verified. Re-execute; if it keeps happening, open a ticket.",
+      ")",
+      "SCRIPT_COMPILE",
+      "timed out",
+      "SCRIPT_REQUEST",
+      "no_universe",
+      ".",
+      "invalid Lua",
+      "This script is no longer available. Please use a current game loadstring.",
+      "timeout",
+      "Done",
+      "This key or device is banned from BARRAGE.",
+      "unsupported",
+      "_barrageGameLoaded",
+      "READY",
+      "cached copy could not be opened",
+      "Your key was frozen by BARRAGE's anti-sharing protection. Open a ticket in the BARRAGE Discord to unfreeze it.",
+      "The game script stopped before its interface became ready.",
+      "BARRAGE/Game",
+      "bundleCacheVersion",
+      "Script request failed.",
+      "banned"
+    ]
+  },
+  {
+    "id": 34,
+    "registers": 31,
+    "instructions": 282,
+    "strings": [
+      "tostring",
+      "Url",
+      "Body",
+      "shared",
+      "game",
+      "PlaceId",
+      "bundleDigest",
+      "GameId",
+      "string",
+      "lower",
+      "Digest",
+      "/script/",
+      "https://barrage.cc",
+      "JSONEncode",
+      "UniverseId",
+      "ScriptId",
+      "_barrageSelectedScript"
+    ]
+  },
+  {
+    "id": 35,
+    "registers": 26,
+    "instructions": 169,
+    "strings": [
+      "error",
+      "Body",
+      "JSONDecode"
+    ]
+  },
+  {
+    "id": 36,
+    "registers": 25,
+    "instructions": 153,
+    "strings": [
+      "Response",
+      "Error",
+      "Done"
+    ]
+  },
+  {
+    "id": 37,
+    "registers": 32,
+    "instructions": 168,
+    "strings": [
+      "task",
+      "spawn",
+      "shared",
+      "_barrageUILibrary",
+      "GenerateGUID",
+      "token"
+    ]
+  },
+  {
+    "id": 38,
+    "registers": 22,
+    "instructions": 216,
+    "strings": [
+      "StatusCode",
+      "task",
+      "wait",
+      "game",
+      "PlaceId",
+      "JobId",
+      "application/json",
+      "https://barrage.cc/ping",
+      "POST",
+      "JSONEncode",
+      "Content-Type",
+      "Headers",
+      "Body",
+      "UserId",
+      "u",
+      "p",
+      "j",
+      "t",
+      "e",
+      "Url",
+      "Method"
+    ]
+  },
+  {
+    "id": 39,
+    "registers": 34,
+    "instructions": 335,
+    "strings": [
+      "shared",
+      "_barrageGameReady",
+      "PlaceId",
+      "game",
+      "os",
+      "clock",
+      "math",
+      "clamp",
+      "floor",
+      "_barrageUILibrary",
+      "table",
+      "move",
+      "JobId",
+      "type",
+      "task",
+      "wait",
+      "JSONEncode",
+      "https://barrage.cc/ping",
+      "POST",
+      "application/json",
+      "p",
+      "_destroyed",
+      "GAME_READY",
+      "Headers",
+      "UserId",
+      "u",
+      "j",
+      "token",
+      "t",
+      "e",
+      "Url",
+      "Method",
+      "Content-Type",
+      "StartedAt",
+      "phases",
+      "Body"
+    ]
+  },
+  {
+    "id": 40,
+    "registers": 29,
+    "instructions": 211,
+    "strings": [
+      "type",
+      "os",
+      "time",
+      "shared",
+      "task",
+      "spawn",
+      "_DestroyHub",
+      "function",
+      "_barrageKeyReloadAt",
+      "_destroyed",
+      "table",
+      "number"
+    ]
+  },
+  {
+    "id": 41,
+    "registers": 28,
+    "instructions": 185,
+    "strings": [
+      "pcall",
+      "task",
+      "wait",
+      "spawn",
+      "shared",
+      "_barrageUILibrary",
+      "math",
+      "random",
+      "_DestroyHub",
+      "_destroyed"
+    ]
+  },
+  {
+    "id": 42,
+    "registers": 31,
+    "instructions": 191,
+    "strings": [
+      "Done",
+      "task",
+      "wait",
+      "Response",
+      "Error",
+      "os",
+      "clock",
+      "request timed out"
+    ]
+  },
+  {
+    "id": 43,
+    "registers": 29,
+    "instructions": 169,
+    "strings": [
+      "task",
+      "spawn",
+      "Done"
+    ]
+  },
+  {
+    "id": 44,
+    "registers": 28,
+    "instructions": 164,
+    "strings": [
+      "Response",
+      "Error",
+      "Done"
+    ]
+  },
+  {
+    "id": 45,
+    "registers": 29,
+    "instructions": 139,
+    "strings": [
+      "pcall"
+    ]
+  },
+  {
+    "id": 46,
+    "registers": 38,
+    "instructions": 384,
+    "strings": [
+      "string",
+      "sub",
+      "token",
+      "os",
+      "time",
+      "type",
+      "syn",
+      "table",
+      "isfile",
+      "tonumber",
+      "e",
+      "readfile",
+      "t",
+      "q",
+      "g",
+      "game",
+      "v2.",
+      "GameId",
+      "v",
+      "pcall",
+      "p",
+      "u",
+      "barrage_session.dat",
+      "number",
+      "JSONDecode",
+      "",
+      "UserId"
+    ]
+  },
+  {
+    "id": 47,
+    "registers": 29,
+    "instructions": 118,
+    "strings": [
+      "pcall"
+    ]
+  },
+  {
+    "id": 48,
+    "registers": 33,
+    "instructions": 188,
+    "strings": [
+      "syn",
+      "writefile",
+      "type",
+      "table",
+      "JSONEncode",
+      "",
+      "barrage_session.dat"
+    ]
+  },
+  {
+    "id": 49,
+    "registers": 32,
+    "instructions": 134,
+    "strings": [
+      "pcall"
+    ]
+  },
+  {
+    "id": 50,
+    "registers": 24,
+    "instructions": 287,
+    "strings": [
+      "type",
+      "t",
+      "number",
+      "pcall",
+      "syn",
+      "readfile",
+      "string",
+      "match",
+      "k",
+      "table",
+      "q",
+      "isfile",
+      "os",
+      "time",
+      "JSONDecode",
+      ""
+    ]
+  },
+  {
+    "id": 51,
+    "registers": 28,
+    "instructions": 120,
+    "strings": [
+      "pcall"
+    ]
+  },
+  {
+    "id": 52,
+    "registers": 28,
+    "instructions": 230,
+    "strings": [
+      "isfile",
+      "syn",
+      "delfile",
+      "type",
+      "table",
+      "barrage_session.dat"
+    ]
+  },
+  {
+    "id": 53,
+    "registers": 26,
+    "instructions": 167,
+    "strings": [
+      "LocalPlayer",
+      "game",
+      "FindFirstChildOfClass",
+      "GetService",
+      "PlayerGui",
+      "Players"
+    ]
+  },
+  {
+    "id": 54,
+    "registers": 33,
+    "instructions": 275,
+    "strings": [
+      "shared",
+      "_barrageSupportedGames",
+      "Body",
+      "type",
+      "string",
+      "StatusCode",
+      "pcall",
+      "https://barrage.cc/catalog",
+      "GET",
+      "Url",
+      "Method",
+      "JSONDecode",
+      "table"
+    ]
+  },
+  {
+    "id": 55,
+    "registers": 30,
+    "instructions": 163,
+    "strings": [
+      "ipairs",
+      "type",
+      "table",
+      "tonumber"
+    ]
+  },
+  {
+    "id": 56,
+    "registers": 32,
+    "instructions": 224,
+    "strings": [
+      "UniverseIds",
+      "game",
+      "GameId",
+      "PlaceIds",
+      "PlaceId",
+      "type",
+      "table",
+      "tonumber",
+      "ipairs"
+    ]
+  },
+  {
+    "id": 57,
+    "registers": 33,
+    "instructions": 199,
+    "strings": [
+      "type",
+      "function",
+      "ipairs"
+    ]
+  },
+  {
+    "id": 58,
+    "registers": 32,
+    "instructions": 351,
+    "strings": [
+      "Message",
+      "Headers",
+      "statusCode",
+      "responseBody",
+      "tostring",
+      "type",
+      "string",
+      "ResponseBody",
+      "message",
+      "StatusMessage",
+      "status_code",
+      "Success",
+      "tonumber",
+      "StatusCode",
+      "Body",
+      "table",
+      "body",
+      "success",
+      "Status",
+      "statusMessage",
+      "headers",
+      ""
+    ]
+  },
+  {
+    "id": 59,
+    "registers": 36,
+    "instructions": 221,
+    "strings": [
+      "_destroyed",
+      "task",
+      "spawn",
+      "os",
+      "clock",
+      "Flushing",
+      "shared",
+      "_barrageUILibrary",
+      "type",
+      "table"
+    ]
+  },
+  {
+    "id": 60,
+    "registers": 37,
+    "instructions": 320,
+    "strings": [
+      "table",
+      "remove",
+      "os",
+      "clock",
+      "shared",
+      "_barrageUILibrary",
+      "task",
+      "wait",
+      "Flushing",
+      "Aborted",
+      "pcall",
+      "Budget",
+      "LoadStartedAt"
+    ]
+  },
+  {
+    "id": 61,
+    "registers": 27,
+    "instructions": 173,
+    "strings": [
+      "type",
+      "shared",
+      "_barrageUILibrary",
+      "_destroyed",
+      "table"
+    ]
+  },
+  {
+    "id": 62,
+    "registers": 27,
+    "instructions": 125,
+    "strings": [
+      "shared",
+      "_barrageCacheRun",
+      "Run"
+    ]
+  },
+  {
+    "id": 63,
+    "registers": 29,
+    "instructions": 183,
+    "strings": [
+      "shared",
+      "_barrageGameLoaded",
+      "_barrageReadyProtocol",
+      "_barrageGameReady"
+    ]
+  },
+  {
+    "id": 64,
+    "registers": 30,
+    "instructions": 175,
+    "strings": [
+      "writefile",
+      "tostring",
+      "os",
+      "time",
+      "type",
+      "syn",
+      "table"
+    ]
+  },
+  {
+    "id": 65,
+    "registers": 28,
+    "instructions": 233,
+    "strings": [
+      "os",
+      "clock",
+      "task",
+      "wait",
+      "Authentication did not close cleanly. Please re-execute BARRAGE.",
+      "AUTH_CLOSING"
+    ]
+  },
+  {
+    "id": 66,
+    "registers": 28,
+    "instructions": 201,
+    "strings": [
+      "shared",
+      "_barrageAuthClosed",
+      "_barrageAuthGeneration"
+    ]
+  },
+  {
+    "id": 67,
+    "registers": 40,
+    "instructions": 215,
+    "strings": [
+      "byte",
+      "string",
+      "char",
+      "bit32",
+      "bxor",
+      "table",
+      "concat"
+    ]
+  },
+  {
+    "id": 68,
+    "registers": 52,
+    "instructions": 587,
+    "strings": [
+      "task",
+      "wait",
+      "Headers",
+      "spawn",
+      "tostring",
+      "tonumber",
+      "UserId",
+      "type",
+      "string",
+      "Body",
+      "StatusCode",
+      "os",
+      "clock",
+      "Done",
+      "lower",
+      "Digest",
+      "Response",
+      ":",
+      "barrage-authentication-cache:",
+      "\"",
+      "attempt ",
+      "Authentication server returned HTTP ",
+      "https://barrage.cc/authentication",
+      "GET",
+      "authentication",
+      "Authentication cache could not be opened.",
+      "Authentication download failed.",
+      "Authentication cache validation failed.",
+      "Connection failed.",
+      "X-Barrage-User-ID",
+      "AUTH_DOWNLOAD",
+      ".",
+      "X-Barrage-Source-SHA256",
+      "If-None-Match",
+      "X-Barrage-If-SHA256",
+      "X-Barrage-Cache-Version",
+      "Url",
+      "Method",
+      "X-Barrage-Game-ID"
+    ]
+  },
+  {
+    "id": 69,
+    "registers": 31,
+    "instructions": 203,
+    "strings": [
+      "game",
+      "Response",
+      "Error",
+      "Done",
+      "pcall",
+      "HttpGet",
+      "https://barrage.cc/authentication"
+    ]
+  },
+  {
+    "id": 70,
+    "registers": 30,
+    "instructions": 172,
+    "strings": [
+      "pcall",
+      "Done",
+      "Response"
+    ]
+  },
+  {
+    "id": 71,
+    "registers": 34,
+    "instructions": 356,
+    "strings": [
+      "shared",
+      "tostring",
+      "Body",
+      "StatusCode",
+      "token",
+      "Runtime compile failed: ",
+      "Runtime execution failed: ",
+      "https://barrage.cc/runtime",
+      "POST",
+      "JSONEncode",
+      "Runtime request failed: ",
+      "_barrageGameLoaded",
+      "READY",
+      "embedded",
+      "network",
+      "execution",
+      "Url",
+      "Method",
+      "Headers",
+      "",
+      "BARRAGE/Runtime",
+      "RUNTIME_REQUEST",
+      "unknown error",
+      "auth",
+      "Your BARRAGE session expired. Please re-execute."
+    ]
+  },
+  {
+    "id": 72,
+    "registers": 31,
+    "instructions": 171,
+    "strings": [
+      "string",
+      "sub",
+      "Name",
+      "BARRAGEKeySystem",
+      "Destroy",
+      "IsA",
+      "GetChildren",
+      "u?name=barrage_?",
+      "ScreenGui"
+    ]
+  },
+  {
+    "id": 73,
+    "registers": 41,
+    "instructions": 276,
+    "strings": [
+      "string",
+      "find",
+      "lower",
+      "tostring",
+      "task",
+      "wait",
+      "pcall",
+      "timed out",
+      "timeout"
+    ]
+  },
+  {
+    "id": 74,
+    "registers": 37,
+    "instructions": 402,
+    "strings": [
+      "ipairs",
+      "type",
+      "PlaceIds",
+      "table",
+      "UniverseIds",
+      "tonumber",
+      "PlaceId",
+      "Games",
+      "Name",
+      "",
+      "Version",
+      "string"
+    ]
+  },
+  {
+    "id": 75,
+    "registers": 29,
+    "instructions": 159,
+    "strings": [
+      "pcall"
+    ]
+  },
+  {
+    "id": 76,
+    "registers": 31,
+    "instructions": 357,
+    "strings": [
+      "syn",
+      "isfile",
+      "makefolder",
+      "type",
+      "table",
+      "isfolder",
+      "writefile",
+      "readfile",
+      "pcall",
+      "BARRAGE/catalog.json",
+      "BARRAGE",
+      "JSONDecode"
+    ]
+  },
+  {
+    "id": 77,
+    "registers": 32,
+    "instructions": 155,
+    "strings": [
+      "spawn",
+      "type",
+      "shared",
+      "_barrageUILibrary",
+      "task",
+      "sid",
+      "string",
+      "table",
+      "_barrageHeartbeat"
+    ]
+  },
+  {
+    "id": 78,
+    "registers": 31,
+    "instructions": 373,
+    "strings": [
+      "e",
+      "StatusCode",
+      "shared",
+      "_barrageHeartbeat",
+      "type",
+      "token",
+      "task",
+      "wait",
+      "clamp",
+      "tonumber",
+      "ttl",
+      "pcall",
+      "Body",
+      "nonce",
+      "n",
+      "os",
+      "time",
+      "math",
+      "POST",
+      "application/json",
+      "JSONEncode",
+      "https://barrage.cc/session/refresh",
+      "Method",
+      "Content-Type",
+      "p",
+      "hb",
+      "string",
+      "o",
+      "Headers",
+      "Url",
+      "v",
+      "JSONDecode",
+      "q",
+      "table",
+      "Your BARRAGE session ended. Re-execute BARRAGE to start a new one."
+    ]
+  },
+  {
+    "id": 79,
+    "registers": 28,
+    "instructions": 178,
+    "strings": [
+      "shared",
+      "_barrageUILibrary",
+      "table",
+      "_barrageHeartbeat",
+      "type",
+      "_destroyed"
+    ]
+  },
+  {
+    "id": 80,
+    "registers": 29,
+    "instructions": 157,
+    "strings": [
+      "type",
+      "string",
+      "match",
+      "^[%da-fA-F]+$"
+    ]
+  },
+  {
+    "id": 81,
+    "registers": 37,
+    "instructions": 377,
+    "strings": [
+      "ipairs",
+      "type",
+      "crypt",
+      "hash",
+      "syn",
+      "string",
+      "lower",
+      "pcall",
+      "function",
+      "table",
+      "0b88f58ef3bc5bf9c1db2901d15838cb183e7c93ceb0fb3d976c292301088dbc",
+      "barrage",
+      "sha256"
+    ]
+  },
+  {
+    "id": 82,
+    "registers": 19,
+    "instructions": 120,
+    "strings": [
+      "sha256"
+    ]
+  },
+  {
+    "id": 83,
+    "registers": 28,
+    "instructions": 125,
+    "strings": [
+      "sha256"
+    ]
+  },
+  {
+    "id": 84,
+    "registers": 29,
+    "instructions": 222,
+    "strings": [
+      "string",
+      "rep",
+      "os",
+      "clock",
+      "BARRAGE-CACHE-PROBE-",
+      "barrage"
+    ]
+  },
+  {
+    "id": 85,
+    "registers": 47,
+    "instructions": 622,
+    "strings": [
+      "Body",
+      "tostring",
+      "StatusCode",
+      "Digest",
+      "type",
+      "yield",
+      "function",
+      "shared",
+      "_barrageUISetup",
+      "_barrageUIStartup",
+      "table",
+      "insert",
+      "Response",
+      "Headers",
+      "X-Barrage-If-SHA256",
+      "os",
+      "clock",
+      "math",
+      "clamp",
+      "Barrage UI compile failed: ",
+      "Barrage UI execution failed: ",
+      "Barrage UI request failed: ",
+      "network",
+      "ui",
+      "X-Barrage-Source-SHA256",
+      "UI_EXECUTE",
+      "Barrage UI did not create its startup entrance.",
+      "unknown error",
+      "BARRAGE/UI",
+      "cache",
+      "_barrageUIEarlyStartup",
+      "Barrage UI did not publish its startup contract.",
+      "UI_COMPILE",
+      "X-Barrage-Bundle-Key",
+      "the saved interface could not be opened",
+      "string",
+      "Your BARRAGE session expired. Please re-execute.",
+      "auth"
+    ]
+  },
+  {
+    "id": 86,
+    "registers": 29,
+    "instructions": 210,
+    "strings": [
+      "pcall",
+      "function",
+      "type",
+      "shared",
+      "_barrageUISetup"
+    ]
+  },
+  {
+    "id": 87,
+    "registers": 32,
+    "instructions": 232,
+    "strings": [
+      "StatusCode",
+      "Body",
+      "BARRAGE/UI"
+    ]
+  },
+  {
+    "id": 88,
+    "registers": 33,
+    "instructions": 172,
+    "strings": [
+      "pcall"
+    ]
+  },
+  {
+    "id": 89,
+    "registers": 28,
+    "instructions": 174,
+    "strings": [
+      "game",
+      "GetService",
+      "CoreGui"
+    ]
+  },
+  {
+    "id": 90,
+    "registers": 32,
+    "instructions": 202,
+    "strings": [
+      "string",
+      "sub",
+      "Name",
+      "BARRAGEKeySystem",
+      "GetChildren",
+      "IsA",
+      "ScreenGui",
+      "u?name=barrage_?"
+    ]
+  },
+  {
+    "id": 91,
+    "registers": 28,
+    "instructions": 167,
+    "strings": [
+      "FindFirstChildOfClass",
+      "PlayerGui"
+    ]
+  },
+  {
+    "id": 92,
+    "registers": 36,
+    "instructions": 222,
+    "strings": [
+      "shared",
+      "math",
+      "clamp",
+      "floor",
+      "os",
+      "clock",
+      "string",
+      "sub",
+      "tostring",
+      "_barrageLoadPhase",
+      "StartedAt",
+      "_barrageLoadDetail"
+    ]
+  },
+  {
+    "id": 93,
+    "registers": 29,
+    "instructions": 128,
+    "strings": [
+      "pcall"
+    ]
+  },
+  {
+    "id": 94,
+    "registers": 29,
+    "instructions": 158,
+    "strings": [
+      "tostring",
+      "game",
+      "SetCore",
+      "BARRAGE",
+      "GetService",
+      "SendNotification",
+      "Duration",
+      "Title",
+      "Text",
+      "StarterGui"
+    ]
+  },
+  {
+    "id": 95,
+    "registers": 30,
+    "instructions": 169,
+    "strings": [
+      "type",
+      "syn",
+      "isfile",
+      "table"
+    ]
+  },
+  {
+    "id": 96,
+    "registers": 28,
+    "instructions": 165,
+    "strings": [
+      "game",
+      "GetService",
+      "Raw test: execute your script again.",
+      "SetCore",
+      "BARRAGE",
+      "Text",
+      "Duration",
+      "StarterGui",
+      "SendNotification",
+      "Title"
+    ]
+  },
+  {
+    "id": 97,
+    "registers": 35,
+    "instructions": 213,
+    "strings": [
+      "buffer",
+      "writestring",
+      "readstring",
+      "len",
+      "create"
+    ]
+  },
+  {
+    "id": 98,
+    "registers": 28,
+    "instructions": 126,
+    "strings": [
+      "pcall"
+    ]
+  },
+  {
+    "id": 99,
+    "registers": 28,
+    "instructions": 221,
+    "strings": [
+      "BARRAGE/cache",
+      "BARRAGE"
+    ]
+  },
+  {
+    "id": 100,
+    "registers": 31,
+    "instructions": 196,
+    "strings": [
+      "next",
+      "Headers",
+      "type",
+      "table"
+    ]
+  },
+  {
+    "id": 101,
+    "registers": 32,
+    "instructions": 238,
+    "strings": [
+      "pcall",
+      "type",
+      "tostring",
+      "request failed",
+      "",
+      "string",
+      "invalid response"
+    ]
+  },
+  {
+    "id": 102,
+    "registers": 29,
+    "instructions": 173,
+    "strings": [
+      "next",
+      "game",
+      "GameId",
+      "UserId",
+      "userId",
+      "universeId",
+      "hwid",
+      "cid"
+    ]
+  },
+  {
+    "id": 103,
+    "registers": 30,
+    "instructions": 180,
+    "strings": [
+      "tostring",
+      "game",
+      "GameId",
+      "token",
+      "application/json",
+      "Content-Type",
+      "",
+      "X-Barrage-Universe-ID",
+      "X-Barrage-Session",
+      "UserId",
+      "X-Barrage-User-ID"
+    ]
+  },
+  {
+    "id": 104,
+    "registers": 27,
+    "instructions": 183,
+    "strings": [
+      "type",
+      "string",
+      "pcall"
+    ]
+  },
+  {
+    "id": 105,
+    "registers": 29,
+    "instructions": 174,
+    "strings": [
+      "game",
+      "GetService",
+      "GetClientId",
+      "RbxAnalyticsService"
+    ]
+  },
+  {
+    "id": 106,
+    "registers": 29,
+    "instructions": 171,
+    "strings": [
+      "pcall",
+      "Version",
+      "Entries"
+    ]
+  },
+  {
+    "id": 107,
+    "registers": 31,
+    "instructions": 206,
+    "strings": [
+      "type",
+      "Entries",
+      "Version",
+      "pcall",
+      "table",
+      "BARRAGE/cache/index.json",
+      "JSONDecode"
+    ]
+  },
+  {
+    "id": 108,
+    "registers": 29,
+    "instructions": 198,
+    "strings": [
+      "pcall",
+      "BARRAGE/cache/index.json",
+      "JSONEncode"
+    ]
+  },
+  {
+    "id": 109,
+    "registers": 19,
+    "instructions": 122,
+    "strings": [
+      "tostring",
+      "game:",
+      "ui",
+      "authentication"
+    ]
+  },
+  {
+    "id": 110,
+    "registers": 36,
+    "instructions": 227,
+    "strings": [
+      "Entries",
+      "type",
+      "Digest",
+      "pcall",
+      "next",
+      "table"
+    ]
+  },
+  {
+    "id": 111,
+    "registers": 29,
+    "instructions": 158,
+    "strings": []
+  },
+  {
+    "id": 112,
+    "registers": 33,
+    "instructions": 327,
+    "strings": [
+      "type",
+      "Entries",
+      "string",
+      "sub",
+      "next",
+      "pcall",
+      "Format",
+      "c20",
+      "Digest",
+      "lower",
+      "ui",
+      "game:",
+      "table",
+      "authentication"
+    ]
+  },
+  {
+    "id": 113,
+    "registers": 26,
+    "instructions": 165,
+    "strings": [
+      "/",
+      "BARRAGE/cache",
+      ".lua"
+    ]
+  },
+  {
+    "id": 114,
+    "registers": 47,
+    "instructions": 429,
+    "strings": [
+      "Digest",
+      "shared",
+      "os",
+      "time",
+      "pcall",
+      "task",
+      "wait",
+      "type",
+      "Entries",
+      "Aborted",
+      "next",
+      "string",
+      "lower",
+      "c20",
+      "_barrageSealedCacheBroken",
+      "Size",
+      "UserId",
+      "table",
+      "UpdatedAt",
+      "Format"
+    ]
+  },
+  {
+    "id": 115,
+    "registers": 28,
+    "instructions": 171,
+    "strings": [
+      "assert"
+    ]
+  },
+  {
+    "id": 116,
+    "registers": 28,
+    "instructions": 130,
+    "strings": []
+  },
+  {
+    "id": 117,
+    "registers": 21,
+    "instructions": 244,
+    "strings": [
+      "game",
+      "GameId",
+      "token",
+      "clamp",
+      "tonumber",
+      "ttl",
+      "auto_rejoin",
+      "premium",
+      "quick_load",
+      "owner",
+      "nonce",
+      "sid",
+      "math",
+      "os",
+      "time",
+      "auto_verify",
+      "hb",
+      "e",
+      "g",
+      "UserId",
+      "u",
+      "v",
+      "p",
+      "a",
+      "o",
+      "n",
+      "q",
+      "t"
+    ]
+  },
+  {
+    "id": 118,
+    "registers": 22,
+    "instructions": 248,
+    "strings": [
+      "math",
+      "floor",
+      "tick",
+      "shared",
+      "a",
+      "q",
+      "v",
+      "o",
+      "owner",
+      "p",
+      "premium",
+      "sub",
+      "GenerateGUID",
+      "gsub",
+      "_barrageTime",
+      "-",
+      "",
+      "_barrageVerified",
+      "UserId",
+      "_barrageUID",
+      "_barrageAutoRejoin",
+      "_barrageAutoVerify",
+      "_barrageNonce",
+      "_barrageQuickLoad",
+      "_p9",
+      "_barragePremium",
+      "_barrageAuth"
+    ]
+  },
+  {
+    "id": 119,
+    "registers": 32,
+    "instructions": 300,
+    "strings": [
+      "Body",
+      "auto_verify",
+      "StatusCode",
+      "game",
+      "PlaceId",
+      "type",
+      "token",
+      "string",
+      "quick_load",
+      "premium",
+      "pcall",
+      "application/json",
+      "JSONEncode",
+      "https://barrage.cc/session/create",
+      "POST",
+      "barrage_premium.dat",
+      "^BARRAGE%-[%u%d][%u%d][%u%d][%u%d][%u%d]%-[%u%d][%u%d][%u%d][%u%d][%u%d]%-[%u%d][%u%d][%u%d][%u%d][%u%d]$",
+      "placeId",
+      "table",
+      "key",
+      "Content-Type",
+      "Headers",
+      "AUTH_CACHED",
+      "Url",
+      "Method",
+      "JSONDecode"
+    ]
+  },
+  {
+    "id": 120,
+    "registers": 38,
+    "instructions": 494,
+    "strings": [
+      "type",
+      "GET",
+      "URL",
+      "string",
+      "find",
+      "next",
+      "shared",
+      "_barrageUISetup",
+      "tostring",
+      "Url",
+      "method",
+      "pcall",
+      "",
+      "_BarrageBypassUICache",
+      "url",
+      "upper",
+      "Method",
+      "ipairs",
+      "table",
+      "OK",
+      "Body",
+      "function",
+      "Headers",
+      "StatusCode",
+      "StatusMessage",
+      "https://barrage.cc/ui",
+      "invalid options",
+      "POST",
+      "request unavailable",
+      "Success"
+    ]
+  },
+  {
+    "id": 121,
+    "registers": 31,
+    "instructions": 202,
+    "strings": [
+      "game",
+      "body",
+      "tostring",
+      "Body",
+      "HttpGet",
+      "HttpPost",
+      "",
+      "application/json",
+      "GET"
+    ]
+  },
+  {
+    "id": 122,
+    "registers": 28,
+    "instructions": 179,
+    "strings": [
+      "game",
+      "BARRAGE",
+      "BARRAGE is already running in this server.",
+      "SetCore",
+      "GetService",
+      "SendNotification",
+      "Title",
+      "Text",
+      "Duration",
+      "StarterGui"
+    ]
+  },
+  {
+    "id": 123,
+    "registers": 29,
+    "instructions": 169,
+    "strings": [
+      "string",
+      "sub"
+    ]
+  },
+  {
+    "id": 124,
+    "registers": 33,
+    "instructions": 325,
+    "strings": [
+      "string",
+      "sub",
+      "<",
+      "lower",
+      "find",
+      "type",
+      "upstream connect error",
+      "<!doctype",
+      "response body is not text",
+      "server returned an HTML/proxy error instead of Lua",
+      "<html",
+      "%S",
+      "bad gateway"
+    ]
+  },
+  {
+    "id": 125,
+    "registers": 26,
+    "instructions": 186,
+    "strings": [
+      "token"
+    ]
+  },
+  {
+    "id": 126,
+    "registers": 29,
+    "instructions": 164,
+    "strings": []
+  },
+  {
+    "id": 127,
+    "registers": 33,
+    "instructions": 179,
+    "strings": [
+      "os",
+      "clock",
+      "Done",
+      "Response",
+      "Error",
+      "ipairs",
+      "table",
+      "remove",
+      "task",
+      "wait",
+      "request timed out"
+    ]
+  },
+  {
+    "id": 128,
+    "registers": 29,
+    "instructions": 210,
+    "strings": [
+      "delfile",
+      "type",
+      "syn",
+      "table",
+      "isfile"
+    ]
+  },
+  {
+    "id": 129,
+    "registers": 1,
+    "instructions": 1,
+    "strings": []
+  },
+  {
+    "id": 130,
+    "registers": 1,
+    "instructions": 1,
+    "strings": []
+  },
+  {
+    "id": 131,
+    "registers": 1,
+    "instructions": 1,
+    "strings": []
+  }
+]

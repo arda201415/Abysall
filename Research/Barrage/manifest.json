@@ -1,0 +1,40 @@
+{
+  "sourceSha256": "2a8ecd3f5fb1e301b6ed6c44b0dda42ac9175f17fe9ca9a07c14cc8269bd6c59",
+  "normalizedSourceSha256": "1cf121ef6750c91d826d8266154ed7981aba9da15bbb104abf4e0ad8a8ae4aab",
+  "packedBytes": 270284,
+  "frameOffset": 69411,
+  "frameBytes": 200871,
+  "frameEnd": 270282,
+  "paddingBytes": 2,
+  "frameXorBytes": "e3 36 18 5b 27 4b 6e 3d",
+  "stringTransform": {
+    "multiplier": 201,
+    "increment": 179,
+    "modulus": 256,
+    "characterXor": 71
+  },
+  "firstLayer": {
+    "functions": 53,
+    "instructions": 10526
+  },
+  "secondLayer": {
+    "functions": 132,
+    "instructions": 29603,
+    "constants": 2627,
+    "strings": 392
+  },
+  "vmExecuted": false,
+  "networkAccessed": false,
+  "urls": [
+    "https://barrage.cc/ping",
+    "https://barrage.cc/catalog",
+    "https://barrage.cc/authentication",
+    "https://barrage.cc/session/create",
+    "https://barrage.cc/session/refresh",
+    "https://barrage.cc/ui",
+    "https://barrage.cc/session/owner",
+    "https://barrage.cc",
+    "https://barrage.cc/runtime"
+  ],
+  "limitations": "Instruction listing retains opaque mutation handlers and padding; it is not a runnable replacement or original source."
+}

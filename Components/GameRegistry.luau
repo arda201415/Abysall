@@ -77,6 +77,13 @@ local Registry = {
             Features = { "Item and NPC ESP", "Campfire, grinder and item teleports", "Small-tree farming", "NPC aimbot", "Flight" },
         },
         {
+            Id = "FakeAnEgg", Name = "Fake an Egg", GameIds = { 10769384180 },
+            PlaceIds = { 97289366402005 },
+            Dependencies = { "Games/FakeAnEgg/Catalog.luau", "Games/FakeAnEgg/Controller.luau" },
+            Updated = "2026-11-01", Coverage = "Main game",
+            Features = { "Auto hatch (20 slots)", "Auto rebirth", "Auto sell pets", "Rarity-based auto steal and base return" },
+        },
+        {
             Id = "Universal", Name = "Universal", Fallback = true,
             Updated = "2026-10-24", Coverage = "Other experiences; feature availability varies by game",
             Features = { "Player ESP", "Movement and lighting settings", "Aim settings", "Ability tools" },

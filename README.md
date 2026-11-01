@@ -18,7 +18,7 @@ For the original full compatibility diagnostics, set
 `getgenv().AbysallFullChecks = true` before running the loader. These tests include
 network and signal checks and can take longer. Set it to `false` for fast startup.
 
-The **Home** page shows the 13 dedicated game modules and the Universal fallback,
+The **Home** page shows the 14 dedicated game modules and the Universal fallback,
 with features, supported places and module source update dates. Routing and this
 list share `Components/GameRegistry.luau`; update its IDs, features and `Updated`
 date when changing a game module. Browsing the catalog does not switch modules.
@@ -56,3 +56,15 @@ teleport names, campfire/grinder return, small-tree farming, right-click NPC aim
 and flight. The lobby shows information and settings; run the loader again in a
 forest match. Profiles save under `Abysall/NightsInTheForest`. Source analysis and
 adaptation notes are in [Research/99Nights.md](Research/99Nights.md).
+
+**Fake an Egg** detects universe `10769384180` and place `97289366402005`.
+It includes auto hatch for slots 1–20, auto rebirth, auto sell pets and auto steal
+with 11 rarity choices and return to the player's Collect point. Profiles save
+under `Abysall/FakeAnEgg`. Source analysis is in [Research/FakeAnEgg.md](Research/FakeAnEgg.md).
+
+The supplied `cameraman auto farm.lua` matches BARRAGE's shared loader after
+newline normalization. Both data layers and the locked constants have been
+decoded: 132 serialized functions and 392 strings. The separate game module
+has not been obtained, so dedicated Cameraman support is pending. Outputs,
+the external game catalog and the offline decoder are documented in
+[Research/BarrageLoader.md](Research/BarrageLoader.md).
