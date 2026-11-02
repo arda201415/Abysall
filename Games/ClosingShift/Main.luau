@@ -201,9 +201,15 @@ local KnownNames = {
     GoldenFreddy = true, Fredbear = true, Puppet = true,
 }
 
+-- ESP'de gorunmemesi gereken nesneler (sahne/dekor)
+local Blacklist = {
+    ShowStage = true, Door = true, SecondStage = true, TableSeat = true,
+}
+
 local function IsAnimatronic(Object)
     if not Object or not Object.Parent then return false end
     if not Object:IsA("Model") then return false end
+    if Blacklist[Object.Name] then return false end
     if Services.Players:GetPlayerFromCharacter(Object) then return false end
     if Object == LocalPlayer.Character then return false end
     if Object:FindFirstChildOfClass("Humanoid") then return true end
