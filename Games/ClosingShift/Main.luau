@@ -198,7 +198,7 @@ end
 local KnownNames = {
     IgnitedFreddy = true, IgnitedBonnie = true, IgnitedBonnieLocal = true,
     Freddy = true, Bonnie = true, Chica = true, Foxy = true,
-    GoldenFreddy = true, Fredbear = true, Puppet = true,
+    GoldenFreddy = true, Fredbear = true, Puppet = true, LeglessBear = true,
 }
 
 -- ESP'de gorunmemesi gereken nesneler (sahne/dekor)
