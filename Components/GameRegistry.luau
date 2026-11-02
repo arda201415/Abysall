@@ -84,6 +84,12 @@ local Registry = {
             Features = { "Auto hatch (20 slots)", "Auto rebirth", "Auto sell pets", "Rarity-based auto steal and base return" },
         },
         {
+            Id = "ClosingShift", Name = "Closing Shift", GameIds = { 10767355485 },
+            PlaceIds = { 118297934142609 },
+            Updated = "2026-11-02", Coverage = "Main game",
+            Features = { "Player ESP", "Animatronic ESP with name filter", "ESP distance, tracers and arrows" },
+        },
+        {
             Id = "Universal", Name = "Universal", Fallback = true,
             Updated = "2026-10-24", Coverage = "Other experiences; feature availability varies by game",
             Features = { "Player ESP", "Movement and lighting settings", "Aim settings", "Ability tools" },
