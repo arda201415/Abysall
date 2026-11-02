@@ -146,6 +146,13 @@ Auto:AddToggle("AutoSell", {
 })
 Auto:AddSlider("MaxTowers", { Text = "Max Towers", Default = 20, Min = 1, Max = 60, Rounding = 0 })
 Auto:AddSlider("MoneyReserve", { Text = "Money Reserve", Default = 0, Min = 0, Max = 100000, Rounding = 0 })
+Auto:AddSlider("PathOffset", {
+    Text = "Path Offset", Default = 4, Min = 0, Max = 12, Rounding = 0,
+    Tooltip = "Yol parcasindan saga/sola kaydirma (stud). Kuleleri yolun kenarina dizer.",
+})
+Auto:AddSlider("UpgradeEvery", {
+    Text = "Upgrade Every N Places", Default = 3, Min = 1, Max = 10, Rounding = 0,
+})
 Auto:AddToggle("AutoWaveSkip", { Text = "Auto Wave Skip", Default = false })
 Auto:AddToggle("AutoPlayAgain", { Text = "Auto Play Again (lobby)", Default = false })
 
@@ -199,6 +206,60 @@ Misc:AddToggle("TDWalkSpeed", { Text = "WalkSpeed", Default = false })
 Misc:AddSlider("TDWalkSpeedValue", { Text = "Speed", Default = 16, Min = 16, Max = 200, Rounding = 0 })
 Misc:AddToggle("TDJumpPower", { Text = "JumpPower", Default = false })
 Misc:AddSlider("TDJumpPowerValue", { Text = "Jump", Default = 50, Min = 50, Max = 300, Rounding = 0 })
+
+local Session = Tabs.Misc:AddRightGroupbox("Session")
+Session:AddToggle("AutoSave", {
+    Text = "Auto Save", Default = false,
+    Tooltip = "Ayar degistiginde config'i otomatik kaydeder ve autoload olarak isaretler.",
+})
+Session:AddToggle("AutoRejoin", {
+    Text = "Re-exec after teleport", Default = false,
+    Tooltip = "Teleport sonrasi scripti otomatik yeniden calistirir (queue_on_teleport).",
+})
+Session:AddButton("Save Now", function()
+    local Ok, Err = pcall(function() Abysall.Interface.SaveManager:Save("autoload") end)
+    if Ok then Library:Notify("Config kaydedildi (autoload).") else Library:Notify("Kaydedilemedi: " .. tostring(Err)) end
+end)
+
+-- // Auto Save // -----------------------------------------------------------
+local SaveManager = Abysall.Interface.SaveManager
+local SaveDirty, SaveAt = false, 0
+task.spawn(function()
+    pcall(function() SaveManager:SetAutoloadConfig("autoload") end)
+    for _, Control in pairs(Library.Options) do
+        pcall(function()
+            Control:OnChanged(function() SaveDirty = true end)
+        end)
+    end
+    while not Unloaded do
+        task.wait(1)
+        if SaveDirty and ToggleOn("AutoSave") and os.clock() - SaveAt > 3 then
+            SaveDirty = false
+            SaveAt = os.clock()
+            pcall(function() SaveManager:Save("autoload") end)
+        end
+    end
+end)
+
+-- // Teleport persistence // ------------------------------------------------
+local function ApplyTeleportQueue()
+    local Queue = queue_on_teleport or queueonteleport or (type(syn) == "table" and syn.queue_on_teleport)
+    if type(Queue) ~= "function" then return false end
+    local Code = 'loadstring(game:HttpGet("https://raw.githubusercontent.com/arda201415/Abysall/refs/heads/main/Loader.luau"))()'
+    local Ok = pcall(Queue, Code)
+    return Ok
+end
+OnChange("AutoRejoin", function(Value)
+    if Value then
+        if ApplyTeleportQueue() then
+            Library:Notify("Teleport sonrasi yeniden calisma ayarlandi.")
+        else
+            Library:Notify("Bu executor queue_on_teleport desteklemiyor.")
+            Toggles.AutoRejoin:SetValue(false)
+        end
+    end
+end)
+if ToggleOn("AutoRejoin") then pcall(ApplyTeleportQueue) end
 
 -- // ESP // -----------------------------------------------------------------
 local TrackedESP = {}
@@ -290,20 +351,21 @@ BindChange(Options.GameSpeed, function() ApplySpeed() end)
 -- // Auto Play (placement) // ----------------------------------------------
 local function GetPlacementPoints()
     local Game = GetGame()
-    local Area = Game and Game:FindFirstChild("TowerArea")
+    local Paths = Game and Game:FindFirstChild("Paths")
     local Points = {}
-    if Area then
-        for _, Part in ipairs(Area:GetChildren()) do
-            if Part:IsA("BasePart") then
-                local Size = Part.Size
-                for _ = 1, 4 do
-                    local Local = Vector3.new(
-                        (math.random() - 0.5) * math.max(Size.X - 2, 0),
-                        Size.Y / 2,
-                        (math.random() - 0.5) * math.max(Size.Z - 2, 0)
-                    )
-                    table.insert(Points, Part.CFrame * CFrame.new(Local))
-                end
+    if Paths then
+        for _, Obj in ipairs(Paths:GetDescendants()) do
+            if Obj:IsA("BasePart") then
+                table.insert(Points, Obj.CFrame)
+            end
+        end
+    end
+    -- Yedek: Paths yoksa TowerArea kullan
+    if #Points == 0 then
+        local Area = Game and Game:FindFirstChild("TowerArea")
+        if Area then
+            for _, Part in ipairs(Area:GetChildren()) do
+                if Part:IsA("BasePart") then table.insert(Points, Part.CFrame) end
             end
         end
     end
@@ -341,7 +403,11 @@ local function PlaceOne()
     local Points = GetPlacementPoints()
     if #Points == 0 then return false end
     local Unit = Units[math.random(1, #Units)]
-    local CF = Points[math.random(1, #Points)]
+    local Base = Points[math.random(1, #Points)]
+    -- Yolun kenarina kaydirma (sag/sol donusumlu)
+    local Offset = tonumber(Options.PathOffset and Options.PathOffset.Value) or 0
+    local Side = (Count % 2 == 0) and 1 or -1
+    local CF = Base * CFrame.new(Offset * Side, 0, 0)
     return Fire("TowerAdd", {
         Name = Unit.Name, UnitId = Unit.UnitId,
         Pos = CF.Position, CFrame = CF,
@@ -387,15 +453,25 @@ end
 
 task.spawn(function()
     local LastUpgrade, LastTarget, LastPlace, LastSkip, LastSummon, LastEsp, LastSell = 0, 0, 0, 0, 0, 0, 0
+    local PlacedSinceUpgrade = 0
     while not Unloaded do
         task.wait(0.1)
         local Now = os.clock()
 
-        -- Auto Play
-        if ToggleOn("AutoPlay") and Now - LastPlace > 0.7 then
+        -- Auto Play: N yerleştir -> 1 upgrade -> döngü
+        if ToggleOn("AutoPlay") and Now - LastPlace > 0.5 then
             LastPlace = Now
-            if not PlaceOne() then
-                -- yer yok / para yok: bekle
+            local Every = math.max(1, tonumber(Options.UpgradeEvery.Value) or 3)
+            if PlacedSinceUpgrade >= Every then
+                local Models = {}
+                ForEachTower(function(M) table.insert(Models, M) end)
+                if #Models > 0 then
+                    local M = Models[math.random(1, #Models)]
+                    Fire("TowerUpgrade", { Id = M.Name })
+                    PlacedSinceUpgrade = 0
+                end
+            elseif PlaceOne() then
+                PlacedSinceUpgrade += 1
             end
         end
 
@@ -483,5 +559,6 @@ Library:OnUnload(function()
 end)
 
 Abysall.Interface.ApplySettingsTab(Window)
+pcall(function() Abysall.Interface.SaveManager:SetAutoloadConfig("autoload") end)
 Abysall.Interface.ApplyAddons(Window, "cameramantd")
 Library:Notify("Cameraman Tower Defense destegi yuklendi (" .. math.floor((tick() - LoadStart) * 100) / 100 .. "s).")
