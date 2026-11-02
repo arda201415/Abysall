@@ -1,6 +1,7 @@
 -- Abysall Hub | Closing Shift (IgnitedFreddy)
 -- PlaceId: 118297934142609 | UniverseId: 10767355485
--- Player ESP + animatronic/entity ESP + ESP ayarlari.
+-- Player ESP + Animatronic ESP (tum Workspace taranir; IgnitedFreddy /
+-- IgnitedBonnie / IgnitedBonnieLocal otomatik yakalanir) + ESP ayarlari.
 
 local LoadStart = tick()
 if not Abysall or not Abysall.Interface then
@@ -166,7 +167,10 @@ for _, Player in pairs(Services.Players:GetPlayers()) do
     if Player ~= LocalPlayer and Player.Character and ToggleOn("PlayerESP") then AddPlayerESP(Player) end
 end
 
--- // Entity / Animatronic ESP // -------------------------------------------
+-- // Animatronic ESP // -----------------------------------------------------
+-- Tek secenek altinda: IgnitedFreddy, IgnitedBonnie, IgnitedBonnieLocal ve
+-- Humanoid iceren tum NPC'ler. Ismi "Ignited" gecen modeller de yakalanir.
+-- Isaretleme icin TUM Workspace taranir (streaming ile gelenler dahil).
 local Entities = Tabs.Visuals:AddRightGroupbox("Animatronic ESP")
 
 Entities:AddToggle("EntityESP", { Text = "Animatronic ESP", Default = false })
@@ -174,10 +178,10 @@ Toggles.EntityESP:AddColorPicker("EntityESPColor", {
     Text = "ESP Color", Default = Color3.fromRGB(255, 170, 0), Transparency = 0,
 })
 Entities:AddInput("EntityFilter", {
-    Text = "Name Filter", Default = "", Placeholder = "orn: Freddy, Bonnie (bos = hepsi)",
+    Text = "Name Filter", Default = "", Placeholder = "orn: Ignited, Bonnie (bos = hepsi)",
     Tooltip = "Isminde bu metin gecen animatronikleri gosterir. Virgulle ayir. Bos = hepsi.",
 })
-Entities:AddLabel("Animatronikler (Humanoid iceren NPC'ler) isaretlenir.", true)
+Entities:AddLabel("Tum Workspace taranir: IgnitedFreddy / IgnitedBonnie / IgnitedBonnieLocal + NPC'ler.", true)
 
 local ESPObjects = {} -- [Model] = true
 
@@ -191,13 +195,25 @@ local function MatchesFilter(Object)
     return false
 end
 
-local function IsAnimatronic(Model)
-    if not Model or not Model.Parent then return false end
-    if not Model:IsA("Model") then return false end
-    if Services.Players:GetPlayerFromCharacter(Model) then return false end
-    if Model == LocalPlayer.Character then return false end
-    if not Model:FindFirstChildOfClass("Humanoid") then return false end
-    return true
+local KnownNames = {
+    IgnitedFreddy = true, IgnitedBonnie = true, IgnitedBonnieLocal = true,
+    Freddy = true, Bonnie = true, Chica = true, Foxy = true,
+    GoldenFreddy = true, Fredbear = true, Puppet = true,
+}
+
+local function IsAnimatronic(Object)
+    if not Object or not Object.Parent then return false end
+    if not Object:IsA("Model") then return false end
+    if Services.Players:GetPlayerFromCharacter(Object) then return false end
+    if Object == LocalPlayer.Character then return false end
+    if Object:FindFirstChildOfClass("Humanoid") then return true end
+    if KnownNames[Object.Name] then return true end
+    -- "Ignited" iceren (IgnitedFreddy, IgnitedBonnie, IgnitedBonnieLocal ...) veya
+    -- "*Stage" altindaki modeller
+    if string.find(Object.Name, "Ignited", 1, true) then return true end
+    local Parent = Object.Parent
+    if Parent and string.find(string.lower(Parent.Name), "stage", 1, true) then return true end
+    return false
 end
 
 local function AddEntity(Model)
@@ -224,10 +240,8 @@ local function ScanEntities()
     if not ToggleOn("EntityESP") then return end
     local Workspace = Services.Workspace
     for _, Object in ipairs(Workspace:GetDescendants()) do
-        if IsAnimatronic(Object) then
-            if MatchesFilter(Object) then AddEntity(Object) end
-        elseif ESPObjects[Object] and not Object.Parent then
-            ESPObjects[Object] = nil
+        if IsAnimatronic(Object) and MatchesFilter(Object) then
+            AddEntity(Object)
         end
     end
     for Model in pairs(ESPObjects) do
@@ -255,12 +269,14 @@ BindChange(Options.EntityFilter, function()
     ScanEntities()
 end)
 
+-- Anlik yakalama: yeni eklenen animatronikler (streaming / spawn)
 TrackConn(Services.Workspace.DescendantAdded:Connect(function(Object)
     if ToggleOn("EntityESP") and IsAnimatronic(Object) and MatchesFilter(Object) then
         AddEntity(Object)
     end
 end))
 
+-- Periyodik tam tarama: cozulmemis/gecikmis nesneler icin
 local ScanAccum = 0
 TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
     if not ToggleOn("EntityESP") then return end
