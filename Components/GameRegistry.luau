@@ -90,6 +90,13 @@ local Registry = {
             Features = { "Player ESP", "Animatronic ESP with name filter", "ESP distance, tracers and arrows" },
         },
         {
+            Id = "CameramanTD", Name = "Cameraman Tower Defense",
+            GameIds = { 10762636904 },
+            PlaceIds = { 132929771812494, 114068177100380 },
+            Updated = "2026-11-03", Coverage = "Main game",
+            Features = { "Auto Play (unit placement)", "Auto Upgrade, Target and Sell", "Auto Wave Skip and Game Speed", "Auto Summon and code redemption", "Tower, enemy and player ESP", "WalkSpeed and JumpPower" },
+        },
+        {
             Id = "Universal", Name = "Universal", Fallback = true,
             Updated = "2026-10-24", Coverage = "Other experiences; feature availability varies by game",
             Features = { "Player ESP", "Movement and lighting settings", "Aim settings", "Ability tools" },
