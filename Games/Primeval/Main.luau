@@ -15,7 +15,6 @@ local SaveManager = Abysall.Interface.SaveManager
 local ThemeManager = Abysall.Interface.ThemeManager
 
 local Toggles = Library.Toggles
-local Toggles = Library.Toggles
 -- Toggle okumalarini nil-guvenli yapar; anahtar yoksa false doner (kutuphane sifirlanirsa cokmeyi onler)
 local function ToggleOn(Name)
 	local T = Toggles and Toggles[Name]

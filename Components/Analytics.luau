@@ -5,7 +5,13 @@
     Sensetive data such as IP adresses or HWIDs are NOT logged and never will be.
     If you want proof of this, feel free to dm me on discord: bocaj111004.
 
+    This is opt-out: Settings > "Send anonymous stats" writes Abysall.Telemetry to
+    Abysall/UserData.json and the Loader applies it before this module runs.
+
 ]]--
+
+-- A missing value means the user never chose, so stats stay enabled.
+if Abysall.Telemetry == false then return end
 
 local function CloneReference(Object)
     if Abysall.Environment.cloneref then

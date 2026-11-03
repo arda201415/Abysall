@@ -1,4 +1,4 @@
--- Recovered from the supplied MoonVeil script; see Research/FakeAnEgg.md.
+-- Recovered from the supplied MoonVeil script.
 return {
     Rarities = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret", "Exotic", "Divine", "Celestial", "Admin" },
     HatchSlots = 20,

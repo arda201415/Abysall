@@ -35,12 +35,11 @@ local function CreateLoadingScreen()
         if self.Status ~= "loading" then return end
         self.Stage, self.Detail = Stage, Detail
         self.Progress = math.max(self.Progress, math.clamp(Progress or self.Progress, 0, 1))
-        if StageText then
-            StageText.Text = Stage
-            DetailText.Text = Detail or ""
-            Fill.Size = UDim2.fromScale(self.Progress, 1)
-            Percent.Text = math.floor(self.Progress * 100) .. "%"
-        end
+        -- The screen is built step by step, so any of these can still be nil.
+        if StageText then StageText.Text = Stage end
+        if DetailText then DetailText.Text = Detail or "" end
+        if Fill then Fill.Size = UDim2.fromScale(self.Progress, 1) end
+        if Percent then Percent.Text = math.floor(self.Progress * 100) .. "%" end
     end
 
     function Loading:Fail(Message)
@@ -49,12 +48,12 @@ local function CreateLoadingScreen()
         self.Status = "failed"
         if Elapsed then Elapsed.Text = string.format("%.1fs elapsed", tick() - self.StartedAt) end
         if Timer then Timer:Disconnect(); Timer = nil end
-        if Fill then
-            Fill.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
-            Hint.Visible = false
-            Close.Visible = true
-            Copy.Visible = type(setclipboard or toclipboard) == "function"
-        end
+        -- A partially built screen must still be able to show the error, so each
+        -- element is guarded: a nil Hint used to raise inside the handler itself.
+        if Fill then Fill.BackgroundColor3 = Color3.fromRGB(220, 60, 60) end
+        if Hint then Hint.Visible = false end
+        if Close then Close.Visible = true end
+        if Copy then Copy.Visible = type(setclipboard or toclipboard) == "function" end
     end
 
     function Loading:Finish(Name)
@@ -276,8 +275,12 @@ local function Bootstrap()
     end
     UserData.TotalExecutions = (tonumber(UserData.TotalExecutions) or 0) + 1
     UserData.UILibrary = UserData.UILibrary == "Linoria" and "Linoria" or "Obsidian"
+    -- Anonymous usage stats are opt-out rather than hidden: only an explicit
+    -- false disables them, and Settings exposes the switch that writes it.
+    UserData.Telemetry = UserData.Telemetry ~= false
     Session.TotalExecutions = UserData.TotalExecutions
     Session.UILibrary = UserData.UILibrary
+    Session.Telemetry = UserData.Telemetry
 
     local function SaveUserData(Data)
         if not (Env.readfile and Env.writefile) then
@@ -300,6 +303,19 @@ local function Bootstrap()
         if not Ok then return false, Err end
         UserData = Updated
         Session.UILibrary = Value
+        return true
+    end
+
+    function Session.SetTelemetry(Value)
+        -- Apply immediately even when the file write fails, so disabling stats
+        -- is never blocked by an executor without filesystem access.
+        local Enabled = Value == true
+        Session.Telemetry = Enabled
+        local Updated = table.clone(UserData)
+        Updated.Telemetry = Enabled
+        UserData = Updated
+        local Ok, Err = SaveUserData(Updated)
+        if not Ok then return false, Err end
         return true
     end
 
@@ -336,6 +352,8 @@ if Ok then
     -- Optional session metadata must never delay opening the menu.
     task.defer(function()
         if getgenv().Abysall ~= Session then return end
+        -- Avoid even fetching the analytics module when the user opted out.
+        if Session.Telemetry == false then return end
         local OkAnalytics, Result = pcall(function()
             local Source = game:HttpGet(BaseUrl .. "Components/Analytics.luau")
             if getgenv().Abysall ~= Session then return end

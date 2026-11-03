@@ -14,14 +14,21 @@ the game script alongside the UI downloads. Avatar content resolves asynchronous
 and optional session metadata runs after the menu opens. Downloads are shared only
 within a run, so re-executing the loader always picks up fresh code.
 
+Anonymous usage stats are on by default: Roblox username, executor name, game
+name and place ID, and execution count, with no IP address or hardware ID.
+**Settings → Send anonymous stats** turns them off; the choice is written to
+`Abysall/UserData.json` and applied on the next run. `Components/Analytics.luau`
+documents the exact payload.
+
 For the original full compatibility diagnostics, set
 `getgenv().AbysallFullChecks = true` before running the loader. These tests include
 network and signal checks and can take longer. Set it to `false` for fast startup.
 
-The **Home** page shows the 14 dedicated game modules and the Universal fallback,
-with features, supported places and module source update dates. Routing and this
-list share `Components/GameRegistry.luau`; update its IDs, features and `Updated`
-date when changing a game module. Browsing the catalog does not switch modules.
+The **Home** page lists every dedicated game module and the Universal fallback,
+with features, supported places and module source update dates. Routing, the game
+list and the Home changelog all read `Components/GameRegistry.luau`; update its
+IDs, features and `Updated` date when changing a game module. Browsing the catalog
+does not switch modules.
 
 In DOORS, the existing entity bypass switches also enable next-door preparation.
 Enabled contact bypasses apply immediately to loaded rooms and newly streamed
@@ -41,7 +48,6 @@ Closing or unloading the menu restores the previous mouse icon and lock state.
 **Steal An Egg** (`107778070777162`) includes Loop WalkSpeed, Instant Prompts,
 optional client correction controls and character reset. Settings save separately
 under `Abysall/StealAnEgg`; the module appears in the Home catalog automatically.
-The source analysis and behavior reconstruction are in [Research/StealAnEgg.md](Research/StealAnEgg.md).
 
 **Tap Simulator** (`72858262610964`) adapts 26 MIT-licensed feature modules from
 [TrustyCoding/slopix-hub](https://github.com/TrustyCoding/slopix-hub/blob/main/games/72858262610964.lua)
@@ -54,17 +60,15 @@ and the pinned source/license details.
 and forest place `126509999114328`. It includes item/NPC ESP, the source's 69
 teleport names, campfire/grinder return, small-tree farming, right-click NPC aim
 and flight. The lobby shows information and settings; run the loader again in a
-forest match. Profiles save under `Abysall/NightsInTheForest`. Source analysis and
-adaptation notes are in [Research/99Nights.md](Research/99Nights.md).
+forest match. Profiles save under `Abysall/NightsInTheForest`.
 
 **Fake an Egg** detects universe `10769384180` and place `97289366402005`.
 It includes auto hatch for slots 1–20, auto rebirth, auto sell pets and auto steal
 with 11 rarity choices and return to the player's Collect point. Profiles save
-under `Abysall/FakeAnEgg`. Source analysis is in [Research/FakeAnEgg.md](Research/FakeAnEgg.md).
+under `Abysall/FakeAnEgg`.
 
-The supplied `cameraman auto farm.lua` matches BARRAGE's shared loader after
-newline normalization. Both data layers and the locked constants have been
-decoded: 132 serialized functions and 392 strings. The separate game module
-has not been obtained, so dedicated Cameraman support is pending. Outputs,
-the external game catalog and the offline decoder are documented in
-[Research/BarrageLoader.md](Research/BarrageLoader.md).
+The supplied `cameraman auto farm.lua` matched BARRAGE's shared loader after
+newline normalization and was used to build **Cameraman Tower Defense**
+(`132929771812494`, `114068177100380`). The offline analysis that documented it
+(132 serialized functions and 392 strings) is no longer kept in the repository;
+the module itself is the record.

@@ -1,6 +1,6 @@
 -- Abysall Hub | Steal An Egg
 -- PlaceId: 107778070777162
--- Adapted from the statically recovered behavior documented in Research/StealAnEgg.md.
+-- Adapted from the statically recovered behavior of the original script.
 local LoadStart = tick()
 local Session = Abysall
 if not Session or not Session.Interface then
@@ -40,7 +40,7 @@ local function ToggleOn(Name)
     return not Unloaded and Toggles[Name] ~= nil and Toggles[Name].Value == true
 end
 
-local function OnChange(Control, Callback)
+local function BindChange(Control, Callback)
     -- Linoria calls OnChanged immediately when registering a listener.
     local Registering = true
     Control:OnChanged(function(...)
@@ -164,17 +164,17 @@ Movement:AddToggle("EggLoopWalkSpeed", {
 Movement:AddSlider("EggWalkSpeed", {
     Text = "WalkSpeed", Default = 16, Min = 16, Max = 1000, Rounding = 0,
 })
-OnChange(Toggles.EggLoopWalkSpeed, function(Value)
+BindChange(Toggles.EggLoopWalkSpeed, function(Value)
     if Value then ApplySpeed() else RestoreSpeeds() end
 end)
-OnChange(Options.EggWalkSpeed, ApplySpeed)
+BindChange(Options.EggWalkSpeed, ApplySpeed)
 
 local Interactions = Main:AddLeftGroupbox("Interactions")
 Interactions:AddToggle("EggInstantPrompts", {
     Text = "Instant Prompts", Default = false,
     Tooltip = "Removes the local hold duration from existing and newly loaded prompts.",
 })
-OnChange(Toggles.EggInstantPrompts, function(Value)
+BindChange(Toggles.EggInstantPrompts, function(Value)
     if Value then
         for _, Object in ipairs(Services.Workspace:GetDescendants()) do ApplyPrompt(Object) end
     else
@@ -198,7 +198,7 @@ Network:AddButton("Reset Character", function()
         Library:Notify("Your character is not ready to reset.")
     end
 end)
-OnChange(Toggles.EggBlockClientCorrections, function(Value)
+BindChange(Toggles.EggBlockClientCorrections, function(Value)
     if Value then
         CorrectionError = false
         if type(GetConnections) == "function" then ApplyCorrections() end

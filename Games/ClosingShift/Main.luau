@@ -303,23 +303,35 @@ local function IsKeyGlint(Object)
     return false
 end
 
+local function RemoveKey(Object)
+    if not KeyObjects[Object] then return end
+    KeyObjects[Object] = nil
+    if Abysall and Abysall.ESPLibrary then
+        pcall(function() Abysall.ESPLibrary:RemoveESP(Object) end)
+    end
+end
+
+-- Tek nesneyi degerlendirir; boylece DescendantAdded tam tarama yapmaz.
+local function AddKey(Object)
+    if not ToggleOn("KeyESP") or KeyObjects[Object] or not IsKeyGlint(Object) then return end
+    KeyObjects[Object] = true
+    local Ok = pcall(function()
+        Abysall.ESPLibrary:AddESP({ Object = Object, Text = "Key", Color = Options.KeyESPColor.Value })
+    end)
+    if not Ok then
+        KeyObjects[Object] = nil
+        return
+    end
+    Object.Destroying:Once(function() RemoveKey(Object) end)
+end
+
 local function ScanKeys()
     if not ToggleOn("KeyESP") then return end
-    local Workspace = Services.Workspace
-    for _, Object in ipairs(Workspace:GetDescendants()) do
-        if IsKeyGlint(Object) and not KeyObjects[Object] then
-            KeyObjects[Object] = true
-            pcall(function()
-                Abysall.ESPLibrary:AddESP({ Object = Object, Text = "Key", Color = Options.KeyESPColor.Value })
-                Object.Destroying:Once(function()
-                    KeyObjects[Object] = nil
-                    if Abysall and Abysall.ESPLibrary then pcall(function() Abysall.ESPLibrary:RemoveESP(Object) end) end
-                end)
-            end)
-        end
+    for _, Object in ipairs(Services.Workspace:GetDescendants()) do
+        AddKey(Object)
     end
     for Object in pairs(KeyObjects) do
-        if not Object.Parent then KeyObjects[Object] = nil end
+        if not Object.Parent then RemoveKey(Object) end
     end
 end
 
@@ -327,9 +339,7 @@ OnChange("KeyESP", function(Value)
     if Value then
         ScanKeys()
     else
-        for Object in pairs(KeyObjects) do
-            if Abysall and Abysall.ESPLibrary then pcall(function() Abysall.ESPLibrary:RemoveESP(Object) end) end
-        end
+        for Object in pairs(KeyObjects) do RemoveKey(Object) end
         table.clear(KeyObjects)
     end
 end)
@@ -341,18 +351,17 @@ BindChange(Options.KeyESPColor, function(Value)
 end)
 
 TrackConn(Services.Workspace.DescendantAdded:Connect(function(Object)
-    if ToggleOn("KeyESP") and IsKeyGlint(Object) then ScanKeys() end
+    if ToggleOn("KeyESP") then AddKey(Object) end
 end))
 
--- Periyodik tam tarama: cozulmemis/gecikmis nesneler icin
+-- Periyodik tam tarama: cozulmemis/gecikmis ve stream disinda kalan nesneler icin
 local ScanAccum = 0
 TrackConn(Services.RunService.Heartbeat:Connect(function(Delta)
-    if not ToggleOn("EntityESP") and not ToggleOn("KeyESP") then return end
     ScanAccum += Delta
     if ScanAccum < 1 then return end
     ScanAccum = 0
-    ScanEntities()
-    ScanKeys()
+    if ToggleOn("EntityESP") then ScanEntities() end
+    if ToggleOn("KeyESP") then ScanKeys() end
 end))
 
 -- // ESP Settings // --------------------------------------------------------

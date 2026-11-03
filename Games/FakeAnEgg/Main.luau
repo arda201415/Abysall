@@ -55,12 +55,12 @@ local Controller = MakeController({
     Error = function(Feature, Error) Library:Notify(Feature .. " stopped: " .. Error) end,
 })
 Session.FakeAnEgg = Controller
-local function OnChange(Control, Callback)
+local function BindChange(Control, Callback)
     local Registering = true
     Control:OnChanged(function(...) if not Registering then Callback(...) end end)
     Registering = false
 end
-OnChange(Options.FakeEggRarities, function(Value) Controller:SetRarities(Value) end)
+BindChange(Options.FakeEggRarities, function(Value) Controller:SetRarities(Value) end)
 Controller:SetRarities(Options.FakeEggRarities.Value)
 for Feature, Id in pairs(Ids) do
     local function Changed(Value)
@@ -70,7 +70,7 @@ for Feature, Id in pairs(Ids) do
             Library:Notify(Error)
         end
     end
-    OnChange(Toggles[Id], Changed)
+    BindChange(Toggles[Id], Changed)
     if Toggles[Id].Value then Changed(true) end
 end
 Library:OnUnload(function()

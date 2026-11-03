@@ -10,7 +10,6 @@ local SaveManager = Abysall.Interface.SaveManager
 local ThemeManager = Abysall.Interface.ThemeManager
 
 local Toggles = Library.Toggles
-local Toggles = Library.Toggles
 -- Toggle okumalarini nil-guvenli yapar; anahtar yoksa false doner (kutuphane sifirlanirsa cokmeyi onler)
 local function ToggleOn(Name)
 	local T = Toggles and Toggles[Name]
@@ -3977,7 +3976,12 @@ Groupboxes.Floors_Farming:AddButton({
 	DoubleClick = false,
 	Tooltip = "Copies the death farm loadstring to your clipboard.",
 	Func = function()
-		toclipboard([==[
+		local Clipboard = setclipboard or toclipboard
+		if type(Clipboard) ~= "function" then
+			Library:Notify("This executor has no clipboard function.")
+			return
+		end
+		Clipboard([==[
 			loadstring(game:HttpGet("https://raw.githubusercontent.com/arda201415/Abysall/refs/heads/main/Scripts/DeathFarm.luau"))()
 		]==])
 		Library:Notify("Loadstring has been copied to your clipboard.")

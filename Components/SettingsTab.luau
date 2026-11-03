@@ -58,6 +58,21 @@ return function(Window)
 		})
 	end
 
+	-- Visible opt-out for Components/Analytics.luau. The preference lives in
+	-- Abysall/UserData.json, so it is deliberately excluded from save configs.
+	MenuGroup:AddToggle("SendAnonymousStats", {
+		Text = "Send anonymous stats",
+		Default = Abysall.Telemetry ~= false,
+		Tooltip = "Sends your Roblox username, executor name, game name and place ID, and execution count to the hub's analytics endpoint. No IP address or hardware ID is collected. Changes apply the next time you run the loader.",
+		Callback = function(Value)
+			if type(Abysall.SetTelemetry) ~= "function" then return end
+			local Ok, Err = Abysall.SetTelemetry(Value)
+			if not Ok then
+				Library:Notify("Stats preference applied for this run but could not be saved: " .. tostring(Err))
+			end
+		end,
+	})
+
 	local SelectedStyle = Abysall.UILibrary
 	MenuGroup:AddDropdown("UILibrary", {
 		Text = "UI Style",
@@ -100,7 +115,12 @@ return function(Window)
 	MenuGroup:AddLabel("Menu bind"):AddKeyPicker("MenuKeybind", { Default = "RightShift", NoUI = true, Text = "Menu keybind" })
 	
 	MenuGroup:AddButton("Copy Discord Invite", function()
-		toclipboard("https://dsc.gg/abysallhub")
+		local Clipboard = setclipboard or toclipboard
+		if type(Clipboard) ~= "function" then
+			Library:Notify("This executor has no clipboard function.")
+			return
+		end
+		Clipboard("https://dsc.gg/abysallhub")
 		Library:Notify("Discord invite copied.")
 	end)
 	
@@ -131,7 +151,7 @@ return function(Window)
 	ThemeManager:SetLibrary(Library)
 	SaveManager:SetLibrary(Library)
 	SaveManager:IgnoreThemeSettings()
-	SaveManager:SetIgnoreIndexes({"UILibrary", "SupportedGame"})
+	SaveManager:SetIgnoreIndexes({"UILibrary", "SupportedGame", "SendAnonymousStats"})
 	ThemeManager:SetFolder("Abysall")
 	SaveManager:SetFolder("Abysall/" .. Abysall.SavePath)
 	SaveManager:BuildConfigSection(SettingsTab)
