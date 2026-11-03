@@ -204,6 +204,7 @@ local KnownNames = {
 -- ESP'de gorunmemesi gereken nesneler (sahne/dekor)
 local Blacklist = {
     ShowStage = true, Door = true, SecondStage = true, TableSeat = true,
+    VerityArm = true, TableSet = true,
 }
 
 local function IsAnimatronic(Object)
