@@ -93,8 +93,8 @@ local Registry = {
             Id = "CameramanTD", Name = "Cameraman Tower Defense",
             GameIds = { 10762636904 },
             PlaceIds = { 132929771812494, 114068177100380 },
-            Updated = "2026-11-03", Coverage = "Main game",
-            Features = { "Auto Play (unit placement)", "Auto Upgrade, Target and Sell", "Auto Wave Skip and Game Speed", "Auto Summon and code redemption", "Tower, enemy and player ESP", "WalkSpeed and JumpPower" },
+            Updated = "2026-11-04", Coverage = "Main game",
+            Features = { "Auto Play (unit placement)", "Auto Upgrade, Target and Sell", "Auto Wave Skip and Game Speed", "Auto Summon and code redemption", "Tower, enemy and player ESP", "WalkSpeed and JumpPower", "Diagnostics: replica probe and remote call log" },
         },
         {
             Id = "Universal", Name = "Universal", Fallback = true,

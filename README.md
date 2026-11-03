@@ -78,8 +78,10 @@ It includes auto hatch for slots 1–20, auto rebirth, auto sell pets and auto s
 with 11 rarity choices and return to the player's Collect point. Profiles save
 under `Abysall/FakeAnEgg`.
 
-The supplied `cameraman auto farm.lua` matched BARRAGE's shared loader after
-newline normalization and was used to build **Cameraman Tower Defense**
-(`132929771812494`, `114068177100380`). The offline analysis that documented it
-(132 serialized functions and 392 strings) is no longer kept in the repository;
-the module itself is the record.
+The supplied `cameraman auto farm.lua` is BARRAGE's distribution loader, not the
+Cameraman Tower Defense script: it authenticates a key against `barrage.cc`, then
+downloads the per-game Luau from `/script/`. Its static inventory (132 functions,
+29,603 instructions, 392 strings, the network contract and the key/HWID checks)
+is documented in [Research/BarrageLoader.md](Research/BarrageLoader.md). Because
+the gameplay code never ships inside that file, the dedicated Cameraman TD module
+is maintained independently and its remote names still need in-game verification.

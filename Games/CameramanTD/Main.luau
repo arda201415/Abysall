@@ -48,27 +48,31 @@ local Services = setmetatable({}, {
 local LocalPlayer = Services.Players.LocalPlayer
 local Unloaded = false
 local Connections = {}
-local function TrackConn(Conn)
-    table.insert(Connections, Conn)
-    return Conn
-end
 
 -- // Oyun modulleri // ------------------------------------------------------
 local ReplicatedStorage = Services.ReplicatedStorage
-local ModuleLoader = ReplicatedStorage:WaitForChild("ModuleLoader", 30)
 local Network = nil
 local Replication = nil
 
+-- The window must not wait for the game's modules: a missing folder used to
+-- block the menu for up to 30 seconds. Everything degrades to a no-op until the
+-- remotes resolve.
 task.spawn(function()
+    local OkLoader, Loader = pcall(function()
+        return ReplicatedStorage:WaitForChild("ModuleLoader", 20)
+    end)
+    if not OkLoader or not Loader then
+        warn("[Abysall] CameramanTD: ModuleLoader bulunamadi, remote'lar devre disi")
+        return
+    end
     local Ok = pcall(function()
-        local Shared = ModuleLoader:WaitForChild("Shared")
-        local Net = Shared:WaitForChild("Network")
-        Network = require(Net)
+        local Shared = Loader:WaitForChild("Shared", 10)
+        Network = require(Shared:WaitForChild("Network", 10))
     end)
     if not Ok then warn("[Abysall] CameramanTD: Network modulu yuklenemedi") end
     pcall(function()
-        local Client = ModuleLoader:WaitForChild("Client")
-        Replication = require(Client:WaitForChild("Replication"))
+        local Client = Loader:WaitForChild("Client", 10)
+        Replication = require(Client:WaitForChild("Replication", 10))
     end)
 end)
 
@@ -129,6 +133,7 @@ local Tabs = {
     Automation = Window:AddTab("Automation", "bot"),
     Visuals = Window:AddTab("Visuals", "eye"),
     Misc = Window:AddTab("Misc", "settings"),
+    Debug = Window:AddTab("Debug", "terminal"),
 }
 
 -- // Automation // ----------------------------------------------------------
@@ -142,7 +147,7 @@ Auto:AddToggle("AutoUpgrade", { Text = "Auto Upgrade", Default = false })
 Auto:AddToggle("AutoTarget", { Text = "Auto Target", Default = false })
 Auto:AddToggle("AutoSell", {
     Text = "Auto Sell (over limit)", Default = false,
-    Tooltip = "Kule sayisi limiti asinca en dusuk seviyeli kuleleri satar.",
+    Tooltip = "Kule sayisi limiti asinca kuleleri satar; 'Level' attribute'u varsa once en dusuk seviyelileri.",
 })
 Auto:AddSlider("MaxTowers", { Text = "Max Towers", Default = 20, Min = 1, Max = 60, Rounding = 0 })
 Auto:AddSlider("MoneyReserve", { Text = "Money Reserve", Default = 0, Min = 0, Max = 100000, Rounding = 0 })
@@ -221,6 +226,239 @@ Session:AddButton("Save Now", function()
     if Ok then Library:Notify("Config kaydedildi (autoload).") else Library:Notify("Kaydedilemedi: " .. tostring(Err)) end
 end)
 
+-- // Diagnostics // ---------------------------------------------------------
+-- The remote names this module uses were never confirmed against the live game
+-- (they do not come from BARRAGE's loader, which ships no gameplay code). This
+-- tab reports what the game actually exposes so the API can be verified in-game.
+local DiagGroup = Tabs.Debug:AddLeftGroupbox("Diagnostics")
+local DiagLines = {}
+
+local function DescribeValue(Value, Limit)
+    Limit = Limit or 12
+    if Value == nil then return "nil" end
+    if typeof(Value) == "Instance" then return Value.ClassName .. ":" .. Value.Name end
+    local Kind = type(Value)
+    if Kind ~= "table" then return Kind end
+    local Parts, Count = {}, 0
+    for Key in pairs(Value) do
+        Count += 1
+        if #Parts < Limit then table.insert(Parts, tostring(Key)) end
+    end
+    table.sort(Parts)
+    return string.format("table(%d){%s%s}", Count, table.concat(Parts, ", "), Count > #Parts and ", ..." or "")
+end
+
+local function DescribeChildren(Folder, Limit)
+    if not Folder then return "MISSING" end
+    local Names, Total = {}, 0
+    for _, Child in ipairs(Folder:GetChildren()) do
+        Total += 1
+        if #Names < (Limit or 8) then table.insert(Names, Child.Name) end
+    end
+    return string.format("%d [%s%s]", Total, table.concat(Names, ", "), Total > #Names and ", ..." or "")
+end
+
+local function CollectDiagnostics()
+    local Lines = {}
+    local function Add(Format, ...) table.insert(Lines, string.format(Format, ...)) end
+
+    Add("Abysall CameramanTD diagnostics")
+    Add("placeId=%s gameId=%s", tostring(game.PlaceId), tostring(game.GameId))
+    Add("ModuleLoader=%s", ReplicatedStorage:FindFirstChild("ModuleLoader") and "present" or "MISSING")
+    Add("Network=%s", DescribeValue(Network))
+    Add("Replication=%s", DescribeValue(Replication))
+
+    -- Every remote the client can see, so the real names can be matched against
+    -- the ones this module fires.
+    local RemoteNames, RemoteTotal = {}, 0
+    for _, Object in ipairs(ReplicatedStorage:GetDescendants()) do
+        if Object:IsA("RemoteEvent") or Object:IsA("RemoteFunction") or Object:IsA("UnreliableRemoteEvent") then
+            RemoteTotal += 1
+            if #RemoteNames < 40 then table.insert(RemoteNames, Object.Name) end
+        end
+    end
+    Add("replicatedStorage remotes=%d [%s%s]", RemoteTotal,
+        table.concat(RemoteNames, ", "), RemoteTotal > #RemoteNames and ", ..." or "")
+
+    local Data = GetReplicaData()
+    Add("replicaData=%s", DescribeValue(Data))
+    if type(Data) == "table" and type(Data.Towers) == "table" then
+        local Count, SampleId, Sample = 0, nil, nil
+        for UnitId, Info in pairs(Data.Towers) do
+            Count += 1
+            if Sample == nil then SampleId, Sample = UnitId, Info end
+        end
+        Add("replica.Towers count=%d sampleId=%s", Count, tostring(SampleId))
+        Add("replica.Towers sample=%s", DescribeValue(Sample, 20))
+    end
+
+    local Game = GetGame()
+    Add("workspace.Game=%s", Game and "present" or "MISSING")
+    if Game then
+        Add("  children=%s", DescribeChildren(Game))
+        Add("  Paths=%s", Game:FindFirstChild("Paths") and DescribeChildren(Game.Paths, 10) or "MISSING")
+        Add("  TowerArea=%s", Game:FindFirstChild("TowerArea") and DescribeChildren(Game.TowerArea, 10) or "MISSING")
+        Add("  Towers=%s", Game:FindFirstChild("Towers") and DescribeChildren(Game.Towers, 10) or "MISSING")
+        Add("  Enemies=%s", Game:FindFirstChild("Enemies") and DescribeChildren(Game.Enemies, 10) or "MISSING")
+    end
+
+    -- Which of the names the module fires actually resolve?
+    local Known = {
+        "TowerAdd", "TowerUpgrade", "TowerTarget", "TowerSell",
+        "WaveSkip", "SummonTowers", "ChangeSpeed", "PlayAgain", "RedeemCode",
+    }
+    for _, Name in ipairs(Known) do
+        local Found = Remote(Name)
+        local Kind = "nil"
+        if Found ~= nil then Kind = tostring(Found.ClassName or type(Found)) end
+        Add("remote %-14s %s", Name, Kind)
+    end
+
+    -- A placed tower reveals whether the game exposes Level/Id attributes, which
+    -- Auto Sell and the upgrade loop rely on.
+    local Folders = GetPlacedTowerModels()
+    if Folders then
+        for _, Model in ipairs(Folders:GetChildren()) do
+            if Model:IsA("Model") then
+                local Attributes = Model:GetAttributes()
+                local Pairs = {}
+                for Key, Value in pairs(Attributes) do
+                    table.insert(Pairs, Key .. "=" .. tostring(Value))
+                end
+                table.sort(Pairs)
+                Add("tower sample name=%s attrs=[%s] children=%d",
+                    Model.Name, table.concat(Pairs, ","), #Model:GetChildren())
+                break
+            end
+        end
+    end
+
+    return Lines
+end
+
+DiagGroup:AddLabel("The remote names below are what this module fires.", true)
+DiagGroup:AddLabel("Collect reports what the game actually exposes.", true)
+DiagGroup:AddButton("Collect report", function()
+    DiagLines = CollectDiagnostics()
+    for _, Line in ipairs(DiagLines) do print("[Abysall:TD] " .. Line) end
+    Library:Notify("Diagnostics collected: " .. #DiagLines .. " lines (console + Copy report).")
+end)
+DiagGroup:AddButton("Copy report", function()
+    if #DiagLines == 0 then
+        Library:Notify("Collect the report first.")
+        return
+    end
+    local Clipboard = setclipboard or toclipboard
+    if type(Clipboard) ~= "function" then
+        Library:Notify("This executor has no clipboard function.")
+        return
+    end
+    Clipboard(table.concat(DiagLines, "\n"))
+    Library:Notify("Diagnostics copied (" .. #DiagLines .. " lines).")
+end)
+
+-- // Remote log // -----------------------------------------------------------
+-- Records the calls the game itself makes (and other scripts make) so the real
+-- remote names and argument shapes can be learned by playing normally. It never
+-- calls anything; it only observes __namecall.
+local RemoteLog = {}
+local RemoteLogLimit = 200
+local LoggingRemotes = false
+local RemoteHookInstalled = false
+
+local function Summarize(Value, Depth)
+    Depth = Depth or 0
+    local Kind = type(Value)
+    if Kind == "string" then
+        return string.format("%q", Value)
+    elseif Kind == "number" or Kind == "boolean" or Kind == "nil" then
+        return tostring(Value)
+    elseif typeof(Value) == "Instance" then
+        return Value.ClassName .. ":" .. Value.Name
+    elseif Kind == "table" then
+        if Depth >= 2 then return "{...}" end
+        local Parts = {}
+        for Key, Inner in pairs(Value) do
+            if #Parts >= 8 then
+                table.insert(Parts, "...")
+                break
+            end
+            table.insert(Parts, tostring(Key) .. "=" .. Summarize(Inner, Depth + 1))
+        end
+        return "{" .. table.concat(Parts, ", ") .. "}"
+    end
+    return Kind
+end
+
+local function InstallRemoteHook()
+    if RemoteHookInstalled then return true end
+    local Hook = hookmetamethod
+    local GetMethod = getnamecallmethod
+    if type(Hook) ~= "function" or type(GetMethod) ~= "function" then return false end
+    local Wrap = newcclosure or function(Function) return Function end
+    local Ok = pcall(function()
+        local Original
+        Original = Hook("__namecall", Wrap(function(Self, ...)
+            if LoggingRemotes and typeof(Self) == "Instance" then
+                local Method = GetMethod()
+                if Method == "FireServer" or Method == "InvokeServer" then
+                    local Args = table.pack(...)
+                    local Parts = {}
+                    for Index = 1, math.min(Args.n, 6) do
+                        table.insert(Parts, Summarize(Args[Index]))
+                    end
+                    local Line = string.format("%s:%s(%s)", Self.ClassName, Self.Name, table.concat(Parts, ", "))
+                    table.insert(RemoteLog, Line)
+                    while #RemoteLog > RemoteLogLimit do table.remove(RemoteLog, 1) end
+                    print("[Abysall:TD:remote] " .. Line)
+                end
+            end
+            return Original(Self, ...)
+        end))
+        if type(Original) ~= "function" then
+            error("hookmetamethod did not return the original function")
+        end
+    end)
+    if Ok then RemoteHookInstalled = true end
+    return Ok
+end
+
+DiagGroup:AddDivider()
+DiagGroup:AddToggle("TDLogRemotes", {
+    Text = "Log game remotes", Default = false,
+    Tooltip = "Records RemoteEvent:FireServer / RemoteFunction:InvokeServer calls while you play. Turn the automation toggles off first so the log only shows the game's own calls.",
+})
+DiagGroup:AddButton("Copy remote log", function()
+    if #RemoteLog == 0 then
+        Library:Notify("Remote log is empty. Enable 'Log game remotes' and play a wave.")
+        return
+    end
+    local Clipboard = setclipboard or toclipboard
+    if type(Clipboard) ~= "function" then
+        Library:Notify("This executor has no clipboard function.")
+        return
+    end
+    Clipboard(table.concat(RemoteLog, "\n"))
+    Library:Notify("Remote log copied (" .. #RemoteLog .. " calls).")
+end)
+DiagGroup:AddButton("Clear remote log", function()
+    table.clear(RemoteLog)
+    Library:Notify("Remote log cleared.")
+end)
+OnChange("TDLogRemotes", function(Value)
+    if Value then
+        if not InstallRemoteHook() then
+            Library:Notify("This executor has no hookmetamethod/getnamecallmethod.")
+            Toggles.TDLogRemotes:SetValue(false)
+            return
+        end
+        LoggingRemotes = true
+        Library:Notify("Remote logging on. Play normally; the log keeps the last " .. RemoteLogLimit .. " calls.")
+    else
+        LoggingRemotes = false
+    end
+end)
+
 -- // Auto Save // -----------------------------------------------------------
 local SaveManager = Abysall.Interface.SaveManager
 local SaveDirty, SaveAt = false, 0
@@ -263,23 +501,39 @@ if ToggleOn("AutoRejoin") then pcall(ApplyTeleportQueue) end
 
 -- // ESP // -----------------------------------------------------------------
 local TrackedESP = {}
+local ESPText = {}
+local ESPColor = {}
 
 local function AddESP(Object, Text, Color)
     if TrackedESP[Object] then
-        pcall(function() Abysall.ESPLibrary:UpdateObjectColor(Object, Color) end)
+        -- Enemy labels carry live health, so refresh the text only when it moved.
+        if Text ~= nil and ESPText[Object] ~= Text then
+            ESPText[Object] = Text
+            pcall(function() Abysall.ESPLibrary:UpdateObjectText(Object, Text) end)
+        end
+        if ESPColor[Object] ~= Color then
+            ESPColor[Object] = Color
+            pcall(function() Abysall.ESPLibrary:UpdateObjectColor(Object, Color) end)
+        end
         return
     end
     TrackedESP[Object] = true
+    ESPText[Object] = Text
+    ESPColor[Object] = Color
     pcall(function()
         Abysall.ESPLibrary:AddESP({ Object = Object, Text = Text, Color = Color })
         Object.Destroying:Once(function()
             TrackedESP[Object] = nil
+            ESPText[Object] = nil
+            ESPColor[Object] = nil
             if Abysall and Abysall.ESPLibrary then pcall(function() Abysall.ESPLibrary:RemoveESP(Object) end) end
         end)
     end)
 end
 local function RemoveESP(Object)
     TrackedESP[Object] = nil
+    ESPText[Object] = nil
+    ESPColor[Object] = nil
     if Abysall and Abysall.ESPLibrary then pcall(function() Abysall.ESPLibrary:RemoveESP(Object) end) end
 end
 
@@ -344,9 +598,18 @@ end)
 -- // Game Speed // ----------------------------------------------------------
 local function ApplySpeed()
     local Value = SpeedValues[Options.GameSpeed.Value] or 1
-    Invoke("ChangeSpeed", Value)
+    -- Some builds expose ChangeSpeed as an event rather than a function, so try
+    -- the invocation first and fall back to firing.
+    if Invoke("ChangeSpeed", Value) == nil then Fire("ChangeSpeed", Value) end
 end
 BindChange(Options.GameSpeed, function() ApplySpeed() end)
+
+-- The dropdown advertises 1.5x by default; apply it once instead of leaving the
+-- game at 1x until the control is touched.
+task.delay(2, function()
+    if Unloaded then return end
+    if Options.GameSpeed.Value ~= "Default (1x)" then ApplySpeed() end
+end)
 
 -- // Auto Play (placement) // ----------------------------------------------
 local function GetPlacementPoints()
@@ -439,6 +702,14 @@ local function SellExcess()
     local Models = {}
     ForEachTower(function(Model) table.insert(Models, Model) end)
     if #Models <= Max then return end
+    -- Lowest level first when the game exposes a level attribute; otherwise the
+    -- folder order is kept, which is what the tooltip promises.
+    table.sort(Models, function(A, B)
+        local LevelA = tonumber(A:GetAttribute("Level") or A:GetAttribute("Tier")) or 0
+        local LevelB = tonumber(B:GetAttribute("Level") or B:GetAttribute("Tier")) or 0
+        if LevelA == LevelB then return A.Name < B.Name end
+        return LevelA < LevelB
+    end)
     for Index = 1, #Models - Max do
         Fire("TowerSell", { Id = Models[Index].Name })
         task.wait(0.2)
@@ -451,8 +722,14 @@ local function GetHumanoid()
     return Char and Char:FindFirstChildOfClass("Humanoid") or nil
 end
 
+-- Original movement values, so turning the toggles off (or unloading) restores
+-- what the player had instead of hardcoding 16/50.
+local OriginalWalk = setmetatable({}, { __mode = "k" })
+local OriginalJump = setmetatable({}, { __mode = "k" })
+local OriginalUseJump = setmetatable({}, { __mode = "k" })
+
 task.spawn(function()
-    local LastUpgrade, LastTarget, LastPlace, LastSkip, LastSummon, LastEsp, LastSell = 0, 0, 0, 0, 0, 0, 0
+    local LastUpgrade, LastTarget, LastPlace, LastSkip, LastSummon, LastEsp, LastSell, LastAgain = 0, 0, 0, 0, 0, 0, 0, 0
     local PlacedSinceUpgrade = 0
     while not Unloaded do
         task.wait(0.1)
@@ -505,8 +782,10 @@ task.spawn(function()
             Invoke("SummonTowers", "Basic Crate", 1)
         end
 
-        -- Auto Play Again (lobby)
-        if ToggleOn("AutoPlayAgain") and Now - LastSkip > 3 then
+        -- Auto Play Again (lobby). Its own timer: sharing LastSkip fired this
+        -- every 0.1s because nothing reset that timestamp while wave skip was off.
+        if ToggleOn("AutoPlayAgain") and Now - LastAgain > 3 then
+            LastAgain = Now
             Fire("PlayAgain")
         end
 
@@ -522,15 +801,31 @@ task.spawn(function()
         local Hum = GetHumanoid()
         if Hum then
             if ToggleOn("TDWalkSpeed") then
+                if OriginalWalk[Hum] == nil then OriginalWalk[Hum] = Hum.WalkSpeed end
                 local Speed = tonumber(Options.TDWalkSpeedValue.Value) or 16
                 if Hum.WalkSpeed ~= Speed then Hum.WalkSpeed = Speed end
-            elseif Hum.WalkSpeed ~= 16 then
-                Hum.WalkSpeed = 16
+            else
+                local Original = OriginalWalk[Hum]
+                if Original ~= nil then
+                    Hum.WalkSpeed = Original
+                    OriginalWalk[Hum] = nil
+                end
             end
             if ToggleOn("TDJumpPower") then
+                if OriginalJump[Hum] == nil then
+                    OriginalJump[Hum] = Hum.JumpPower
+                    OriginalUseJump[Hum] = Hum.UseJumpPower
+                end
                 local Power = tonumber(Options.TDJumpPowerValue.Value) or 50
                 if not Hum.UseJumpPower then Hum.UseJumpPower = true end
                 if Hum.JumpPower ~= Power then Hum.JumpPower = Power end
+            elseif OriginalJump[Hum] ~= nil then
+                local Power, UseJumpPower = OriginalJump[Hum], OriginalUseJump[Hum]
+                OriginalJump[Hum], OriginalUseJump[Hum] = nil, nil
+                pcall(function()
+                    Hum.JumpPower = Power
+                    Hum.UseJumpPower = UseJumpPower
+                end)
             end
         end
     end
@@ -546,6 +841,20 @@ Library:OnUnload(function()
         if Abysall and Abysall.ESPLibrary then pcall(function() Abysall.ESPLibrary:RemoveESP(Object) end) end
     end
     TrackedESP = {}
+    ESPText, ESPColor = {}, {}
+    for Humanoid, Speed in pairs(OriginalWalk) do
+        pcall(function() Humanoid.WalkSpeed = Speed end)
+    end
+    for Humanoid, Power in pairs(OriginalJump) do
+        local UseJumpPower = OriginalUseJump[Humanoid]
+        pcall(function()
+            Humanoid.JumpPower = Power
+            Humanoid.UseJumpPower = UseJumpPower
+        end)
+    end
+    table.clear(OriginalWalk)
+    table.clear(OriginalJump)
+    table.clear(OriginalUseJump)
     if Abysall.ESPLibrary then pcall(function() Abysall.ESPLibrary:Unload() end) end
     if type(Abysall.AddonDisablers) == "table" then
         for _, D in ipairs(Abysall.AddonDisablers) do
