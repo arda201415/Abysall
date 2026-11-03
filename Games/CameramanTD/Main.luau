@@ -84,14 +84,23 @@ task.spawn(function()
     end)
 end)
 
+local RemoteCache = {}
 local function Remote(Name)
+    local Cached = RemoteCache[Name]
+    if Cached and Cached.Parent ~= nil then return Cached end
+    local Found = nil
     if Network then
         local Ok, Result = pcall(function() return Network.Get(Name) end)
-        if Ok and Result ~= nil then return Result end
+        if Ok and Result ~= nil then Found = Result end
     end
-    -- Network.Get does not resolve every remote (CSComms is one), so fall back to
-    -- the instance tree before reporting the remote as missing.
-    return ReplicatedStorage:FindFirstChild(Name, true)
+    if Found == nil then
+        -- Network.Get does not resolve every remote, and some are created lazily
+        -- once a match starts, so fall back to the instance tree.
+        Found = ReplicatedStorage:FindFirstChild(Name, true)
+            or game:GetService("ReplicatedFirst"):FindFirstChild(Name, true)
+    end
+    if Found ~= nil then RemoteCache[Name] = Found end
+    return Found
 end
 local function Fire(Name, ...)
     local R = Remote(Name)
@@ -181,7 +190,11 @@ Economy:AddDropdown("GameSpeed", {
 })
 Economy:AddToggle("AutoSummon", {
     Text = "Auto Summon (Basic Crate)", Default = false,
-    Tooltip = "Opens the Basic Crate with the game's OpenCrate remote every ~2.2 seconds.",
+    Tooltip = "Calls the game's SummonTowers('Basic Crate', count) remote every ~2.2 seconds.",
+})
+Economy:AddSlider("SummonCount", {
+    Text = "Summon Count", Default = 1, Min = 1, Max = 10, Rounding = 0,
+    Tooltip = "How many crates SummonTowers opens per call, matching the game's own x1/x10 buttons.",
 })
 Economy:AddInput("RedeemCodes", {
     Text = "Codes", Default = "", Placeholder = "kod1, kod2",
@@ -202,6 +215,30 @@ Economy:AddButton("Redeem Now", function()
 end)
 
 local SpeedValues = { ["Default (1x)"] = 1, ["1.5x"] = 1.5, ["2x"] = 2, ["Normal (1x)"] = 1 }
+
+-- The game runs its own unit autosell; AutosellEnable(rarity) toggles it per
+-- rarity and the replica keeps the current state, so only mismatches are sent.
+local function SyncAutosell(Desired)
+    local Data = GetReplicaData()
+    local State = type(Data) == "table" and Data.Autosell
+    if type(State) ~= "table" then
+        NotifyLater("Autosell state is unavailable (replica not ready).")
+        return
+    end
+    local Sent = 0
+    for Rarity, Enabled in pairs(State) do
+        if type(Enabled) == "boolean" and Enabled ~= Desired then
+            if Fire("AutosellEnable", Rarity) then Sent += 1 end
+            task.wait(0.15)
+        end
+    end
+    NotifyLater(Sent .. " rarity toggled.")
+end
+
+Economy:AddDivider()
+Economy:AddLabel("Unit autosell uses the game's own AutosellEnable remote.", true)
+Economy:AddButton("Enable autosell (all rarities)", function() SyncAutosell(true) end)
+Economy:AddButton("Disable autosell (all rarities)", function() SyncAutosell(false) end)
 
 -- // Visuals // -------------------------------------------------------------
 local Esp = Tabs.Visuals:AddLeftGroupbox("ESP")
@@ -346,6 +383,21 @@ local function CollectDiagnostics()
             end
             table.sort(Parts)
             Add("replica.Towers sample={%s}", table.concat(Parts, ", "))
+        end
+    end
+
+    for _, Field in ipairs({ "Autosell", "Settings", "Exist" }) do
+        local Value = type(Data) == "table" and Data[Field]
+        if type(Value) == "table" then
+            local Parts = {}
+            for Key, Inner in pairs(Value) do
+                if #Parts >= 12 then
+                    table.insert(Parts, "...")
+                    break
+                end
+                table.insert(Parts, tostring(Key) .. "=" .. Summarize(Inner))
+            end
+            Add("replica.%s={%s}", Field, table.concat(Parts, ", "))
         end
     end
 
@@ -938,7 +990,11 @@ task.spawn(function()
         if ToggleOn("AutoSummon") and Now - LastSummon > 2.2 then
             LastSummon = Now
             if Remote("SummonTowers") then
-                Invoke("SummonTowers", "Basic Crate", 1)
+                local Count = math.clamp(tonumber(Options.SummonCount and Options.SummonCount.Value) or 1, 1, 10)
+                -- The game's own summon button refreshes leaderstats afterwards.
+                if Invoke("SummonTowers", "Basic Crate", Count) ~= nil then
+                    Fire("UpdateLeaderstats")
+                end
             elseif Remote("OpenCrate") then
                 -- RemoteFunction, not an event.
                 Invoke("OpenCrate", "Basic Crate", 1)
