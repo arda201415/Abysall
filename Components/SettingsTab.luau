@@ -160,5 +160,27 @@ return function(Window)
 	if not OkLoad then
 		warn("[Abysall:Config] autoload basarisiz: " .. tostring(ErrLoad))
 	end
+
+	-- Remember the palette this menu ended up with (theme applied or stock
+	-- Obsidian scheme) so the next run's bootstrap screen opens in the same
+	-- colors instead of flashing the built-in blue.
+	pcall(function()
+		local Scheme = Library.Scheme
+		if type(Scheme) ~= "table" or type(Abysall.SetLoadingPalette) ~= "function" then return end
+		local function Hex(Color)
+			if typeof(Color) ~= "Color3" then return nil end
+			return string.format("%02X%02X%02X",
+				math.floor(math.clamp(Color.R, 0, 1) * 255 + 0.5),
+				math.floor(math.clamp(Color.G, 0, 1) * 255 + 0.5),
+				math.floor(math.clamp(Color.B, 0, 1) * 255 + 0.5))
+		end
+		Abysall.SetLoadingPalette({
+			Accent = Hex(Scheme.AccentColor),
+			Main = Hex(Scheme.MainColor),
+			Background = Hex(Scheme.BackgroundColor),
+			Outline = Hex(Scheme.OutlineColor),
+		})
+	end)
+
 	Library.SafeCallback = OldSafeCallback
 end

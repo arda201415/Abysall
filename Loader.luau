@@ -21,6 +21,39 @@ if Abysall then
 end
 -- Bootstrap UI is local so even the first failed download can be displayed.
 local function CreateLoadingScreen()
+    -- The screen is drawn before any UI library exists, so it cannot ask the
+    -- theme manager for colors. The Settings tab stores the palette it last saw
+    -- in UserData.json; reading it here keeps the menu from changing color
+    -- right after this screen closes.
+    local Palette = { Accent = "0055FF", Main = "1C1C1C", Background = "141414", Outline = "323232" }
+    do
+        local OkFile, Content = pcall(function() return readfile("Abysall/UserData.json") end)
+        if OkFile and type(Content) == "string" and Content ~= "" then
+            local OkJSON, Data = pcall(function()
+                return game:GetService("HttpService"):JSONDecode(Content)
+            end)
+            local Saved = OkJSON and type(Data) == "table" and Data.LoadingPalette
+            if type(Saved) == "table" then
+                for Key in pairs(Palette) do
+                    local Value = Saved[Key]
+                    if type(Value) == "string" and Value:match("^%x%x%x%x%x%x$") then
+                        Palette[Key] = Value:upper()
+                    end
+                end
+            end
+        end
+    end
+
+    local function FromHex(Hex, Fallback)
+        local R, G, B = tonumber(Hex:sub(1, 2), 16), tonumber(Hex:sub(3, 4), 16), tonumber(Hex:sub(5, 6), 16)
+        if not (R and G and B) then return Fallback end
+        return Color3.fromRGB(R, G, B)
+    end
+    local Accent = FromHex(Palette.Accent, Color3.fromRGB(0, 85, 255))
+    local MainColor = FromHex(Palette.Main, Color3.fromRGB(28, 28, 28))
+    local BackgroundColor = FromHex(Palette.Background, Color3.fromRGB(20, 20, 20))
+    local OutlineColor = FromHex(Palette.Outline, Color3.fromRGB(50, 50, 50))
+
     local Loading = { Stage = "Starting", Progress = 0, Status = "loading", StartedAt = tick() }
     local Gui, StageText, DetailText, Fill, Percent, Elapsed, Hint, Close, Copy, Timer
 
@@ -83,17 +116,17 @@ local function CreateLoadingScreen()
             Gui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui", 5)
         end
         local Backdrop = Create("Frame", Gui, {
-            Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.fromRGB(14, 14, 14),
+            Size = UDim2.fromScale(1, 1), BackgroundColor3 = BackgroundColor,
             BackgroundTransparency = 0.2, BorderSizePixel = 0, Active = true,
         })
         local Card = Create("Frame", Backdrop, {
             AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
-            Size = UDim2.new(1, -32, 0, 288), BackgroundColor3 = Color3.fromRGB(28, 28, 28),
+            Size = UDim2.new(1, -32, 0, 288), BackgroundColor3 = MainColor,
             BorderSizePixel = 0,
         })
         Create("UISizeConstraint", Card, { MaxSize = Vector2.new(440, 288) })
         Create("UICorner", Card, { CornerRadius = UDim.new(0, 6) })
-        Create("UIStroke", Card, { Color = Color3.fromRGB(50, 50, 50), Thickness = 1 })
+        Create("UIStroke", Card, { Color = OutlineColor, Thickness = 1 })
         local function Label(Name, Text, Y, Height, Size, Color)
             return Create("TextLabel", Card, {
                 Name = Name, Text = Text, Position = UDim2.fromOffset(24, Y),
@@ -103,19 +136,19 @@ local function CreateLoadingScreen()
                 TextWrapped = true,
             })
         end
-        Label("Brand", "ABYSALL HUB", 24, 18, 12, Color3.fromRGB(0, 85, 255))
+        Label("Brand", "ABYSALL HUB", 24, 18, 12, Accent)
         StageText = Label("Stage", "Starting", 55, 30, 22, Color3.fromRGB(255, 255, 255))
         DetailText = Label("Detail", "Preparing your menu...", 96, 76, 14, Color3.fromRGB(175, 175, 175))
         DetailText.TextTruncate = Enum.TextTruncate.AtEnd
         DetailText.ClipsDescendants = true
         local Track = Create("Frame", Card, {
             Position = UDim2.fromOffset(24, 184), Size = UDim2.new(1, -48, 0, 4),
-            BackgroundColor3 = Color3.fromRGB(50, 50, 50), BorderSizePixel = 0,
+            BackgroundColor3 = OutlineColor, BorderSizePixel = 0,
         })
         Create("UICorner", Track, { CornerRadius = UDim.new(0, 2) })
         Fill = Create("Frame", Track, {
             Name = "Progress", Size = UDim2.fromScale(0, 1), BorderSizePixel = 0,
-            BackgroundColor3 = Color3.fromRGB(0, 85, 255),
+            BackgroundColor3 = Accent,
         })
         Create("UICorner", Fill, { CornerRadius = UDim.new(0, 2) })
         Elapsed = Label("Elapsed", "0.0s elapsed", 202, 18, 12, Color3.fromRGB(120, 120, 120))
@@ -130,7 +163,7 @@ local function CreateLoadingScreen()
                 Font = Enum.Font.Gotham, TextSize = 13,
             })
             Create("UICorner", Object, { CornerRadius = UDim.new(0, 4) })
-            Create("UIStroke", Object, { Color = Color3.fromRGB(50, 50, 50), Thickness = 1 })
+            Create("UIStroke", Object, { Color = OutlineColor, Thickness = 1 })
             return Object
         end
         Close, Copy = Button("Close", 0), Button("Copy error", 0.5)
@@ -232,7 +265,37 @@ function Session.RunModule(Source, Name, ...)
 end
 
 local function Bootstrap()
-    local Core = Session.FetchModules({
+    -- The UI library is the heaviest single download. Its style lives in a small
+    -- local file, so read that first and start the download next to the core
+    -- modules instead of after them.
+    local function ReadUserFile()
+        local Genv = getgenv and getgenv() or {}
+        local Reader = (Session.Environment and Session.Environment.readfile) or readfile or Genv.readfile
+        if type(Reader) ~= "function" then return {} end
+        local Ok, Decoded = pcall(function()
+            return game:GetService("HttpService"):JSONDecode(Reader("Abysall/UserData.json"))
+        end)
+        if Ok and type(Decoded) == "table" then return Decoded end
+        return {}
+    end
+
+    local UIBases = {
+        Obsidian = "https://raw.githubusercontent.com/deividcomsono/Obsidian/refs/heads/main/",
+        Linoria = "https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/",
+    }
+    local EarlyData = ReadUserFile()
+    local EarlyStyle = EarlyData.UILibrary == "Linoria" and "Linoria" or "Obsidian"
+    local EarlyBase = UIBases[EarlyStyle]
+    local UIDownloads = {
+        EarlyBase .. "Library.lua",
+        EarlyBase .. "addons/SaveManager.lua",
+        EarlyBase .. "addons/ThemeManager.lua",
+    }
+    if EarlyStyle == "Linoria" then
+        table.insert(UIDownloads, BaseUrl .. "Components/LinoriaCursor.luau")
+    end
+
+    local CoreUrls = {
         Environment = BaseUrl .. "Components/Environment.luau",
         ESP = BaseUrl .. "Components/ESP.luau",
         GameRegistry = BaseUrl .. "Components/GameRegistry.luau",
@@ -241,10 +304,28 @@ local function Bootstrap()
         SettingsTab = BaseUrl .. "Components/SettingsTab.luau",
         Addons = BaseUrl .. "Components/Addons.luau",
         SupportedGamesTab = BaseUrl .. "Components/SupportedGamesTab.luau",
-    }, "Downloading core modules", 0.02, 0.24)
+    }
+    -- Core first so the registry can route as early as possible; the UI library
+    -- rides along in the same batch. FetchModules below re-prefetches (a no-op)
+    -- and waits for the batch.
+    Session.PrefetchModules(CoreUrls)
+    Session.PrefetchModules(UIDownloads)
+    local Core = Session.FetchModules(CoreUrls, "Downloading core modules", 0.02, 0.24)
     Session.ReportProgress("Detecting game", "Finding the right module...", 0.25)
     Session.GameRegistry = Session.RunModule(Core.GameRegistry, "GameRegistry")
     Session.CurrentGame = Session.GameRegistry:Resolve(game.GameId, game.PlaceId)
+
+    -- The game module is the largest file for most experiences (DOORS alone is
+    -- ~300 KB). Start it now so it downloads while the ESP, preferences and
+    -- interface stages run.
+    local GamePath = Session.GameRegistry:ScriptPath(Session.CurrentGame, game.PlaceId)
+    local GameUrl = BaseUrl .. GamePath
+    local GameDownloads = { [Session.CurrentGame.Id] = GameUrl }
+    for _, Path in ipairs(Session.CurrentGame.Dependencies or {}) do
+        GameDownloads[Path] = BaseUrl .. Path
+    end
+    Session.PrefetchModules(GameDownloads)
+
     Session.ReportProgress("Checking compatibility", Session.CurrentGame.Name .. " / executor capabilities", 0.28)
     Session.Environment = Session.RunModule(Core.Environment, "Environment", getgenv().AbysallFullChecks ~= true)
     Session.ReportProgress("Preparing visuals", "Starting the ESP library...", 0.4)
@@ -266,13 +347,8 @@ local function Bootstrap()
     })
 
     local Env = Session.Environment
-    local UserData = {}
-    if Env.readfile then
-        local OkRead, Decoded = pcall(function()
-            return Services.HttpService:JSONDecode(Env.readfile("Abysall/UserData.json"))
-        end)
-        if OkRead and type(Decoded) == "table" then UserData = Decoded end
-    end
+    -- Authoritative read; the earlier one only decided which downloads to start.
+    local UserData = ReadUserFile()
     UserData.TotalExecutions = (tonumber(UserData.TotalExecutions) or 0) + 1
     UserData.UILibrary = UserData.UILibrary == "Linoria" and "Linoria" or "Obsidian"
     -- Anonymous usage stats are opt-out rather than hidden: only an explicit
@@ -319,18 +395,38 @@ local function Bootstrap()
         return true
     end
 
+    function Session.SetLoadingPalette(Colors)
+        -- Snapshot of the palette the active theme uses, so the next run's
+        -- bootstrap screen opens in the same colors. Only six-digit hex values
+        -- are stored; anything else keeps the previous entry.
+        if type(Colors) ~= "table" then return false, "invalid palette" end
+        local Previous = type(UserData.LoadingPalette) == "table" and UserData.LoadingPalette or {}
+        local Updated = table.clone(UserData)
+        Updated.LoadingPalette = {}
+        local Changed = false
+        for _, Key in ipairs({ "Accent", "Main", "Background", "Outline" }) do
+            local Value = Colors[Key]
+            if type(Value) == "string" and Value:match("^%x%x%x%x%x%x$") then
+                Value = Value:upper()
+                Updated.LoadingPalette[Key] = Value
+                if Previous[Key] ~= Value then Changed = true end
+            elseif Previous[Key] then
+                Updated.LoadingPalette[Key] = Previous[Key]
+            end
+        end
+        if not Changed then return true end
+        UserData = Updated
+        local Ok, Err = SaveUserData(Updated)
+        if not Ok then return false, Err end
+        return true
+    end
+
     if Env.readfile and Env.writefile then
         local OkSave, ErrSave = SaveUserData(UserData)
         if not OkSave then warn("[Abysall] user settings could not be saved: " .. tostring(ErrSave)) end
     end
 
-    -- Overlap the game download with the UI library and manager downloads.
     local Current = Session.CurrentGame
-    local GamePath = Session.GameRegistry:ScriptPath(Current, game.PlaceId)
-    local GameUrl = BaseUrl .. GamePath
-    local GameDownloads = { Game = GameUrl }
-    for _, Path in ipairs(Current.Dependencies or {}) do GameDownloads[Path] = BaseUrl .. Path end
-    Session.PrefetchModules(GameDownloads)
     Session.ReportProgress("Starting interface", Session.UILibrary, 0.5)
     Session.Interface = Session.RunModule(Core.Interface, "Interface")
 

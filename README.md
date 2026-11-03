@@ -7,12 +7,15 @@ Feel free to use any of the source code for your own projects, but credit would 
 
 The startup screen shows download, compatibility, interface, settings and addon
 progress. Failed loads show the stage and a copyable error; successful loads close
-the screen automatically.
+the screen automatically. Its palette follows the theme used last, so it opens in
+the same colors as the menu.
 
-Startup uses quick capability detection, prefetches shared components and loads
-the game script alongside the UI downloads. Avatar content resolves asynchronously
-and optional session metadata runs after the menu opens. Downloads are shared only
-within a run, so re-executing the loader always picks up fresh code.
+Startup reads its saved preferences first, then starts every download it can
+predict - the UI library, the shared components and the game module - before the
+capability checks and ESP setup run, so they overlap instead of queueing. Avatar
+content resolves asynchronously and optional session metadata runs after the menu
+opens. Downloads are shared only within a run, so re-executing the loader always
+picks up fresh code.
 
 Anonymous usage stats are on by default: Roblox username, executor name, game
 name and place ID, and execution count, with no IP address or hardware ID.
