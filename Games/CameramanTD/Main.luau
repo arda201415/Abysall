@@ -14,6 +14,14 @@ local Library = Abysall.Interface.Library
 local Toggles = Library.Toggles
 local Options = Library.Options
 
+-- Button and OnChanged callbacks run on a signal thread, which this executor
+-- sandboxes against Instance creation ("lacking capability Plugin"). Notifications
+-- are queued instead and created by the module's own loop, spawned at load time.
+local NotifyQueue = {}
+local function NotifyLater(Message)
+    table.insert(NotifyQueue, tostring(Message))
+end
+
 local function BindChange(Control, Fn)
     if Control == nil then return end
     local Registering = true
@@ -169,7 +177,7 @@ Economy:AddDropdown("GameSpeed", {
 })
 Economy:AddToggle("AutoSummon", {
     Text = "Auto Summon (Basic Crate)", Default = false,
-    Tooltip = "SummonTowers('Basic Crate', 1) - 100 para.",
+    Tooltip = "Opens the Basic Crate with the game's OpenCrate remote every ~2.2 seconds.",
 })
 Economy:AddInput("RedeemCodes", {
     Text = "Codes", Default = "", Placeholder = "kod1, kod2",
@@ -182,7 +190,7 @@ Economy:AddButton("Redeem Now", function()
         if Fire("RedeemCode", Code) then Sent += 1 end
         task.wait(0.6)
     end
-    Library:Notify(Sent .. " kod gonderildi.")
+    NotifyLater(Sent .. " kod gonderildi.")
 end)
 
 local SpeedValues = { ["Default (1x)"] = 1, ["1.5x"] = 1.5, ["2x"] = 2, ["Normal (1x)"] = 1 }
@@ -223,7 +231,7 @@ Session:AddToggle("AutoRejoin", {
 })
 Session:AddButton("Save Now", function()
     local Ok, Err = pcall(function() Abysall.Interface.SaveManager:Save("autoload") end)
-    if Ok then Library:Notify("Config kaydedildi (autoload).") else Library:Notify("Kaydedilemedi: " .. tostring(Err)) end
+    if Ok then NotifyLater("Config kaydedildi (autoload).") else NotifyLater("Kaydedilemedi: " .. tostring(Err)) end
 end)
 
 -- // Diagnostics // ---------------------------------------------------------
@@ -258,6 +266,30 @@ local function DescribeChildren(Folder, Limit)
     return string.format("%d [%s%s]", Total, table.concat(Names, ", "), Total > #Names and ", ..." or "")
 end
 
+local function Summarize(Value, Depth)
+    Depth = Depth or 0
+    local Kind = type(Value)
+    if Kind == "string" then
+        return string.format("%q", Value)
+    elseif Kind == "number" or Kind == "boolean" or Kind == "nil" then
+        return tostring(Value)
+    elseif typeof(Value) == "Instance" then
+        return Value.ClassName .. ":" .. Value.Name
+    elseif Kind == "table" then
+        if Depth >= 2 then return "{...}" end
+        local Parts = {}
+        for Key, Inner in pairs(Value) do
+            if #Parts >= 8 then
+                table.insert(Parts, "...")
+                break
+            end
+            table.insert(Parts, tostring(Key) .. "=" .. Summarize(Inner, Depth + 1))
+        end
+        return "{" .. table.concat(Parts, ", ") .. "}"
+    end
+    return Kind
+end
+
 local function CollectDiagnostics()
     local Lines = {}
     local function Add(Format, ...) table.insert(Lines, string.format(Format, ...)) end
@@ -268,13 +300,15 @@ local function CollectDiagnostics()
     Add("Network=%s", DescribeValue(Network))
     Add("Replication=%s", DescribeValue(Replication))
 
-    -- Every remote the client can see, so the real names can be matched against
-    -- the ones this module fires.
+    -- Every remote the client can see, with its class, so the real names can be
+    -- matched against the ones this module fires.
     local RemoteNames, RemoteTotal = {}, 0
     for _, Object in ipairs(ReplicatedStorage:GetDescendants()) do
         if Object:IsA("RemoteEvent") or Object:IsA("RemoteFunction") or Object:IsA("UnreliableRemoteEvent") then
             RemoteTotal += 1
-            if #RemoteNames < 40 then table.insert(RemoteNames, Object.Name) end
+            if #RemoteNames < 60 then
+                table.insert(RemoteNames, Object.Name .. ":" .. Object.ClassName)
+            end
         end
     end
     Add("replicatedStorage remotes=%d [%s%s]", RemoteTotal,
@@ -282,6 +316,14 @@ local function CollectDiagnostics()
 
     local Data = GetReplicaData()
     Add("replicaData=%s", DescribeValue(Data))
+    if type(Data) == "table" then
+        local Keys = {}
+        for Key, Value in pairs(Data) do
+            table.insert(Keys, tostring(Key) .. ":" .. type(Value))
+        end
+        table.sort(Keys)
+        Add("replicaData keys(%d)=[%s]", #Keys, table.concat(Keys, ", "))
+    end
     if type(Data) == "table" and type(Data.Towers) == "table" then
         local Count, SampleId, Sample = 0, nil, nil
         for UnitId, Info in pairs(Data.Towers) do
@@ -289,23 +331,35 @@ local function CollectDiagnostics()
             if Sample == nil then SampleId, Sample = UnitId, Info end
         end
         Add("replica.Towers count=%d sampleId=%s", Count, tostring(SampleId))
-        Add("replica.Towers sample=%s", DescribeValue(Sample, 20))
+        if type(Sample) == "table" then
+            local Parts = {}
+            for Key, Value in pairs(Sample) do
+                table.insert(Parts, tostring(Key) .. "=" .. Summarize(Value))
+            end
+            table.sort(Parts)
+            Add("replica.Towers sample={%s}", table.concat(Parts, ", "))
+        end
     end
 
     local Game = GetGame()
     Add("workspace.Game=%s", Game and "present" or "MISSING")
     if Game then
         Add("  children=%s", DescribeChildren(Game))
-        Add("  Paths=%s", Game:FindFirstChild("Paths") and DescribeChildren(Game.Paths, 10) or "MISSING")
+        Add("  Paths=%s", Game:FindFirstChild("Paths") and DescribeChildren(Game.Paths, 6) or "MISSING")
         Add("  TowerArea=%s", Game:FindFirstChild("TowerArea") and DescribeChildren(Game.TowerArea, 10) or "MISSING")
         Add("  Towers=%s", Game:FindFirstChild("Towers") and DescribeChildren(Game.Towers, 10) or "MISSING")
         Add("  Enemies=%s", Game:FindFirstChild("Enemies") and DescribeChildren(Game.Enemies, 10) or "MISSING")
+        Add("  Units=%s", Game:FindFirstChild("Units") and DescribeChildren(Game.Units, 6) or "MISSING")
+        Add("  Waypoints=%s", Game:FindFirstChild("Waypoints") and DescribeChildren(Game.Waypoints, 6) or "MISSING")
+        Add("  PlacingTowers=%s", Game:FindFirstChild("PlacingTowers") and DescribeChildren(Game.PlacingTowers, 6) or "MISSING")
     end
 
-    -- Which of the names the module fires actually resolve?
+    -- Which of the names the module fires actually resolve, and what the game
+    -- exposes instead.
     local Known = {
         "TowerAdd", "TowerUpgrade", "TowerTarget", "TowerSell",
-        "WaveSkip", "SummonTowers", "ChangeSpeed", "PlayAgain", "RedeemCode",
+        "WaveSkip", "SummonTowers", "OpenCrate", "ChangeSpeed", "PlayAgain",
+        "RedeemCode", "UpdateSetting", "CSComms", "UnitAdd", "UnitUpdate",
     }
     for _, Name in ipairs(Known) do
         local Found = Remote(Name)
@@ -341,20 +395,20 @@ DiagGroup:AddLabel("Collect reports what the game actually exposes.", true)
 DiagGroup:AddButton("Collect report", function()
     DiagLines = CollectDiagnostics()
     for _, Line in ipairs(DiagLines) do print("[Abysall:TD] " .. Line) end
-    Library:Notify("Diagnostics collected: " .. #DiagLines .. " lines (console + Copy report).")
+    NotifyLater("Diagnostics collected: " .. #DiagLines .. " lines (console + Copy report).")
 end)
 DiagGroup:AddButton("Copy report", function()
     if #DiagLines == 0 then
-        Library:Notify("Collect the report first.")
+        NotifyLater("Collect the report first.")
         return
     end
     local Clipboard = setclipboard or toclipboard
     if type(Clipboard) ~= "function" then
-        Library:Notify("This executor has no clipboard function.")
+        NotifyLater("This executor has no clipboard function.")
         return
     end
     Clipboard(table.concat(DiagLines, "\n"))
-    Library:Notify("Diagnostics copied (" .. #DiagLines .. " lines).")
+    NotifyLater("Diagnostics copied (" .. #DiagLines .. " lines).")
 end)
 
 -- // Remote log // -----------------------------------------------------------
@@ -366,61 +420,84 @@ local RemoteLogLimit = 200
 local LoggingRemotes = false
 local RemoteHookInstalled = false
 
-local function Summarize(Value, Depth)
-    Depth = Depth or 0
-    local Kind = type(Value)
-    if Kind == "string" then
-        return string.format("%q", Value)
-    elseif Kind == "number" or Kind == "boolean" or Kind == "nil" then
-        return tostring(Value)
-    elseif typeof(Value) == "Instance" then
-        return Value.ClassName .. ":" .. Value.Name
-    elseif Kind == "table" then
-        if Depth >= 2 then return "{...}" end
-        local Parts = {}
-        for Key, Inner in pairs(Value) do
-            if #Parts >= 8 then
-                table.insert(Parts, "...")
-                break
+local LastHookError = nil
+
+local function ResolveFunction(Names)
+    local Genv = (getgenv and getgenv()) or {}
+    local Sources = { Genv, _G, type(syn) == "table" and syn or nil, type(fluxus) == "table" and fluxus or nil }
+    for _, Name in ipairs(Names) do
+        for _, Source in ipairs(Sources) do
+            if type(Source) == "table" then
+                local Value = Source[Name]
+                if type(Value) == "function" then return Value end
             end
-            table.insert(Parts, tostring(Key) .. "=" .. Summarize(Inner, Depth + 1))
         end
-        return "{" .. table.concat(Parts, ", ") .. "}"
     end
-    return Kind
+    return nil
 end
 
 local function InstallRemoteHook()
-    if RemoteHookInstalled then return true end
-    local Hook = hookmetamethod
-    local GetMethod = getnamecallmethod
-    if type(Hook) ~= "function" or type(GetMethod) ~= "function" then return false end
-    local Wrap = newcclosure or function(Function) return Function end
-    local Ok = pcall(function()
-        local Original
-        Original = Hook("__namecall", Wrap(function(Self, ...)
-            if LoggingRemotes and typeof(Self) == "Instance" then
-                local Method = GetMethod()
-                if Method == "FireServer" or Method == "InvokeServer" then
-                    local Args = table.pack(...)
-                    local Parts = {}
-                    for Index = 1, math.min(Args.n, 6) do
-                        table.insert(Parts, Summarize(Args[Index]))
-                    end
-                    local Line = string.format("%s:%s(%s)", Self.ClassName, Self.Name, table.concat(Parts, ", "))
-                    table.insert(RemoteLog, Line)
-                    while #RemoteLog > RemoteLogLimit do table.remove(RemoteLog, 1) end
-                    print("[Abysall:TD:remote] " .. Line)
+    if RemoteHookInstalled then return true, nil end
+
+    local Hook = ResolveFunction({ "hookmetamethod" })
+    local GetMethod = ResolveFunction({ "getnamecallmethod", "get_namecall_method" })
+    if type(Hook) ~= "function" then
+        LastHookError = "hookmetamethod bulunamadi"
+        return false, LastHookError
+    end
+    if type(GetMethod) ~= "function" then
+        LastHookError = "getnamecallmethod bulunamadi"
+        return false, LastHookError
+    end
+
+    local Wrap = ResolveFunction({ "newcclosure" }) or function(Function) return Function end
+    local Original = nil
+
+    local Wrapper = Wrap(function(Self, ...)
+        local Args = table.pack(...)
+        if LoggingRemotes and typeof(Self) == "Instance" then
+            local Method = GetMethod()
+            if Method == "FireServer" or Method == "InvokeServer" then
+                local Parts = {}
+                for Index = 1, math.min(Args.n, 6) do
+                    table.insert(Parts, Summarize(Args[Index]))
                 end
+                local Line = string.format("%s:%s(%s)", Self.ClassName, Self.Name, table.concat(Parts, ", "))
+                table.insert(RemoteLog, Line)
+                while #RemoteLog > RemoteLogLimit do table.remove(RemoteLog, 1) end
+                print("[Abysall:TD:remote] " .. Line)
             end
-            return Original(Self, ...)
-        end))
-        if type(Original) ~= "function" then
-            error("hookmetamethod did not return the original function")
         end
+        if type(Original) == "function" then
+            return Original(Self, table.unpack(Args, 1, Args.n))
+        end
+        -- Some executors do not hand back the original; dispatch through the
+        -- instance method directly, which sidesteps __namecall entirely.
+        local Method = GetMethod()
+        local Direct = Self[Method]
+        if type(Direct) == "function" then
+            return Direct(Self, table.unpack(Args, 1, Args.n))
+        end
+        return nil
     end)
-    if Ok then RemoteHookInstalled = true end
-    return Ok
+
+    -- Executors disagree on the signature: most take (object, method, hook),
+    -- others take (method, hook). Try both and keep the first that works.
+    local Attempts = {
+        function() return Hook(game, "__namecall", Wrapper) end,
+        function() return Hook("__namecall", Wrapper) end,
+    }
+    for _, Attempt in ipairs(Attempts) do
+        local Ok, Returned = pcall(Attempt)
+        if Ok then
+            if type(Returned) == "function" then Original = Returned end
+            RemoteHookInstalled = true
+            LastHookError = nil
+            return true, nil
+        end
+        LastHookError = tostring(Returned)
+    end
+    return false, LastHookError
 end
 
 DiagGroup:AddDivider()
@@ -430,30 +507,40 @@ DiagGroup:AddToggle("TDLogRemotes", {
 })
 DiagGroup:AddButton("Copy remote log", function()
     if #RemoteLog == 0 then
-        Library:Notify("Remote log is empty. Enable 'Log game remotes' and play a wave.")
+        NotifyLater("Remote log is empty. Enable 'Log game remotes' and play a wave.")
         return
     end
     local Clipboard = setclipboard or toclipboard
     if type(Clipboard) ~= "function" then
-        Library:Notify("This executor has no clipboard function.")
+        NotifyLater("This executor has no clipboard function.")
         return
     end
     Clipboard(table.concat(RemoteLog, "\n"))
-    Library:Notify("Remote log copied (" .. #RemoteLog .. " calls).")
+    NotifyLater("Remote log copied (" .. #RemoteLog .. " calls).")
 end)
 DiagGroup:AddButton("Clear remote log", function()
     table.clear(RemoteLog)
-    Library:Notify("Remote log cleared.")
+    NotifyLater("Remote log cleared.")
+end)
+DiagGroup:AddButton("Check hook support", function()
+    local Hook = ResolveFunction({ "hookmetamethod" })
+    local GetMethod = ResolveFunction({ "getnamecallmethod", "get_namecall_method" })
+    local Wrap = ResolveFunction({ "newcclosure" })
+    NotifyLater(string.format(
+        "hookmetamethod=%s  getnamecallmethod=%s  newcclosure=%s  hooked=%s",
+        Hook and "yes" or "no", GetMethod and "yes" or "no",
+        Wrap and "yes" or "no", RemoteHookInstalled and "yes" or "no"))
 end)
 OnChange("TDLogRemotes", function(Value)
     if Value then
-        if not InstallRemoteHook() then
-            Library:Notify("This executor has no hookmetamethod/getnamecallmethod.")
+        local Ok, Reason = InstallRemoteHook()
+        if not Ok then
+            NotifyLater("Remote hook failed: " .. tostring(Reason))
             Toggles.TDLogRemotes:SetValue(false)
             return
         end
         LoggingRemotes = true
-        Library:Notify("Remote logging on. Play normally; the log keeps the last " .. RemoteLogLimit .. " calls.")
+        NotifyLater("Remote logging on. Play normally; the log keeps the last " .. RemoteLogLimit .. " calls.")
     else
         LoggingRemotes = false
     end
@@ -490,9 +577,9 @@ end
 OnChange("AutoRejoin", function(Value)
     if Value then
         if ApplyTeleportQueue() then
-            Library:Notify("Teleport sonrasi yeniden calisma ayarlandi.")
+            NotifyLater("Teleport sonrasi yeniden calisma ayarlandi.")
         else
-            Library:Notify("Bu executor queue_on_teleport desteklemiyor.")
+            NotifyLater("Bu executor queue_on_teleport desteklemiyor.")
             Toggles.AutoRejoin:SetValue(false)
         end
     end
@@ -652,12 +739,25 @@ local function GetEquippedUnits()
     return List
 end
 
+-- The live replica schema has no `Money` key (Gems/TotalGems are premium), so the
+-- reserve is applied only when a known currency field exists. Otherwise placement
+-- is attempted and the server decides.
+local MoneyFields = { "Money", "Cash", "Coins", "Gems", "Currency", "Funds" }
+local function ReadMoney(Data)
+    if type(Data) ~= "table" then return nil end
+    for _, Field in ipairs(MoneyFields) do
+        local Value = tonumber(Data[Field])
+        if Value ~= nil then return Value, Field end
+    end
+    return nil
+end
+
 local function PlaceOne()
     local Data = GetReplicaData()
     if not Data then return false end
-    local Money = tonumber(Data.Money) or 0
+    local Money = ReadMoney(Data)
     local Reserve = tonumber(Options.MoneyReserve.Value) or 0
-    if Money <= Reserve then return false end
+    if Money ~= nil and Money <= Reserve then return false end
     local Folder = GetPlacedTowerModels()
     local Count = Folder and #Folder:GetChildren() or 0
     if Count >= (tonumber(Options.MaxTowers.Value) or 20) then return false end
@@ -702,14 +802,22 @@ local function SellExcess()
     local Models = {}
     ForEachTower(function(Model) table.insert(Models, Model) end)
     if #Models <= Max then return end
-    -- Lowest level first when the game exposes a level attribute; otherwise the
-    -- folder order is kept, which is what the tooltip promises.
-    table.sort(Models, function(A, B)
-        local LevelA = tonumber(A:GetAttribute("Level") or A:GetAttribute("Tier")) or 0
-        local LevelB = tonumber(B:GetAttribute("Level") or B:GetAttribute("Tier")) or 0
-        if LevelA == LevelB then return A.Name < B.Name end
-        return LevelA < LevelB
-    end)
+    -- Live towers expose no Level attribute (only HeadsActive/OriginalPos), so
+    -- only sort when the game actually provides one; otherwise keep folder order.
+    local HasLevel = false
+    for _, Model in ipairs(Models) do
+        if tonumber(Model:GetAttribute("Level") or Model:GetAttribute("Tier")) ~= nil then
+            HasLevel = true
+            break
+        end
+    end
+    if HasLevel then
+        table.sort(Models, function(A, B)
+            local LevelA = tonumber(A:GetAttribute("Level") or A:GetAttribute("Tier")) or 0
+            local LevelB = tonumber(B:GetAttribute("Level") or B:GetAttribute("Tier")) or 0
+            return LevelA < LevelB
+        end)
+    end
     for Index = 1, #Models - Max do
         Fire("TowerSell", { Id = Models[Index].Name })
         task.wait(0.2)
@@ -734,6 +842,13 @@ task.spawn(function()
     while not Unloaded do
         task.wait(0.1)
         local Now = os.clock()
+
+        -- Notifications are created here: this thread was spawned at load time and
+        -- keeps the full capabilities that callback threads lack on some executors.
+        while #NotifyQueue > 0 do
+            local Message = table.remove(NotifyQueue, 1)
+            pcall(function() Library:Notify(Message) end)
+        end
 
         -- Auto Play: N yerleştir -> 1 upgrade -> döngü
         if ToggleOn("AutoPlay") and Now - LastPlace > 0.5 then
@@ -776,10 +891,15 @@ task.spawn(function()
             Fire("WaveSkip")
         end
 
-        -- Auto Summon
+        -- Auto Summon. The game exposes OpenCrate; SummonTowers was assumed and
+        -- does not exist in this place, so it is only used when present.
         if ToggleOn("AutoSummon") and Now - LastSummon > 2.2 then
             LastSummon = Now
-            Invoke("SummonTowers", "Basic Crate", 1)
+            if Remote("SummonTowers") then
+                Invoke("SummonTowers", "Basic Crate", 1)
+            elseif Remote("OpenCrate") then
+                Fire("OpenCrate", "Basic Crate", 1)
+            end
         end
 
         -- Auto Play Again (lobby). Its own timer: sharing LastSkip fired this
