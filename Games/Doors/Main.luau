@@ -5607,6 +5607,23 @@ Connections.PromptAnimationFixer1 = Services.ProximityPromptService.PromptButton
 	if ParentName == "Lock1" and not Functions.HasItem("Lockpick", true) and not Functions.HasItem("Multitool", true) or ParentName == "Lock2" and not Functions.HasItem("Lockpick", true) and not Functions.HasItem("Multitool", true) then return end
 	if Functions.HasItem("Shears", true) and IsLockPrompt and ParentName ~= "CuttableVines" and ParentName ~= "Chest_Vine" and ParentName ~= "Cellar" then return end
 	
+	local IsToolUsePrompt = IsLockPrompt
+		or ParentName == "CuttableVines" or ParentName == "Chest_Vine" or ParentName == "Cellar"
+		or ParentName == "SkullLock" or ParentName == "Lock1" or ParentName == "Lock2"
+
+	-- Infinite Items has to take over before the hold resolves; a 0-length hold
+	-- (Instant Prompts) cannot be intercepted, so the feature stays off there.
+	if IsToolUsePrompt and Object.HoldDuration > 0
+		and ToggleOn("InfiniteItemsToggle") and not Globals.InfiniteItemsBusy
+		and type(Functions.TryInfiniteSequence) == "function"
+	then
+		local Equipped = Character and Character:FindFirstChildOfClass("Tool")
+		local ItemData = Equipped and ItemNames[Equipped.Name]
+		if ItemData and Options.InfiniteItemsList.Value[ItemData] then
+			if Functions.TryInfiniteSequence(Equipped, Object) then return end
+		end
+	end
+
 	if Tool and table.find(AnimateToolNames, Tool.Name) and Globals.UseAnimation and Globals.UseAnimationBreak then
 		Globals.UseAnimationBreak:Stop()
 		Globals.UseAnimation:Stop()
@@ -6455,12 +6472,72 @@ Connections.AutoInteract = Services.RunService.Heartbeat:Connect(function()
 end)
 
 Globals.InfiniteItemsBusy = false
+Globals.InfiniteItemsReplay = false
+
+-- Infinite Items used to clone the lock prompt, drop the tool, then fire the real
+-- prompt once the item was picked back up. The clone layer was removed in 90fa698
+-- ("remove fake prompt clone hack"), which inverted that order: the interaction
+-- resolves before the drop, so nothing was left to sequence and the feature died.
+-- This rebuilds the same order with the real prompt: cancel the player's hold,
+-- drop the tool, wait for the pickup, then replay the interaction.
+function Functions.TryInfiniteSequence(Tool, Prompt)
+	if not Tool or not Tool.Parent or not Prompt or not Prompt.Parent then return false end
+	if not Character or not Character.Parent or not RootPart or not RootPart.Parent then return false end
+	if Globals.InfiniteItemsBusy then return false end
+	local DropsFolder = Drops or Services.Workspace:FindFirstChild("Drops")
+	local DropItem = RemotesFolder and RemotesFolder:FindFirstChild("DropItem")
+	if not DropsFolder or not DropItem then return false end
+
+	Globals.InfiniteItemsBusy = true
+	local ToolName = Tool.Name
+	local WasEnabled = Prompt.Enabled
+	local DropConn
+	local Finished = false
+
+	local function Finish(Replay)
+		if Finished then return end
+		Finished = true
+		if DropConn then DropConn:Disconnect(); DropConn = nil end
+		pcall(function() Prompt.Enabled = WasEnabled end)
+		if Replay and Prompt.Parent then
+			Globals.InfiniteItemsReplay = true
+			Functions.FirePrompt(Prompt)
+			task.delay(1, function() Globals.InfiniteItemsReplay = false end)
+		end
+		Globals.InfiniteItemsBusy = false
+	end
+
+	-- Cancel the hold before it resolves; otherwise the game consumes the item
+	-- before the drop is even sent.
+	Prompt.Enabled = false
+
+	DropConn = DropsFolder.ChildAdded:Connect(function(NewTool)
+		if Finished or NewTool.Name ~= ToolName then return end
+		local Position = nil
+		if NewTool:IsA("Model") then
+			Position = NewTool:GetPivot().Position
+		elseif NewTool:IsA("BasePart") then
+			Position = NewTool.Position
+		end
+		if Position and (Position - RootPart.Position).Magnitude > 30 then return end
+		local RePick = NewTool:FindFirstChild("ModulePrompt", true)
+		if RePick then Functions.FirePrompt(RePick) end
+		task.delay(0.35, function() Finish(true) end)
+	end)
+
+	pcall(function() DropItem:FireServer(Tool) end)
+	task.delay(2, function() Finish(false) end)
+	return true
+end
+
 Connections.InfiniteItemsHandler = Services.ProximityPromptService.PromptTriggered:Connect(function(Object)
 	-- ONCEDEN sadece FakePrompt (klon) nesneleri islenirdi.
 	-- Klon/parent degistirme kaldirildigi icin artik GERCEK prompt'lar isleniyor.
 	if Object:GetAttribute("FakePrompt") then return end
 	if Object.Name == "ModulePrompt" then return end
 	if Globals.InfiniteItemsBusy then return end
+	-- Respawn/lobby: Character can be nil, which used to error on the lookup below.
+	if not Character or not Character.Parent then return end
 
 	local ToolNames = { "Lockpick","Shears","SkeletonKey","Key","GeneratorFuse","KeyElectrical","KeyBackdoor","KeyIron", "Multitool" }
 	local AnimateToolNames = { "Lockpick","Shears","SkeletonKey","Key","KeyElectrical","KeyBackdoor","KeyIron", "Multitool" }
@@ -6503,24 +6580,12 @@ Connections.InfiniteItemsHandler = Services.ProximityPromptService.PromptTrigger
 		or ParentName == "CuttableVines" or ParentName == "Chest_Vine" or ParentName == "Cellar"
 		or ParentName == "SkullLock" or ParentName == "Lock1" or ParentName == "Lock2"
 
-	local AnyTool = Character:FindFirstChildOfClass("Tool")
-	local ToolData = AnyTool and ItemNames[AnyTool.Name]
-	if IsToolUsePrompt and AnyTool and ToolData and ToggleOn("InfiniteItemsToggle") and Options.InfiniteItemsList.Value[ToolData] then
-		Globals.InfiniteItemsBusy = true
-		Drops.ChildAdded:Once(function(NewTool)
-			local NewPrompt = NewTool:FindFirstChild("ModulePrompt")
-			if NewPrompt then Functions.FirePrompt(NewPrompt) end
-			task.delay(1, function() Globals.InfiniteItemsBusy = false end)
-		end)
-		Character.ChildAdded:Once(function(NewTool)
-			if NewTool.Name == "Shears" then
-				local H = NewTool:WaitForChild("Handle", 5)
-				local S = H and H:WaitForChild("sound_promptend", 5)
-				if S then pcall(function() S:Play() end) end
-			end
-		end)
-		RemotesFolder.DropItem:FireServer(AnyTool)
-		task.delay(3, function() Globals.InfiniteItemsBusy = false end)
+	-- Infinite Items is sequenced from PromptButtonHoldBegan, because the hold has
+	-- to be cancelled before the interaction resolves. When the prompt we replay
+	-- comes back through here, consume the flag and do nothing else.
+	if Globals.InfiniteItemsReplay then
+		Globals.InfiniteItemsReplay = false
+		return
 	end
 end)
 
