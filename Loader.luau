@@ -198,8 +198,113 @@ function Session.ReportProgress(Stage, Detail, Progress)
     if getgenv().Abysall == Session then Loading:Update(Stage, Detail, Progress) end
 end
 
+-- Cross-run module cache. Off by default: the hub ships updates by pushing to
+-- GitHub, and fetching fresh code every execution is what makes those updates
+-- land immediately. Setting getgenv().AbysallCache before running the loader
+-- trades that for speed:
+--   true    -> 5 minutes
+--   number  -> that many seconds (capped at one day)
+-- getgenv().AbysallCacheBust = true ignores stored entries but still refreshes
+-- them, which is the way to force fresh code without turning the cache off.
+local CacheFolder = "Abysall/cache"
+local CacheIndexPath = CacheFolder .. "/index.json"
+local CacheTTL = 0
+if type(os.time) == "function" then
+    local Setting = getgenv().AbysallCache
+    if Setting == true then
+        CacheTTL = 300
+    elseif type(Setting) == "number" and Setting > 0 then
+        CacheTTL = math.min(Setting, 86400)
+    end
+end
+
+local CacheIndex, CacheIndexLoaded = {}, false
+
+local function CacheAPI()
+    local Genv = getgenv and getgenv() or {}
+    local Env = Session.Environment or {}
+    return {
+        readfile = Env.readfile or Genv.readfile or readfile,
+        writefile = Env.writefile or Genv.writefile or writefile,
+        isfile = Env.isfile or Genv.isfile or isfile,
+        makefolder = Env.makefolder or Genv.makefolder or makefolder,
+    }
+end
+
+local function CacheFileName(Url)
+    local Hash = 0
+    for Index = 1, #Url do
+        Hash = (Hash * 33 + Url:byte(Index)) % 4294967296
+    end
+    local Tail = Url:match("([^/]+)$") or "module"
+    Tail = string.gsub(Tail, "[^%w._-]", "_")
+    return string.format("%08x_%s", math.floor(Hash), Tail)
+end
+
+local function CacheLoadIndex()
+    if CacheIndexLoaded then return end
+    CacheIndexLoaded = true
+    local Api = CacheAPI()
+    if not (Api.isfile and Api.readfile) then return end
+    local OkExists, Exists = pcall(Api.isfile, CacheIndexPath)
+    if not OkExists or not Exists then return end
+    local OkRead, Content = pcall(Api.readfile, CacheIndexPath)
+    if not OkRead or type(Content) ~= "string" or Content == "" then return end
+    local OkDecode, Decoded = pcall(function()
+        return game:GetService("HttpService"):JSONDecode(Content)
+    end)
+    if OkDecode and type(Decoded) == "table" then CacheIndex = Decoded end
+end
+
+local function CacheGet(Url)
+    if CacheTTL <= 0 or getgenv().AbysallCacheBust then return nil end
+    local Api = CacheAPI()
+    if not (Api.isfile and Api.readfile) then return nil end
+    CacheLoadIndex()
+    local Entry = CacheIndex[Url]
+    if type(Entry) ~= "table" or type(Entry.File) ~= "string" then return nil end
+    if type(Entry.Time) ~= "number" or os.time() - Entry.Time > CacheTTL then return nil end
+    local Path = CacheFolder .. "/" .. Entry.File
+    local OkExists, Exists = pcall(Api.isfile, Path)
+    if not OkExists or not Exists then return nil end
+    local OkRead, Content = pcall(Api.readfile, Path)
+    if not OkRead or type(Content) ~= "string" or Content == "" then return nil end
+    -- Size is recorded when the entry is written; a truncated file is discarded
+    -- instead of being compiled.
+    if type(Entry.Size) == "number" and #Content ~= Entry.Size then return nil end
+    -- A file that no longer parses is treated as a miss, so a damaged cache can
+    -- never turn into a hard load failure.
+    local OkCompile, Compiles = pcall(function()
+        return loadstring(Content) ~= nil
+    end)
+    if not OkCompile or not Compiles then return nil end
+    return Content
+end
+
+local function CachePut(Url, Source)
+    if CacheTTL <= 0 or type(Source) ~= "string" or Source == "" then return end
+    local Api = CacheAPI()
+    if not (Api.writefile and Api.makefolder) then return end
+    CacheLoadIndex()
+    local FileName = CacheFileName(Url)
+    local OkWrite = pcall(function()
+        pcall(Api.makefolder, "Abysall")
+        pcall(Api.makefolder, CacheFolder)
+        Api.writefile(CacheFolder .. "/" .. FileName, Source)
+    end)
+    if not OkWrite then return end
+    -- The index is written after the module itself, so an interrupted write can
+    -- only cause a cache miss, never a truncated module.
+    CacheIndex[Url] = { File = FileName, Time = os.time(), Size = #Source }
+    local OkEncode, Encoded = pcall(function()
+        return game:GetService("HttpService"):JSONEncode(CacheIndex)
+    end)
+    if OkEncode then pcall(Api.writefile, CacheIndexPath, Encoded) end
+end
+
 -- A per-run cache shares in-flight downloads with later stages. A new session
--- always fetches fresh sources so script updates take effect on the next run.
+-- starts from scratch so pushed updates still apply; the optional disk cache
+-- above is what survives between runs.
 local Downloads = {}
 function Session.PrefetchModules(Urls)
     for _, Url in pairs(Urls) do
@@ -207,16 +312,27 @@ function Session.PrefetchModules(Urls)
         local Request = { StartedAt = tick() }
         Downloads[Url] = Request
         task.spawn(function()
-            local Ok, Result
-            for _ = 1, 2 do
-                if Request.Expired or getgenv().Abysall ~= Session then return end
-                Ok, Result = pcall(function() return game:HttpGet(Url) end)
-                if Ok and type(Result) == "string" and Result ~= "" then break end
-                if Ok then Result = "empty or invalid response" end
-                Ok = false
+            local Ok, Result = false, nil
+            local Cached = CacheGet(Url)
+            if Cached then
+                Ok, Result = true, Cached
+                Request.Cached = true
+            else
+                for _ = 1, 2 do
+                    if Request.Expired or getgenv().Abysall ~= Session then return end
+                    Ok, Result = pcall(function() return game:HttpGet(Url) end)
+                    if Ok and type(Result) == "string" and Result ~= "" then break end
+                    if Ok then Result = "empty or invalid response" end
+                    Ok = false
+                end
             end
             if Request.Expired or getgenv().Abysall ~= Session then return end
-            if Ok then Request.Source = Result else Request.Error = tostring(Result) end
+            if Ok then
+                Request.Source = Result
+                if not Request.Cached then CachePut(Url, Result) end
+            else
+                Request.Error = tostring(Result)
+            end
             Request.Done = true
         end)
     end
@@ -239,7 +355,8 @@ function Session.FetchModules(Urls, Stage, StartProgress, EndProgress)
             if Request.Done and not Reported[Name] then
                 Reported[Name] = true
                 Completed = Completed + 1
-                Session.ReportProgress(Stage, Name .. " (" .. Completed .. "/" .. #Names .. ")",
+                Session.ReportProgress(Stage,
+                    Name .. " (" .. Completed .. "/" .. #Names .. ")" .. (Request.Cached and " cached" or ""),
                     StartProgress + (EndProgress - StartProgress) * Completed / #Names)
             end
         end

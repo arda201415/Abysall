@@ -17,6 +17,14 @@ content resolves asynchronously and optional session metadata runs after the men
 opens. Downloads are shared only within a run, so re-executing the loader always
 picks up fresh code.
 
+For repeated executions, set `getgenv().AbysallCache = true` before running the
+loader. Modules are then reused from `Abysall/cache` for five minutes (pass a
+number of seconds for a different window, up to one day), so a repeat run skips
+the module downloads entirely. Entries are size-checked before use and an
+interrupted write simply falls back to a normal download.
+`getgenv().AbysallCacheBust = true` forces a refresh without disabling the cache;
+leaving the flag unset keeps the default of fetching fresh code on every run.
+
 Anonymous usage stats are on by default: Roblox username, executor name, game
 name and place ID, and execution count, with no IP address or hardware ID.
 **Settings → Send anonymous stats** turns them off; the choice is written to
