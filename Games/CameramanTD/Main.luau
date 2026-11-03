@@ -85,9 +85,13 @@ task.spawn(function()
 end)
 
 local function Remote(Name)
-    if not Network then return nil end
-    local Ok, Result = pcall(function() return Network.Get(Name) end)
-    return Ok and Result or nil
+    if Network then
+        local Ok, Result = pcall(function() return Network.Get(Name) end)
+        if Ok and Result ~= nil then return Result end
+    end
+    -- Network.Get does not resolve every remote (CSComms is one), so fall back to
+    -- the instance tree before reporting the remote as missing.
+    return ReplicatedStorage:FindFirstChild(Name, true)
 end
 local function Fire(Name, ...)
     local R = Remote(Name)
@@ -184,6 +188,10 @@ Economy:AddInput("RedeemCodes", {
     Tooltip = "RedeemCode ile tek tek dener (bir kez).",
 })
 Economy:AddButton("Redeem Now", function()
+    if not Remote("RedeemCode") then
+        NotifyLater("This place exposes no RedeemCode remote; codes are not supported here.")
+        return
+    end
     local Raw = tostring(Options.RedeemCodes.Value or "")
     local Sent = 0
     for Code in string.gmatch(Raw, "[^,;%s]+") do
@@ -699,23 +707,55 @@ task.delay(2, function()
 end)
 
 -- // Auto Play (placement) // ----------------------------------------------
+-- Waypoints are the real path centre line: 12 parts named 1..12. Interpolating
+-- between consecutive ones gives evenly spaced anchors, unlike the 313 decorative
+-- path models, which are scattered over the whole map.
 local function GetPlacementPoints()
     local Game = GetGame()
-    local Paths = Game and Game:FindFirstChild("Paths")
+    if not Game then return {} end
     local Points = {}
-    if Paths then
-        for _, Obj in ipairs(Paths:GetDescendants()) do
-            if Obj:IsA("BasePart") then
-                table.insert(Points, Obj.CFrame)
+
+    local Waypoints = Game:FindFirstChild("Waypoints")
+    if Waypoints then
+        local Ordered = {}
+        for _, Part in ipairs(Waypoints:GetChildren()) do
+            if Part:IsA("BasePart") then
+                table.insert(Ordered, {
+                    Order = tonumber(Part.Name) or math.huge,
+                    Position = Part.Position,
+                })
+            end
+        end
+        table.sort(Ordered, function(A, B) return A.Order < B.Order end)
+        for Index = 1, #Ordered - 1 do
+            local From, To = Ordered[Index].Position, Ordered[Index + 1].Position
+            local Delta = To - From
+            local Length = Delta.Magnitude
+            if Length > 2 then
+                local Direction = Delta.Unit
+                local Count = math.max(1, math.floor(Length / 6))
+                for Step = 1, Count do
+                    local Position = From + Direction * (Length * (Step - 0.5) / Count)
+                    table.insert(Points, { CFrame = CFrame.lookAt(Position, Position + Direction) })
+                end
             end
         end
     end
-    -- Yedek: Paths yoksa TowerArea kullan
+
+    -- Fallback: decorative path parts, then the buildable area.
     if #Points == 0 then
-        local Area = Game and Game:FindFirstChild("TowerArea")
+        local Paths = Game:FindFirstChild("Paths")
+        if Paths then
+            for _, Object in ipairs(Paths:GetDescendants()) do
+                if Object:IsA("BasePart") then table.insert(Points, { CFrame = Object.CFrame }) end
+            end
+        end
+    end
+    if #Points == 0 then
+        local Area = Game:FindFirstChild("TowerArea")
         if Area then
             for _, Part in ipairs(Area:GetChildren()) do
-                if Part:IsA("BasePart") then table.insert(Points, Part.CFrame) end
+                if Part:IsA("BasePart") then table.insert(Points, { CFrame = Part.CFrame }) end
             end
         end
     end
@@ -729,7 +769,10 @@ local function GetEquippedUnits()
     if type(Towers) == "table" then
         for UnitId, Info in pairs(Towers) do
             if type(Info) == "table" and Info.Name then
-                if Info.Equipped then
+                -- Equipped is a slot number (e.g. 5), not a boolean; 0 is benched.
+                local Slot = tonumber(Info.Equipped)
+                local IsEquipped = (Slot ~= nil and Slot > 0) or Info.Equipped == true
+                if IsEquipped then
                     table.insert(List, { UnitId = tostring(UnitId), Name = Info.Name, Level = tonumber(Info.Level) or 0 })
                 end
             end
@@ -739,10 +782,9 @@ local function GetEquippedUnits()
     return List
 end
 
--- The live replica schema has no `Money` key (Gems/TotalGems are premium), so the
--- reserve is applied only when a known currency field exists. Otherwise placement
--- is attempted and the server decides.
-local MoneyFields = { "Money", "Cash", "Coins", "Gems", "Currency", "Funds" }
+-- The live replica does expose `Money`; the reserve only applies when one of these
+-- fields is a number, so an unknown schema cannot stop placement entirely.
+local MoneyFields = { "Money", "Cash", "Coins", "Tokens", "Gems", "Currency", "Funds" }
 local function ReadMoney(Data)
     if type(Data) ~= "table" then return nil end
     for _, Field in ipairs(MoneyFields) do
@@ -766,11 +808,11 @@ local function PlaceOne()
     local Points = GetPlacementPoints()
     if #Points == 0 then return false end
     local Unit = Units[math.random(1, #Units)]
-    local Base = Points[math.random(1, #Points)]
+    local Point = Points[math.random(1, #Points)]
     -- Yolun kenarina kaydirma (sag/sol donusumlu)
     local Offset = tonumber(Options.PathOffset and Options.PathOffset.Value) or 0
     local Side = (Count % 2 == 0) and 1 or -1
-    local CF = Base * CFrame.new(Offset * Side, 0, 0)
+    local CF = Point.CFrame * CFrame.new(Offset * Side, 0, 0)
     return Fire("TowerAdd", {
         Name = Unit.Name, UnitId = Unit.UnitId,
         Pos = CF.Position, CFrame = CF,
@@ -891,14 +933,15 @@ task.spawn(function()
             Fire("WaveSkip")
         end
 
-        -- Auto Summon. The game exposes OpenCrate; SummonTowers was assumed and
-        -- does not exist in this place, so it is only used when present.
+        -- Auto Summon. The game exposes OpenCrate as a RemoteFunction; SummonTowers
+        -- was assumed and does not exist in this place.
         if ToggleOn("AutoSummon") and Now - LastSummon > 2.2 then
             LastSummon = Now
             if Remote("SummonTowers") then
                 Invoke("SummonTowers", "Basic Crate", 1)
             elseif Remote("OpenCrate") then
-                Fire("OpenCrate", "Basic Crate", 1)
+                -- RemoteFunction, not an event.
+                Invoke("OpenCrate", "Basic Crate", 1)
             end
         end
 
