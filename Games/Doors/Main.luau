@@ -4445,7 +4445,10 @@ Functions.HandleCharacter = function(NewCharacter)
 
 	Globals.LastAnimationCheck = tick()
 	Globals.LastCrouchFire = tick()
-	Globals.OriginalC1 = Character.LowerTorso.Root.C1
+	local RootJoint = Character:FindFirstChild("LowerTorso") and Character.LowerTorso:FindFirstChild("Root")
+	Globals.OriginalC1 = (RootJoint and RootJoint:IsA("JointInstance") and RootJoint.C1) or nil
+	Globals.SpoofC1State = nil
+	Globals.SpoofC1Warned = false
 
 	local RayParams = RaycastParams.new()
 	RayParams.FilterType = Enum.RaycastFilterType.Exclude
@@ -4728,8 +4731,22 @@ Connections.MainHandler = Services.RunService.RenderStepped:Connect(function(Del
 				RootPart.CanCollide = not (ToggleOn("NoclipToggle") or ToggleOn("VelocityManipulationToggle"))
 			end
 
-			if Character:FindFirstChild("LowerTorso") and Character.LowerTorso:FindFirstChild("Root") then
-				Character.LowerTorso.Root.C1 = Globals.OriginalC1 * CFrame.new(0, ToggleOn("PositionSpoof") and -2.346 or 0, 0)
+			-- Only write C1 when the spoof state actually changes: the old code
+			-- rewrote it every frame, and on rigs where the joint rejects C1 writes
+			-- ("Property is read only") that turned into a console flood.
+			local LowerTorso = Character:FindFirstChild("LowerTorso")
+			local Joint = LowerTorso and LowerTorso:FindFirstChild("Root")
+			if Joint and Joint:IsA("JointInstance") and Globals.OriginalC1 then
+				local Spoofing = ToggleOn("PositionSpoof")
+				if Globals.SpoofC1State ~= Spoofing then
+					Globals.SpoofC1State = Spoofing
+					local Desired = Spoofing and (Globals.OriginalC1 * CFrame.new(0, -2.346, 0)) or Globals.OriginalC1
+					local Ok, Err = pcall(function() Joint.C1 = Desired end)
+					if not Ok and not Globals.SpoofC1Warned then
+						Globals.SpoofC1Warned = true
+						warn("[Abysall] Position Spoof: this rig rejects C1 writes (" .. tostring(Err) .. ")")
+					end
+				end
 			end
 
 		local SpoofY = ToggleOn("PositionSpoof") and 2.328 or 0.18
@@ -7302,8 +7319,8 @@ Library:OnUnload(function()
 	CollisionPart.Position      = RootPart.Position + Vector3.new(0, BaseY, 0)
 	CollisionPartClone.Position = RootPart.Position + Vector3.new(0, BaseY, 0)
 
-	if Character:FindFirstChild("LowerTorso") and Character.LowerTorso:FindFirstChild("Root") then
-		Character.LowerTorso.Root.C1 = Globals.OriginalC1
+	if Character:FindFirstChild("LowerTorso") and Character.LowerTorso:FindFirstChild("Root") and Globals.OriginalC1 then
+		pcall(function() Character.LowerTorso.Root.C1 = Globals.OriginalC1 end)
 	end
 	if Collision:FindFirstChild("CollisionCrouch") then
 		Collision.CollisionCrouch.Position = RootPart.Position + Vector3.new(0, -0.982, 0)
