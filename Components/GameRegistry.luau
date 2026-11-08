@@ -84,6 +84,13 @@ local Registry = {
             Features = { "Auto hatch (20 slots)", "Auto rebirth", "Auto sell pets", "Rarity-based auto steal and base return" },
         },
         {
+            Id = "DepthIncremental", Name = "Depth Incremental",
+            GameIds = { 10769835283 },
+            PlaceIds = { 119101118479978 },
+            Updated = "2026-11-08", Coverage = "Main game (UPD5)",
+            Features = { "Auto Worm Teleport", "Worm ESP" },
+        },
+        {
             Id = "BloxFruits", Name = "Blox Fruits",
             GameIds = { 994732206 },
             PlaceIds = { 2753915549 },

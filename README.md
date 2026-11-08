@@ -56,6 +56,12 @@ character death suspend the movement force.
 The Linoria menu displays a small cursor in the current accent color while open.
 Closing or unloading the menu restores the previous mouse icon and lock state.
 
+**Depth Incremental** (`119101118479978`, universe `10769835283`) includes Auto
+Worm Teleport and Worm ESP. It searches recursively for the active target
+`WormModel` (configurable in the module), teleports to it when it spawns and
+can retarget a newly moved worm. Profiles save under `Abysall/DepthIncremental`;
+the module appears in the Home catalog automatically.
+
 **Blox Fruits** (`2753915549`, universe `994732206`) includes Player ESP, a
 generic name-filtered ESP, Pumpkin ESP and Halloween Pumpkin Hunt automation.
 Auto Collect Pumpkin scans `Workspace.PumpkinHunt`, selects the nearest pumpkin
