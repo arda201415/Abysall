@@ -56,6 +56,14 @@ character death suspend the movement force.
 The Linoria menu displays a small cursor in the current accent color while open.
 Closing or unloading the menu restores the previous mouse icon and lock state.
 
+**Blox Fruits** (`2753915549`, universe `994732206`) includes Player ESP, a
+generic name-filtered ESP, Pumpkin ESP and Halloween Pumpkin Hunt automation.
+Auto Collect Pumpkin scans `Workspace.PumpkinHunt`, selects the nearest pumpkin
+and clicks its projected screen position; it can either move gradually or blink
+at the target. The recovered obfuscated source and limitations are documented in
+[Research/BloxFruits.md](Research/BloxFruits.md). Profiles save under
+`Abysall/BloxFruits` and the module appears in the Home catalog automatically.
+
 **Steal An Egg** (`107778070777162`) includes Loop WalkSpeed, Instant Prompts,
 optional client correction controls and character reset. Settings save separately
 under `Abysall/StealAnEgg`; the module appears in the Home catalog automatically.

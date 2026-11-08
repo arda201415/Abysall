@@ -84,6 +84,13 @@ local Registry = {
             Features = { "Auto hatch (20 slots)", "Auto rebirth", "Auto sell pets", "Rarity-based auto steal and base return" },
         },
         {
+            Id = "BloxFruits", Name = "Blox Fruits",
+            GameIds = { 994732206 },
+            PlaceIds = { 2753915549 },
+            Updated = "2026-11-08", Coverage = "Main game and active Halloween Pumpkin Hunt",
+            Features = { "Player ESP", "Name-filtered item ESP", "Pumpkin ESP", "Auto Collect Pumpkin", "Movement settings" },
+        },
+        {
             Id = "ClosingShift", Name = "Closing Shift", GameIds = { 10767355485 },
             PlaceIds = { 118297934142609 },
             Updated = "2026-11-02", Coverage = "Main game",
